@@ -1,67 +1,113 @@
 'use client'
 
-import { useState } from 'react'
-import {
-  CalendarIcon,
-  Check,
-  ChevronLeft,
-  Clock,
-  PartyPopper,
-  Users,
-} from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useReservations } from '@/components/reservation-provider'
-import {
-  OCCASIONS,
-  PARTY_SIZES,
-  TIME_SLOTS,
-  formatDateLong,
-  formatTime,
-} from '@/lib/restaurant'
-import { cn } from '@/lib/utils'
+import { OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
+import { cn, validateVNPhone, validateEmail } from '@/lib/utils'
+
+// Import split sub-components
+import { ProgressSteps } from './booking/progress-steps'
+import { StepPartySize } from './booking/step-party-size'
+import { StepDate } from './booking/step-date'
+import { StepTime } from './booking/step-time'
+import { StepInfo } from './booking/step-info'
+import { StepSuccess } from './booking/step-success'
+import { SummaryBar } from './booking/summary-bar'
 
 function toISO(date: Date) {
   return date.toISOString().slice(0, 10)
 }
 
-export function BookingForm() {
+interface BookingFormProps {
+  step: 1 | 2 | 3 | 4 | 5
+  setStep: React.Dispatch<React.SetStateAction<1 | 2 | 3 | 4 | 5>>
+  date: Date | undefined
+  setDate: (d: Date | undefined) => void
+  partySize: string
+  setPartySize: (size: string) => void
+  time: string
+  setTime: (t: string) => void
+  name: string
+  setName: (val: string) => void
+  email: string
+  setEmail: (val: string) => void
+  phone: string
+  setPhone: (val: string) => void
+  occasion: string
+  setOccasion: (val: string) => void
+  tableLocation: string
+  setTableLocation: (val: string) => void
+  notes: string
+  setNotes: (val: string) => void
+  isCustomParty: boolean
+  setIsCustomParty: (isCustom: boolean) => void
+  customPartyValue: string
+  setCustomPartyValue: (val: string) => void
+  currentMonth: Date
+  setCurrentMonth: React.Dispatch<React.SetStateAction<Date>>
+}
+
+export function BookingForm({
+  step,
+  setStep,
+  date,
+  setDate,
+  partySize,
+  setPartySize,
+  time,
+  setTime,
+  name,
+  setName,
+  email,
+  setEmail,
+  phone,
+  setPhone,
+  occasion,
+  setOccasion,
+  tableLocation,
+  setTableLocation,
+  notes,
+  setNotes,
+  isCustomParty,
+  setIsCustomParty,
+  customPartyValue,
+  setCustomPartyValue,
+  currentMonth,
+  setCurrentMonth,
+}: BookingFormProps) {
   const { addReservation } = useReservations()
-
-  const [step, setStep] = useState<1 | 2 | 3>(1)
-  const [date, setDate] = useState<Date | undefined>(undefined)
-  const [partySize, setPartySize] = useState<string>('2')
-  const [time, setTime] = useState<string>('')
-
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [occasion, setOccasion] = useState(OCCASIONS[0])
-  const [notes, setNotes] = useState('')
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const step1Valid = Boolean(date && time && partySize)
-  const step2Valid = name.trim() && email.trim() && phone.trim()
+  // Validation rules for each step
+  const isStep1Valid = isCustomParty
+    ? (Number(customPartyValue) >= 9 && !isNaN(Number(customPartyValue)))
+    : Boolean(partySize)
+  const isStep2Valid = Boolean(date)
+  const isStep3Valid = Boolean(time)
+  const isStep4Valid = Boolean(name.trim() && email.trim() && validateEmail(email) && phone.trim() && validateVNPhone(phone))
+
+  // Maximum step the user is allowed to navigate to
+  const getMaxAllowedStep = () => {
+    if (!isStep1Valid) return 1
+    if (!isStep2Valid) return 2
+    if (!isStep3Valid) return 3
+    if (!isStep4Valid) return 4
+    return 4
+  }
+
+  const handleStepClick = (targetStep: 1 | 2 | 3 | 4) => {
+    if (step === 5) return
+    const maxAllowed = getMaxAllowedStep()
+    if (targetStep <= maxAllowed || targetStep <= step) {
+      setStep(targetStep)
+    }
+  }
 
   function handleConfirm() {
-    if (!date || !step2Valid) return
+    if (!date || !isStep4Valid) return
     addReservation({
       name: name.trim(),
       email: email.trim(),
@@ -70,262 +116,197 @@ export function BookingForm() {
       time,
       partySize: Number(partySize),
       occasion: occasion === OCCASIONS[0] ? undefined : occasion,
+      tableLocation: tableLocation === TABLE_LOCATIONS[0] ? undefined : tableLocation,
       notes: notes.trim() || undefined,
     })
-    toast.success('Reservation requested', {
-      description: 'We will confirm your table by email shortly.',
+    toast.success('Đã gửi yêu cầu đặt bàn', {
+      description: 'Chúng tôi sẽ sớm xác nhận bàn của bạn qua email.',
     })
-    setStep(3)
+    setStep(5)
   }
 
   function reset() {
     setStep(1)
     setDate(undefined)
-    setPartySize('2')
+    setPartySize('4')
     setTime('')
     setName('')
     setEmail('')
     setPhone('')
     setOccasion(OCCASIONS[0])
+    setTableLocation(TABLE_LOCATIONS[0])
     setNotes('')
+    setCurrentMonth(() => {
+      const initial = new Date()
+      initial.setDate(1)
+      return initial
+    })
+    setIsCustomParty(false)
+    setCustomPartyValue('9')
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-      {/* Progress header */}
-      <div className="flex items-center justify-between border-b border-border bg-secondary/50 px-6 py-4">
-        <div>
-          <p className="font-serif text-lg font-semibold text-foreground">
-            {step === 3 ? 'Reservation received' : 'Reserve a table'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {step === 1 && 'Choose your date, party, and time'}
-            {step === 2 && 'Tell us who is joining'}
-            {step === 3 && 'We look forward to hosting you'}
-          </p>
-        </div>
-        {step !== 3 && (
-          <span className="text-sm font-medium text-muted-foreground">
-            Step {step} of 2
-          </span>
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg transition-all duration-300">
+      {/* Header with App Theme Color */}
+      <div className="flex items-center justify-between bg-primary px-6 py-5 text-primary-foreground">
+        <h3 className="font-serif text-xl font-bold tracking-tight">Đặt bàn</h3>
+        {step !== 5 && (
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono font-bold tracking-wider opacity-90">
+              {step}/4
+            </span>
+            <div className="h-1.5 w-20 sm:w-28 rounded-full bg-primary-foreground/25 overflow-hidden">
+              <div
+                className="h-full bg-primary-foreground transition-all duration-300 ease-out"
+                style={{ width: `${step * 25}%` }}
+              />
+            </div>
+          </div>
         )}
       </div>
 
-      <div className="p-6">
+      {/* 4-Step Card Progress Indicator */}
+      <ProgressSteps
+        step={step}
+        isPartySizeSelected={isStep1Valid}
+        isDateSelected={isStep2Valid}
+        isTimeSelected={isStep3Valid}
+        isInfoFilled={isStep4Valid}
+        handleStepClick={handleStepClick}
+      />
+
+      {/* Main Step Content Container */}
+      <div className="p-4 pt-3 sm:p-6">
+        {/* Step rendering orchestrator */}
         {step === 1 && (
-          <div className="flex flex-col gap-5">
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label>Date</Label>
-                <Popover>
-                  <PopoverTrigger
-                    className={cn(
-                      'inline-flex h-9 items-center justify-start gap-2 rounded-lg border border-input bg-background px-3 text-sm font-normal shadow-xs transition-colors hover:bg-secondary focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
-                      !date && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarIcon className="size-4" />
-                    {date ? formatDateLong(toISO(date)) : 'Select a date'}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      disabled={(d) => d < today}
-                      autoFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label className="flex items-center gap-1.5">
-                  <Users className="size-3.5" /> Party size
-                </Label>
-                <Select value={partySize} onValueChange={setPartySize}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PARTY_SIZES.map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n} {n === 1 ? 'guest' : 'guests'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1.5">
-                <Clock className="size-3.5" /> Time
-              </Label>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {TIME_SLOTS.map((slot) => (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setTime(slot)}
-                    className={cn(
-                      'rounded-md border px-2 py-2 text-sm font-medium transition-colors',
-                      time === slot
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-secondary',
-                    )}
-                  >
-                    {formatTime(slot)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Button
-              size="lg"
-              className="mt-1 w-full"
-              disabled={!step1Valid}
-              onClick={() => setStep(2)}
-            >
-              Continue
-            </Button>
-          </div>
+          <StepPartySize
+            partySize={partySize}
+            setPartySize={setPartySize}
+            isCustomParty={isCustomParty}
+            setIsCustomParty={setIsCustomParty}
+            customPartyValue={customPartyValue}
+            setCustomPartyValue={setCustomPartyValue}
+          />
         )}
 
         {step === 2 && (
-          <div className="flex flex-col gap-5">
-            <div className="rounded-lg border border-border bg-secondary/40 px-4 py-3 text-sm">
-              <span className="font-medium text-foreground">
-                {date && formatDateLong(toISO(date))}
-              </span>
-              <span className="text-muted-foreground">
-                {' · '}
-                {time && formatTime(time)} · {partySize}{' '}
-                {Number(partySize) === 1 ? 'guest' : 'guests'}
-              </span>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="name">Full name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Jane Doe"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="(415) 555-0100"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="jane@example.com"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="flex items-center gap-1.5">
-                <PartyPopper className="size-3.5" /> Occasion
-              </Label>
-              <Select value={occasion} onValueChange={setOccasion}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {OCCASIONS.map((o) => (
-                    <SelectItem key={o} value={o}>
-                      {o}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="notes">Special requests</Label>
-              <textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="Allergies, seating preferences, celebrations..."
-                className="resize-none rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-1"
-                onClick={() => setStep(1)}
-              >
-                <ChevronLeft className="size-4" /> Back
-              </Button>
-              <Button
-                size="lg"
-                className="flex-1"
-                disabled={!step2Valid}
-                onClick={handleConfirm}
-              >
-                Confirm reservation
-              </Button>
-            </div>
-          </div>
+          <StepDate
+            date={date}
+            setDate={setDate}
+            today={today}
+            currentMonth={currentMonth}
+            setCurrentMonth={setCurrentMonth}
+          />
         )}
 
-        {step === 3 && date && (
-          <div className="flex flex-col items-center gap-5 py-4 text-center">
-            <span className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <Check className="size-7" />
-            </span>
-            <div className="flex flex-col gap-1">
-              <p className="font-serif text-2xl font-semibold text-foreground">
-                Thank you, {name.split(' ')[0]}
-              </p>
-              <p className="max-w-sm text-pretty text-sm text-muted-foreground">
-                Your request for a table is in. A confirmation will be sent to{' '}
-                <span className="font-medium text-foreground">{email}</span>.
-              </p>
-            </div>
-            <div className="w-full max-w-sm rounded-lg border border-border bg-secondary/40 px-5 py-4 text-left text-sm">
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">Date</span>
-                <span className="font-medium text-foreground">
-                  {formatDateLong(toISO(date))}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">Time</span>
-                <span className="font-medium text-foreground">
-                  {formatTime(time)}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">Party</span>
-                <span className="font-medium text-foreground">
-                  {partySize} {Number(partySize) === 1 ? 'guest' : 'guests'}
-                </span>
-              </div>
-            </div>
-            <Button variant="outline" onClick={reset}>
-              Make another reservation
-            </Button>
+        {step === 3 && (
+          <StepTime
+            time={time}
+            setTime={setTime}
+          />
+        )}
+
+        {step === 4 && (
+          <StepInfo
+            name={name}
+            setName={setName}
+            phone={phone}
+            setPhone={setPhone}
+            email={email}
+            setEmail={setEmail}
+            occasion={occasion}
+            setOccasion={setOccasion}
+            tableLocation={tableLocation}
+            setTableLocation={setTableLocation}
+            notes={notes}
+            setNotes={setNotes}
+          />
+        )}
+
+        {step === 5 && (
+          <StepSuccess
+            name={name}
+            phone={phone}
+            email={email}
+            date={date}
+            time={time}
+            partySize={partySize}
+            occasion={occasion}
+            tableLocation={tableLocation}
+            notes={notes}
+            reset={reset}
+          />
+        )}
+
+        {/* Persistent Summary Bar aligned with Web Theme */}
+        {step !== 5 && (
+          <SummaryBar
+            partySize={partySize}
+            date={date}
+            time={time}
+          />
+        )}
+
+        {/* Navigation Buttons (Footer) */}
+        {step !== 5 && (
+          <div className="mt-6 flex items-center justify-between pt-4 border-t border-border">
+            <button
+              type="button"
+              onClick={() => {
+                if (step > 1) {
+                  setStep((prev) => (prev - 1) as 1 | 2 | 3 | 4)
+                }
+              }}
+              disabled={step === 1}
+              className={cn(
+                'flex items-center gap-1 text-sm font-semibold transition-colors',
+                step === 1 ? 'opacity-40 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <ChevronLeft className="size-4" />
+              <span>Quay lại</span>
+            </button>
+
+            {step < 4 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const maxAllowed = getMaxAllowedStep()
+                  if (step < maxAllowed) {
+                    setStep((prev) => (prev + 1) as 1 | 2 | 3 | 4)
+                  }
+                }}
+                disabled={
+                  (step === 1 && !isStep1Valid) ||
+                  (step === 2 && !isStep2Valid) ||
+                  (step === 3 && !isStep3Valid)
+                }
+                className={cn(
+                  'flex items-center gap-1 rounded-lg px-6 py-2 text-sm font-semibold transition-all shadow-md',
+                  ((step === 1 && !isStep1Valid) ||
+                    (step === 2 && !isStep2Valid) ||
+                    (step === 3 && !isStep3Valid))
+                    ? 'bg-secondary text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]'
+                )}
+              >
+                <span>Tiếp tục</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={!isStep4Valid}
+                className={cn(
+                  'flex items-center gap-1 rounded-lg px-6 py-2 text-sm font-semibold transition-all shadow-md',
+                  !isStep4Valid
+                    ? 'bg-secondary text-muted-foreground cursor-not-allowed opacity-50'
+                    : 'bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]'
+                )}
+              >
+                <span>Xác nhận đặt bàn</span>
+              </button>
+            )}
           </div>
         )}
       </div>

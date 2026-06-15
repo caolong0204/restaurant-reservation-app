@@ -1,0 +1,187 @@
+'use client'
+
+import {
+  Calendar,
+  CheckCircle,
+  Clock,
+  FileText,
+  Layers,
+  Mail,
+  Phone,
+  User,
+  Users,
+} from 'lucide-react'
+import { OCCASIONS, TABLE_LOCATIONS, formatDateLong } from '@/lib/restaurant'
+
+interface BookingSummaryProps {
+  date: Date | undefined
+  partySize: string
+  time: string
+  name: string
+  email: string
+  phone: string
+  occasion: string
+  tableLocation: string
+  notes: string
+}
+
+function toISO(date: Date) {
+  return date.toISOString().slice(0, 10)
+}
+
+export function BookingSummary({
+  date,
+  partySize,
+  time,
+  name,
+  email,
+  phone,
+  occasion,
+  tableLocation,
+  notes,
+}: BookingSummaryProps) {
+  return (
+    <div className="scroll-mt-20 lg:col-span-5 hidden lg:flex flex-col gap-6">
+      <div>
+        <p className="font-mono text-xs uppercase tracking-widest text-primary">
+          Vé đặt bàn
+        </p>
+        <h2 className="mt-3 text-balance font-serif text-3xl font-semibold text-foreground sm:text-4xl">
+          Thông tin đặt bàn
+        </h2>
+        <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground">
+          Thông tin bên dưới tự động cập nhật theo các tùy chọn bạn nhập ở bảng đăng ký bên cạnh.
+        </p>
+      </div>
+
+      {/* Ticket Card */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-md relative overflow-hidden">
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-primary" />
+
+        <div className="flex flex-col gap-5">
+          <h4 className="font-serif text-lg font-bold text-foreground border-b border-border/60 pb-3">
+            Tóm tắt lượt đặt bàn
+          </h4>
+
+          {/* Selections */}
+          <div className="flex flex-col gap-3.5">
+            {/* Party size */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground font-medium">
+                <Users className="size-4 text-primary" />
+                Số lượng khách
+              </span>
+              <span className="font-semibold text-foreground">
+                {partySize ? `${partySize} khách` : 'Chưa chọn'}
+              </span>
+            </div>
+
+            {/* Date */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground font-medium">
+                <Calendar className="size-4 text-primary" />
+                Ngày dùng bữa
+              </span>
+              <span className="font-semibold text-foreground text-right max-w-[180px] truncate">
+                {date ? formatDateLong(toISO(date)) : 'Chưa chọn ngày'}
+              </span>
+            </div>
+
+            {/* Time */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground font-medium">
+                <Clock className="size-4 text-primary" />
+                Giờ đón khách
+              </span>
+              <span className="font-semibold text-foreground">
+                {time ? time : 'Chưa chọn giờ'}
+              </span>
+            </div>
+          </div>
+
+          {/* Guest Details (only if step >= 4 or filled in) */}
+          {(name.trim() || phone.trim() || email.trim() || notes.trim()) && (
+            <div className="border-t border-dashed border-border/80 pt-4 flex flex-col gap-3.5">
+              <h5 className="font-serif text-sm font-bold text-foreground opacity-90">
+                Thông tin liên hệ
+              </h5>
+
+              <div className="flex flex-col gap-2.5">
+                {/* Name */}
+                {name.trim() && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <User className="size-3.5" />
+                      Họ và tên
+                    </span>
+                    <span className="font-medium text-foreground">{name}</span>
+                  </div>
+                )}
+
+                {/* Phone */}
+                {phone.trim() && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Phone className="size-3.5" />
+                      Số điện thoại
+                    </span>
+                    <span className="font-medium text-foreground">{phone}</span>
+                  </div>
+                )}
+
+                {/* Email */}
+                {email.trim() && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Mail className="size-3.5" />
+                      Email
+                    </span>
+                    <span className="font-medium text-foreground truncate max-w-[160px]">
+                      {email}
+                    </span>
+                  </div>
+                )}
+
+                {/* Occasion */}
+                {occasion !== OCCASIONS[0] && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <CheckCircle className="size-3.5" />
+                      Dịp đặc biệt
+                    </span>
+                    <span className="font-medium text-foreground">{occasion}</span>
+                  </div>
+                )}
+
+                {/* Table Location */}
+                {tableLocation && tableLocation !== TABLE_LOCATIONS[0] && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Layers className="size-3.5" />
+                      Vị trí bàn
+                    </span>
+                    <span className="font-medium text-foreground">{tableLocation}</span>
+                  </div>
+                )}
+
+                {/* Special requests */}
+                {notes.trim() && (
+                  <div className="flex flex-col gap-1.5 text-xs mt-1 bg-secondary/35 rounded-lg p-2.5 border border-border/40">
+                    <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
+                      <FileText className="size-3.5" />
+                      Yêu cầu đặc biệt
+                    </span>
+                    <p className="italic text-muted-foreground/90 leading-relaxed font-serif text-[13px]">
+                      “{notes}”
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

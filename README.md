@@ -1,33 +1,45 @@
-# restaurant-reservation-app
+# Maison Laurent — Restaurant Reservation App
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app). It serves as a modern fine-dining reservation portal and admin dashboard.
 
-## Built with v0
+---
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+## AI Developer Context (Best Practices)
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_wrSaXMiJKTxD9uEjMZXGSPpwWRWy)
+To ensure consistency and velocity when working with AI coding assistants, we have defined the following documentation:
+
+- 📊 **[Architecture Details](docs/ARCHITECTURE.md)**: Overall application layers, tech stack, data flows, and component responsibilities.
+- 📐 **[Coding Rules](docs/RULES.md)**: Code conventions, TypeScript guidelines, and CSS conventions.
+- 🔧 **[Developer Skills & Workflows](docs/SKILLS.md)**: Step-by-step instructions for tasks like adding pages, components, or integrating databases.
+
+Please prompt any AI assistant to read these files before starting new tasks.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+This project uses **pnpm** as its package manager. Follow the steps below to set up and run:
 
+### 1. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+```
+
+> **Note:** If you encounter `[ERR_PNPM_IGNORED_BUILDS]` regarding `msw` or `sharp`, you need to approve their builds by running:
+> ```bash
+> pnpm approve-builds
+> ```
+
+### 2. Run the Development Server
+```bash
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) (or the port specified in terminal output if 3000 is occupied) with your browser to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-## Learn More
-
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+## Features Built
+- **Landing Page**: Immersive design for Maison Laurent restaurant.
+- **Reservation Booking Flow**: 3-step validation form for reserving tables.
+- **Admin Dashboard**: Accessible at `/admin` to list, sort, filter, and manage reservation statuses.
