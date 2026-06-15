@@ -2,7 +2,6 @@ import Image from 'next/image'
 import { Clock, MapPin, Phone, Star } from 'lucide-react'
 import { SiteHeader } from '@/components/site-header'
 import { BookingForm } from '@/components/booking-form'
-import { MenuSection } from '@/components/menu-section'
 import { RESTAURANT } from '@/lib/restaurant'
 
 const HIGHLIGHTS = [
@@ -57,12 +56,6 @@ export default function HomePage() {
                 >
                   Reserve a table
                 </a>
-                <a
-                  href="#menu"
-                  className="inline-flex h-11 items-center justify-center rounded-md border border-background/40 bg-background/5 px-6 text-sm font-medium text-background backdrop-blur transition-colors hover:bg-background/15"
-                >
-                  View the menu
-                </a>
               </div>
             </div>
           </div>
@@ -95,9 +88,6 @@ export default function HomePage() {
           ))}
         </div>
       </section>
-
-      {/* Menu */}
-      <MenuSection />
 
       {/* Reserve */}
       <section id="reserve" className="scroll-mt-20 bg-secondary/40 py-20">

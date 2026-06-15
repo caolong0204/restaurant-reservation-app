@@ -26,12 +26,6 @@ export function SiteHeader() {
             Experience
           </a>
           <a
-            href="#menu"
-            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Menu
-          </a>
-          <a
             href="#visit"
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
