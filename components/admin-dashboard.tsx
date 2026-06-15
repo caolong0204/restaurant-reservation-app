@@ -214,6 +214,7 @@ export function AdminDashboard() {
           </div>
           <Button
             render={<Link href="/">View site</Link>}
+            nativeButton={false}
             variant="outline"
             size="sm"
           />
