@@ -1,135 +1,163 @@
-# Architecture — Maison Laurent Reservation App
+# Architecture — Flambé Reservation App
 
 ## Overview
 
-This is a **Next.js 16 App Router** web application for managing restaurant table reservations. It is a single-page application (SPA) built with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui components.
+This is a Next.js 16 App Router application for restaurant table reservations.
 
-The current version is **frontend-only** — all state is held in memory (via React Context). There is no backend or database integration yet.
+The app currently has:
 
----
+- Public booking experience at `/`.
+- Staff/admin operations dashboard at `/admin`.
+- Demo-mode data flow through Server Actions and an in-memory server store.
+- Supabase helper code and draft migrations for the upcoming backend phase.
+
+Supabase is optional at runtime. If Supabase environment variables are missing, the app runs in demo mode.
 
 ## Tech Stack
 
-| Layer        | Technology                          |
-|--------------|-------------------------------------|
-| Framework    | Next.js 16 (App Router)             |
-| Language     | TypeScript 5.7 (strict)             |
-| Styling      | Tailwind CSS v4 + `tw-animate-css`  |
-| UI Library   | shadcn/ui (Base UI primitives)      |
-| Icons        | Lucide React                        |
-| Fonts        | Geist Sans, Geist Mono, Playfair Display (Google Fonts) |
-| Date Picker  | `react-day-picker` v10              |
-| Toast        | `sonner`                            |
-| Date Helpers | `date-fns`                          |
-| Analytics    | `@vercel/analytics` (production only) |
-| Package Mgr  | pnpm v11                            |
+| Layer | Technology |
+| --- | --- |
+| Framework | Next.js 16 App Router |
+| UI | React 19 |
+| Language | TypeScript 5.7 |
+| Styling | Tailwind CSS v4 |
+| UI primitives | Base UI / shadcn-style local components |
+| Icons | Lucide React |
+| Toasts | Sonner |
+| Date picker | React Day Picker |
+| Backend target | Supabase Postgres + Supabase Auth |
+| Package manager | pnpm |
 
----
+## Routes
 
-## Directory Structure
+| Route | Purpose |
+| --- | --- |
+| `/` | Public restaurant page and booking wizard |
+| `/admin` | Staff/admin reservation operations |
+| `/admin/login` | Supabase Auth login page for admin mode |
 
-```
-restaurant-reservation-app/
-├── app/                        # Next.js App Router
-│   ├── layout.tsx              # Root layout: fonts, providers, metadata
-│   ├── page.tsx                # Home page (Hero, Experience, Booking sections)
-│   ├── globals.css             # Global styles & CSS design tokens
-│   └── admin/                  # Admin panel route
-│       └── page.tsx            # Admin dashboard
-│
-├── components/                 # React components
-│   ├── booking-form.tsx        # 3-step booking wizard (Client Component)
-│   ├── reservation-provider.tsx # Global state via React Context
-│   ├── site-header.tsx         # Navigation header
-│   ├── admin-dashboard.tsx     # Reservation management table (Client Component)
-│   └── ui/                     # shadcn/ui primitive components
-│       ├── button.tsx
-│       ├── calendar.tsx
-│       ├── input.tsx
-│       ├── label.tsx
-│       ├── popover.tsx
-│       ├── select.tsx
-│       └── sonner.tsx
-│
-├── lib/                        # Shared utilities and constants
-│   ├── restaurant.ts           # Restaurant constants, time slots, formatter functions
-│   └── utils.ts                # Tailwind `cn()` utility (clsx + tailwind-merge)
-│
-├── public/                     # Static assets (images, icons)
-├── next.config.mjs             # Next.js configuration
-├── postcss.config.mjs          # PostCSS / Tailwind configuration
-├── tsconfig.json               # TypeScript configuration
-└── components.json             # shadcn/ui configuration
+## Main Data Flow
+
+```text
+Public BookingForm
+  -> useReservations().addReservation()
+  -> createReservation Server Action
+  -> demo store OR Supabase reservations insert
+  -> pending reservation
+
+AdminDashboard
+  -> useReservations()
+  -> reservation Server Actions
+  -> demo store OR Supabase
+  -> local provider state upsert
 ```
 
----
+## Runtime Modes
 
-## Data Flow
+### Demo Mode
 
-```
-ReservationProvider (React Context)
-        │
-        ├── reservations[]      ← In-memory array, seeded with mock data
-        ├── addReservation()    ← Called by BookingForm on submit
-        └── updateStatus()      ← Called by AdminDashboard to confirm/cancel
-```
+When Supabase env vars are not configured:
 
-### Reservation Lifecycle
+- `isSupabaseConfigured()` returns false.
+- Admin route is not auth-protected.
+- Server Actions use `lib/reservation-demo-store.ts`.
+- Demo data resets with the server process.
 
-```
-[Guest] → BookingForm (Step 1: Date/Time/Party)
-                     → (Step 2: Guest Info)
-                     → handleConfirm() → addReservation() → status: 'pending'
+### Supabase Mode
 
-[Admin] → AdminDashboard → updateStatus(id, 'confirmed' | 'cancelled')
+When these env vars exist:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 ```
 
----
+- `/admin` is protected by `proxy.ts`.
+- Staff must exist in `staff_profiles` and be active.
+- Server Actions use Supabase tables/RPCs.
 
-## Page Routes
+The current Supabase SQL should be treated as draft until synced with the latest frontend/demo rules.
 
-| Route    | File                  | Description                          |
-|----------|-----------------------|--------------------------------------|
-| `/`      | `app/page.tsx`        | Public landing page + booking form   |
-| `/admin` | `app/admin/page.tsx`  | Admin dashboard for managing reservations |
+## Core Domain Types
 
----
+Shared reservation/table types live in `lib/reservation-types.ts`.
 
-## Component Responsibilities
+Important types:
 
-### `ReservationProvider` (`components/reservation-provider.tsx`)
-- Single source of truth for all reservation data
-- Provides `useReservations()` hook to child components
-- Currently uses in-memory state (no persistence)
+- `Reservation`
+- `ReservationStatus`
+- `RestaurantTable`
+- `ReservationInput`
+- `SlotAvailability`
 
-### `BookingForm` (`components/booking-form.tsx`)
-- 3-step multi-step form: Date/Time → Guest Info → Confirmation
-- Manages its own local form state
-- Calls `addReservation()` on completion
+## Booking Rules
 
-### `AdminDashboard` (`components/admin-dashboard.tsx`)
-- Displays all reservations in a sortable/filterable table
-- Allows status updates (confirm / cancel)
+- New public bookings are `pending`.
+- Pending bookings do not occupy tables.
+- Confirmed bookings occupy assigned main and secondary tables.
+- Guests never choose tables.
+- Admin must assign tables when confirming.
+- Large-party capacity guard is enforced in the confirm and edit UI.
 
-### `lib/restaurant.ts`
-- All restaurant-specific constants: `RESTAURANT`, `TIME_SLOTS`, `PARTY_SIZES`, `OCCASIONS`
-- Date/time formatter functions: `formatTime()`, `formatDate()`, `formatDateLong()`
+Duration rules:
 
----
+- 1-4 guests: 120 minutes.
+- 5-6 guests: 150 minutes.
+- 7+ guests: 180 minutes.
 
-## Current Limitations
+Operating cutoff:
 
-- **No persistence** — all data is lost on page refresh (in-memory React state)
-- **No authentication** — the `/admin` route is publicly accessible
-- **No backend API** — no server-side validation or email confirmation
-- **No real payment/deposit flow**
+- Weekdays: `22:00`.
+- Friday/Saturday/Sunday: `22:30`.
 
----
+## Important Components
 
-## Planned Improvements
+| File | Responsibility |
+| --- | --- |
+| `components/booking-form.tsx` | Public booking wizard shell |
+| `components/booking/*` | Booking wizard step components |
+| `components/reservation-provider.tsx` | Client context wrapping Server Actions |
+| `components/admin-dashboard.tsx` | Admin page state and composition |
+| `components/admin/reservation-table.tsx` | Dense row operations view |
+| `components/admin/day-calendar-view.tsx` | Table timeline calendar |
+| `components/admin/assign-table-modal.tsx` | Confirm/table assignment flow |
+| `components/admin/create-modal.tsx` | Manual booking creation |
+| `components/admin/edit-modal.tsx` | Edit existing booking |
 
-- [ ] Add a database (e.g., Supabase / Postgres) for persistent reservations
-- [ ] Add authentication for the admin panel (e.g., NextAuth.js)
-- [ ] Add server actions for form submission and status updates
-- [ ] Send confirmation emails via a transactional email service (e.g., Resend)
-- [ ] Add availability checking to prevent double-booking
+## Important Server/Lib Files
+
+| File | Responsibility |
+| --- | --- |
+| `lib/reservation-actions.ts` | Server Actions for public/admin operations |
+| `lib/reservation-demo-store.ts` | Demo-mode server-memory data and overlap logic |
+| `lib/table-seed.ts` | Demo table inventory |
+| `lib/restaurant.ts` | Restaurant constants, slots, date/time helpers |
+| `lib/supabase/server.ts` | Cookie-based Supabase SSR client |
+| `lib/supabase/client.ts` | Browser Supabase client |
+| `lib/supabase/proxy.ts` | Session refresh helper |
+| `lib/auth-actions.ts` | Admin sign-in/sign-out |
+
+## Known Gaps
+
+- No automated unit/e2e tests yet.
+- Supabase migrations are draft/outdated relative to current frontend/demo logic.
+- No email or payment flow.
+- No report/export flow yet.
+- No persisted audit trail for manual capacity override.
+
+## Required Verification
+
+Before finishing changes:
+
+```bash
+pnpm exec tsc --noEmit
+pnpm lint
+pnpm build
+```
+
+For rendered UI changes, smoke test:
+
+- `/` public booking form renders.
+- `/admin` list renders.
+- `/admin` calendar renders.
+- Confirm/edit capacity guard works for short-capacity bookings.
