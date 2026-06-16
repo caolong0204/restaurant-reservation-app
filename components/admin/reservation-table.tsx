@@ -88,17 +88,16 @@ export function ReservationTable({
         </TableHeader>
         <TableBody>
           {reservations.map((reservation, index) => {
-            const isEven = index % 2 === 0
             const isCancelled = reservation.status === 'cancelled'
 
             return (
               <TableRow
                 key={reservation.id}
                 className={cn(
-                  'border-border/70',
+                  'border-border/70 transition-colors',
                   isCancelled
                     ? 'bg-zinc-100/80 hover:bg-zinc-200/80 text-muted-foreground/85 dark:bg-zinc-900/35 dark:hover:bg-zinc-900/50'
-                    : cn(isEven ? 'bg-sky-100/70' : 'bg-card', 'hover:bg-primary/10 text-foreground')
+                    : 'hover:bg-muted/50 text-foreground'
                 )}
               >
                 <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>

@@ -57,6 +57,24 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
     }
   }, [reservation, tables])
 
+  // Set eIsManualArrangement and reset secondary tables based on capacity and selections
+  useEffect(() => {
+    if (eTableId) {
+      const mainTab = tables.find(t => t.id === eTableId)
+      if (mainTab) {
+        if (mainTab.capacity >= Number(ePartySize)) {
+          if (eSecondaryTableIds.length === 0) {
+            setEIsManualArrangement(true)
+          }
+        } else {
+          if (eSecondaryTableIds.length === 0) {
+            setEIsManualArrangement(false)
+          }
+        }
+      }
+    }
+  }, [eTableId, ePartySize, tables, eSecondaryTableIds.length])
+
   if (!isOpen || !reservation) return null
 
   // Form validations
@@ -80,24 +98,27 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
   const partySize = Number(ePartySize) || 0
 
   const hasCapacityWarning = eTableId && totalCapacity < partySize
-  const showLargePartyTip = eTableId && partySize > 4 && eSecondaryTableIds.length === 0
+  const showLargePartyTip = eTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && eSecondaryTableIds.length === 0
 
   const toggleSecondaryTable = (tableId: string) => {
-    setESecondaryTableIds((prev) =>
-      prev.includes(tableId) ? prev.filter((id) => id !== tableId) : [...prev, tableId],
-    )
+    setESecondaryTableIds((prev) => {
+      const next = prev.includes(tableId) ? prev.filter((id) => id !== tableId) : [...prev, tableId]
+      if (next.length > 0) {
+        setEIsManualArrangement(false)
+      }
+      return next
+    })
   }
 
   const handleMainTableChange = (val: string) => {
     setETableId(val)
+    setEIsManualArrangement(false)
     if (!val) {
       setESecondaryTableIds([])
-      setEIsManualArrangement(false)
     } else {
       const newMainTable = tables.find((t) => t.id === val)
       if (newMainTable && newMainTable.capacity >= partySize) {
         setESecondaryTableIds([])
-        setEIsManualArrangement(false)
       } else {
         setESecondaryTableIds((prev) => prev.filter((id) => id !== val))
       }
@@ -305,7 +326,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
           )}
 
           {/* Warning and Hint Notes */}
-          {eTableId && (
+          {eTableId && !eIsManualArrangement && (
             <div className="flex flex-col gap-1.5 text-xs bg-secondary/25 p-2.5 rounded-lg border border-border/60">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground font-semibold font-sans">Sức chứa tổng cộng:</span>

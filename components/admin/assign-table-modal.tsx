@@ -37,9 +37,34 @@ export function AssignTableModal({
   }, [availableTables, reservation])
 
   useEffect(() => {
-    setSelectedTableIds(bestFitTable ? [bestFitTable.id] : [])
-    setIsManualArrangement(false)
-  }, [bestFitTable])
+    if (bestFitTable && reservation) {
+      setSelectedTableIds([bestFitTable.id])
+      const isCapacityShort = bestFitTable.capacity < reservation.partySize
+      setIsManualArrangement(!isCapacityShort)
+    } else {
+      setSelectedTableIds([])
+      setIsManualArrangement(false)
+    }
+  }, [bestFitTable, reservation])
+
+  // Set isManualArrangement based on main table capacity when selection changes
+  useEffect(() => {
+    if (selectedTableIds.length > 0 && reservation) {
+      const mainTab = availableTables.find((t) => t.id === selectedTableIds[0])
+      if (mainTab) {
+        const selectedSecondaryIds = selectedTableIds.slice(1)
+        if (mainTab.capacity >= reservation.partySize) {
+          if (selectedSecondaryIds.length === 0) {
+            setIsManualArrangement(true)
+          }
+        } else {
+          if (selectedSecondaryIds.length === 0) {
+            setIsManualArrangement(false)
+          }
+        }
+      }
+    }
+  }, [selectedTableIds, availableTables, reservation])
 
   if (!isOpen || !reservation) return null
 
@@ -58,7 +83,7 @@ export function AssignTableModal({
   const partySize = reservation.partySize
 
   const hasCapacityWarning = selectedTableId && totalCapacity < partySize
-  const showLargePartyTip = selectedTableId && partySize > 4 && selectedSecondaryIds.length === 0
+  const showLargePartyTip = selectedTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && selectedSecondaryIds.length === 0
 
   const toggleTableSelect = (tableId: string) => {
     setSelectedTableIds((prev) => {
@@ -193,7 +218,7 @@ export function AssignTableModal({
         </div>
 
         {/* Dynamic Capacity Alerts Footer Note */}
-        {selectedTableIds.length > 0 && !isLoading && availableTables.length > 0 && (
+        {selectedTableIds.length > 0 && !isLoading && availableTables.length > 0 && (!isManualArrangement || (mainTable && mainTable.capacity < partySize)) && (
           <div className="border-t border-border px-5 py-3.5 bg-secondary/15 shrink-0 flex flex-col gap-2">
             <label className="flex items-center gap-2.5 pb-2.5 border-b border-border/50 cursor-pointer select-none">
               <input

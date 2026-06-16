@@ -243,14 +243,16 @@ export function DayCalendarView({
               <ChevronLeft className="size-4" />
             </Button>
             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-10 w-48 rounded-lg bg-background text-sm font-semibold justify-start pl-3 text-left border shadow-xs"
-                >
-                  <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
-                  <span className="truncate">{formatDate(selectedDate)}</span>
-                </Button>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    className="h-10 w-48 rounded-lg bg-background text-sm font-semibold justify-start pl-3 text-left border shadow-xs"
+                  />
+                }
+              >
+                <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
+                <span className="truncate">{formatDate(selectedDate)}</span>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="end">
                 <RestaurantCalendar
@@ -355,7 +357,7 @@ export function DayCalendarView({
                 </TableCell>
                 <TableCell className="h-16 p-0">
                   <div
-                    className="grid h-16 bg-emerald-50/35"
+                    className="grid h-16 bg-background"
                     style={{ gridTemplateColumns, width: timelineWidth }}
                   >
                     {slots.map((slot, index) => (

@@ -358,18 +358,20 @@ export function AdminDashboard() {
 
                 <div className="relative sm:col-span-5 md:col-span-4">
                   <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className={cn(
-                          'w-full justify-start text-left font-normal pl-9 text-sm h-9 rounded-lg relative bg-background border border-input shadow-xs',
-                          !dateFilter && 'text-muted-foreground',
-                        )}
-                      >
-                        <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                        {dateFilter ? formatDate(dateFilter) : 'Tất cả ngày'}
-                      </Button>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            'w-full justify-start text-left font-normal pl-9 text-sm h-9 rounded-lg relative bg-background border border-input shadow-xs',
+                            !dateFilter && 'text-muted-foreground',
+                          )}
+                        />
+                      }
+                    >
+                      <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                      {dateFilter ? formatDate(dateFilter) : 'Tất cả ngày'}
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="end">
                       <RestaurantCalendar

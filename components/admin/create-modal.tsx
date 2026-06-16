@@ -116,17 +116,19 @@ export function CreateModal({ isOpen, onClose, onSubmit }: CreateModalProps) {
             <div className="flex flex-col gap-1">
               <Label htmlFor="cDate" className="text-xs font-semibold">Ngày dùng bữa</Label>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="cDate"
-                    variant="outline"
-                    className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
-                    <span className={cDate ? 'text-foreground' : 'text-muted-foreground/60'}>
-                      {cDate ? formatDate(cDate) : 'Chọn ngày'}
-                    </span>
-                  </Button>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id="cDate"
+                      variant="outline"
+                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
+                    />
+                  }
+                >
+                  <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
+                  <span className={cDate ? 'text-foreground' : 'text-muted-foreground/60'}>
+                    {cDate ? formatDate(cDate) : 'Chọn ngày'}
+                  </span>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="start">
                   <RestaurantCalendar
