@@ -1,9 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useReservations } from '@/components/reservation-provider'
 import { OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
+import { getPublicSlotAvailability } from '@/lib/reservation-actions'
+import type { SlotAvailability } from '@/lib/reservation-types'
 import { cn, validateVNPhone, validateEmail } from '@/lib/utils'
 
 // Import split sub-components
@@ -16,7 +19,10 @@ import { StepSuccess } from './booking/step-success'
 import { SummaryBar } from './booking/summary-bar'
 
 function toISO(date: Date) {
-  return date.toISOString().slice(0, 10)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 interface BookingFormProps {
@@ -27,7 +33,7 @@ interface BookingFormProps {
   partySize: string
   setPartySize: (size: string) => void
   time: string
-  setTime: (t: string) => void
+  setTime: React.Dispatch<React.SetStateAction<string>>
   name: string
   setName: (val: string) => void
   email: string
@@ -77,17 +83,56 @@ export function BookingForm({
   setCurrentMonth,
 }: BookingFormProps) {
   const { addReservation } = useReservations()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [slotAvailability, setSlotAvailability] = useState<SlotAvailability[]>([])
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false)
+  const [slotError, setSlotError] = useState<string | null>(null)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
   // Validation rules for each step
   const isStep1Valid = isCustomParty
-    ? (Number(customPartyValue) >= 9 && !isNaN(Number(customPartyValue)))
+    ? (Number(customPartyValue) >= 9 && Number(customPartyValue) <= 24 && !isNaN(Number(customPartyValue)))
     : Boolean(partySize)
   const isStep2Valid = Boolean(date)
   const isStep3Valid = Boolean(time)
   const isStep4Valid = Boolean(name.trim() && email.trim() && validateEmail(email) && phone.trim() && validateVNPhone(phone))
+
+  useEffect(() => {
+    if (step !== 3 || !date || !isStep1Valid) return
+
+    let isActive = true
+    setIsLoadingSlots(true)
+    setSlotError(null)
+
+    getPublicSlotAvailability(toISO(date), Number(partySize))
+      .then((result) => {
+        if (!isActive) return
+
+        if (result.ok) {
+          setSlotAvailability(result.data)
+          // Clear selected time only if it has become fully booked
+          setTime((prev) => {
+            const selectedSlot = result.data.find((slot) => slot.time === prev)
+            return selectedSlot?.availableCount === 0 ? '' : prev
+          })
+        } else {
+          setSlotError(result.error)
+        }
+      })
+      .catch(() => {
+        if (isActive) setSlotError('Không kiểm tra được tình trạng bàn trống.')
+      })
+      .finally(() => {
+        if (isActive) setIsLoadingSlots(false)
+      })
+
+    return () => {
+      isActive = false
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date, isStep1Valid, partySize, step])
 
   // Maximum step the user is allowed to navigate to
   const getMaxAllowedStep = () => {
@@ -106,9 +151,11 @@ export function BookingForm({
     }
   }
 
-  function handleConfirm() {
-    if (!date || !isStep4Valid) return
-    addReservation({
+  async function handleConfirm() {
+    if (!date || !isStep4Valid || isSubmitting) return
+    setIsSubmitting(true)
+
+    const result = await addReservation({
       name: name.trim(),
       email: email.trim(),
       phone: phone.trim(),
@@ -119,10 +166,20 @@ export function BookingForm({
       tableLocation: tableLocation === TABLE_LOCATIONS[0] ? undefined : tableLocation,
       notes: notes.trim() || undefined,
     })
-    toast.success('Đã gửi yêu cầu đặt bàn', {
-      description: 'Chúng tôi sẽ sớm xác nhận bàn của bạn qua email.',
+
+    setIsSubmitting(false)
+
+    if (result.ok) {
+      toast.success('Đã gửi yêu cầu đặt bàn', {
+        description: 'Nhà hàng sẽ kiểm tra và liên hệ để xác nhận bàn của bạn.',
+      })
+      setStep(5)
+      return
+    }
+
+    toast.error('Chưa gửi được yêu cầu đặt bàn', {
+      description: result.error,
     })
-    setStep(5)
   }
 
   function reset() {
@@ -143,6 +200,8 @@ export function BookingForm({
     })
     setIsCustomParty(false)
     setCustomPartyValue('9')
+    setSlotAvailability([])
+    setSlotError(null)
   }
 
   return (
@@ -203,6 +262,11 @@ export function BookingForm({
           <StepTime
             time={time}
             setTime={setTime}
+            availability={slotAvailability}
+            isLoading={isLoadingSlots}
+            error={slotError}
+            partySize={Number(partySize)}
+            date={date ? toISO(date) : ''}
           />
         )}
 
@@ -296,15 +360,15 @@ export function BookingForm({
               <button
                 type="button"
                 onClick={handleConfirm}
-                disabled={!isStep4Valid}
+                disabled={!isStep4Valid || isSubmitting}
                 className={cn(
                   'flex items-center gap-1 rounded-lg px-6 py-2 text-sm font-semibold transition-all shadow-md',
-                  !isStep4Valid
+                  !isStep4Valid || isSubmitting
                     ? 'bg-secondary text-muted-foreground cursor-not-allowed opacity-50'
                     : 'bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]'
                 )}
               >
-                <span>Xác nhận đặt bàn</span>
+                <span>{isSubmitting ? 'Đang gửi...' : 'Xác nhận đặt bàn'}</span>
               </button>
             )}
           </div>

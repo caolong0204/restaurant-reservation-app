@@ -81,7 +81,7 @@ export function StepPartySize({
               id="custom-guests"
               type="number"
               min="9"
-              max="100"
+              max="24"
               value={customPartyValue}
               onChange={(e) => {
                 const val = e.target.value
@@ -95,7 +95,7 @@ export function StepPartySize({
         </div>
       )}
       <p className="text-xs text-muted-foreground mt-2">
-        Với nhóm trên 8 khách, chúng tôi khuyến khích liên hệ trước.
+        Với nhóm trên 24 khách, vui lòng liên hệ trực tiếp để được sắp xếp riêng.
       </p>
     </div>
   )

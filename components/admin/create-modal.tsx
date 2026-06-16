@@ -4,23 +4,14 @@ import { Check, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { ReservationInput } from '@/lib/reservation-types'
 import { TIME_SLOTS, OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
 import { validateVNPhone, validateEmail } from '@/lib/utils'
 
 interface CreateModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: {
-    name: string
-    email: string
-    phone: string
-    date: string
-    time: string
-    partySize: number
-    occasion?: string
-    tableLocation?: string
-    notes?: string
-  }) => void
+  onSubmit: (data: ReservationInput) => void
 }
 
 export function CreateModal({ isOpen, onClose, onSubmit }: CreateModalProps) {
@@ -37,7 +28,7 @@ export function CreateModal({ isOpen, onClose, onSubmit }: CreateModalProps) {
   if (!isOpen) return null
 
   // Form validations
-  const isCPirtyValid = Number(cPartySize) > 0 && !isNaN(Number(cPartySize))
+  const isCPartyValid = Number(cPartySize) > 0 && Number(cPartySize) <= 24 && !isNaN(Number(cPartySize))
   const isCPhoneValid = cPhone.trim() === '' || validateVNPhone(cPhone)
   const isCEmailValid = cEmail.trim() === '' || validateEmail(cEmail)
   const isCreateValid = Boolean(
@@ -48,7 +39,7 @@ export function CreateModal({ isOpen, onClose, onSubmit }: CreateModalProps) {
     validateVNPhone(cPhone) &&
     cDate &&
     cTime &&
-    isCPirtyValid
+    isCPartyValid
   )
 
   function handleSubmit(e: React.FormEvent) {
@@ -133,7 +124,7 @@ export function CreateModal({ isOpen, onClose, onSubmit }: CreateModalProps) {
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="cPartySize" className="text-xs font-semibold">Số lượng khách</Label>
-              <Input id="cPartySize" type="number" min="1" value={cPartySize} onChange={(e) => setCPartySize(e.target.value)} required className="rounded-lg h-9 text-sm" />
+              <Input id="cPartySize" type="number" min="1" max="24" value={cPartySize} onChange={(e) => setCPartySize(e.target.value)} required className="rounded-lg h-9 text-sm" />
             </div>
           </div>
 

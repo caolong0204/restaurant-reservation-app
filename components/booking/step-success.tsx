@@ -13,7 +13,7 @@ import {
   Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { formatDateLong, formatTime, TABLE_LOCATIONS, OCCASIONS } from '@/lib/restaurant'
+import { formatTime, TABLE_LOCATIONS, OCCASIONS } from '@/lib/restaurant'
 
 interface StepSuccessProps {
   name: string
@@ -60,8 +60,8 @@ export function StepSuccess({
           Cảm ơn bạn, {name.split(' ')[0]}!
         </h4>
         <p className="max-w-sm text-xs sm:text-sm text-muted-foreground leading-relaxed">
-          Yêu cầu đặt bàn của bạn đã được ghi nhận thành công. Email xác nhận sẽ được gửi tới{' '}
-          <span className="font-semibold text-foreground">{email}</span> trong thời gian sớm nhất.
+          Yêu cầu đặt bàn của bạn đã được ghi nhận thành công. Nhà hàng sẽ liên hệ{' '}
+          <span className="font-semibold text-foreground">{email}</span> hoặc {phone} để xác nhận.
         </p>
       </div>
 

@@ -3,86 +3,124 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
+  Calendar,
   CalendarClock,
   CalendarDays,
   Check,
   Clock,
-  UtensilsCrossed,
-  Search,
+  LogOut,
   Plus,
-  Calendar,
+  RefreshCcw,
+  Search,
+  UtensilsCrossed,
   Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
+
+import { AssignTableModal } from '@/components/admin/assign-table-modal'
+import { CreateModal } from '@/components/admin/create-modal'
+import { DayCalendarView } from '@/components/admin/day-calendar-view'
+import { EditModal } from '@/components/admin/edit-modal'
+import { ReservationTable } from '@/components/admin/reservation-table'
+import { StatCard } from '@/components/admin/stat-card'
 import {
   useReservations,
   type Reservation,
+  type ReservationInput,
   type ReservationStatus,
+  type RestaurantTable,
 } from '@/components/reservation-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
+import { signOutAdmin } from '@/lib/auth-actions'
 import { RESTAURANT, formatDate } from '@/lib/restaurant'
-
-// Import split sub-components
-import { StatCard } from './admin/stat-card'
-import { ReservationRow } from './admin/reservation-row'
-import { CreateModal } from './admin/create-modal'
-import { EditModal } from './admin/edit-modal'
+import { cn } from '@/lib/utils'
 
 type Filter = 'all' | ReservationStatus
+type AdminView = 'reservations' | 'calendar'
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+function todayISO(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
+const FILTERS: Array<{ value: Filter; label: string }> = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'pending', label: 'Chờ duyệt' },
+  { value: 'confirmed', label: 'Đã xác nhận' },
+  { value: 'cancelled', label: 'Đã hủy' },
+]
+
 export function AdminDashboard() {
-  const { reservations, updateStatus, editReservation, deleteReservation, addReservation } = useReservations()
+  const {
+    reservations,
+    tables,
+    isLoading,
+    actionError,
+    authMode,
+    refreshAdminData,
+    createManualReservation,
+    confirmReservation,
+    cancelReservation,
+    editReservation,
+    deleteReservation,
+    getAvailableTables,
+  } = useReservations()
+
+  const [view, setView] = useState<AdminView>('reservations')
   const [filter, setFilter] = useState<Filter>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  const [calendarDate, setCalendarDate] = useState(todayISO())
 
-  // Modal toggle states
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
 
-  // Compute statistics
-  const stats = useMemo(() => {
-    const today = todayISO()
-    const todays = reservations.filter(
-      (r) => r.date === today && r.status !== 'cancelled',
-    )
+  const [assigningReservation, setAssigningReservation] = useState<Reservation | null>(null)
+  const [availableTables, setAvailableTables] = useState<RestaurantTable[]>([])
+  const [isLoadingTables, setIsLoadingTables] = useState(false)
+
+  const counts = useMemo(() => {
     return {
-      todayCount: todays.length,
-      todayCovers: todays.reduce((sum, r) => sum + r.partySize, 0),
-      pending: reservations.filter((r) => r.status === 'pending').length,
-      confirmed: reservations.filter((r) => r.status === 'confirmed').length,
+      all: reservations.length,
+      pending: reservations.filter((reservation) => reservation.status === 'pending').length,
+      confirmed: reservations.filter((reservation) => reservation.status === 'confirmed').length,
+      cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
     }
   }, [reservations])
 
-  // Filtered list
+  const stats = useMemo(() => {
+    const today = todayISO()
+    const todays = reservations.filter(
+      (reservation) => reservation.date === today && reservation.status !== 'cancelled',
+    )
+    return {
+      todayCount: todays.length,
+      todayCovers: todays.reduce((sum, reservation) => sum + reservation.partySize, 0),
+      pending: counts.pending,
+      confirmed: counts.confirmed,
+    }
+  }, [counts.confirmed, counts.pending, reservations])
+
   const filtered = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+
     return reservations
-      .filter((r) => {
-        // Status filter
-        if (filter !== 'all' && r.status !== filter) return false
-        // Search filter
-        if (searchTerm.trim()) {
-          const s = searchTerm.toLowerCase()
-          const matchesName = r.name.toLowerCase().includes(s)
-          const matchesPhone = r.phone.toLowerCase().includes(s)
-          const matchesEmail = r.email.toLowerCase().includes(s)
-          if (!matchesName && !matchesPhone && !matchesEmail) return false
-        }
-        // Date filter
-        if (dateFilter && r.date !== dateFilter) return false
-        return true
+      .filter((reservation) => {
+        if (filter !== 'all' && reservation.status !== filter) return false
+        if (dateFilter && reservation.date !== dateFilter) return false
+        if (!normalizedSearch) return true
+
+        return (
+          reservation.name.toLowerCase().includes(normalizedSearch) ||
+          reservation.phone.toLowerCase().includes(normalizedSearch) ||
+          reservation.email.toLowerCase().includes(normalizedSearch) ||
+          reservation.table?.code.toLowerCase().includes(normalizedSearch)
+        )
       })
       .sort((a, b) =>
         a.date === b.date
@@ -91,50 +129,113 @@ export function AdminDashboard() {
       )
   }, [reservations, filter, searchTerm, dateFilter])
 
-  function handleConfirm(r: Reservation) {
-    updateStatus(r.id, 'confirmed')
-    toast.success(`Đã xác nhận đặt bàn cho ${r.name}`)
-  }
+  async function openAssignModal(reservation: Reservation) {
+    setAssigningReservation(reservation)
+    setAvailableTables([])
+    setIsLoadingTables(true)
 
-  function handleCancel(r: Reservation) {
-    updateStatus(r.id, 'cancelled')
-    toast(`Đã hủy đặt bàn của ${r.name}`)
-  }
+    const result = await getAvailableTables(
+      reservation.date,
+      reservation.time,
+      reservation.partySize,
+      reservation.id,
+    )
 
-  function handleDelete(r: Reservation) {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn lượt đặt bàn của ${r.name}?`)) {
-      deleteReservation(r.id)
-      toast.success(`Đã xóa lượt đặt bàn của ${r.name}`)
+    if (result.ok) {
+      setAvailableTables(result.data)
+    } else {
+      toast.error('Không tải được bàn trống', {
+        description: result.error,
+      })
     }
+
+    setIsLoadingTables(false)
   }
 
-  function openEdit(r: Reservation) {
-    setEditingReservation(r)
+  async function handleAssignConfirm(tableId: string) {
+    if (!assigningReservation) return
+
+    const result = await confirmReservation(assigningReservation.id, tableId)
+    if (result.ok) {
+      toast.success(`Đã xác nhận đặt bàn cho ${result.data.name}`, {
+        description: `Bàn ${result.data.table?.code ?? ''} đã được gán.`,
+      })
+      setAssigningReservation(null)
+      setAvailableTables([])
+      return
+    }
+
+    toast.error('Không xác nhận được đặt bàn', {
+      description: result.error,
+    })
+  }
+
+  async function handleCancel(reservation: Reservation) {
+    const result = await cancelReservation(reservation.id)
+    if (result.ok) {
+      toast(`Đã hủy đặt bàn của ${reservation.name}`)
+      return
+    }
+
+    toast.error('Không hủy được đặt bàn', {
+      description: result.error,
+    })
+  }
+
+  async function handleDelete(reservation: Reservation) {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn lượt đặt bàn của ${reservation.name}?`)) {
+      return
+    }
+
+    const result = await deleteReservation(reservation.id)
+    if (result.ok) {
+      toast.success(`Đã xóa lượt đặt bàn của ${reservation.name}`)
+      return
+    }
+
+    toast.error('Không xóa được đặt bàn', {
+      description: result.error,
+    })
+  }
+
+  function openEdit(reservation: Reservation) {
+    setEditingReservation(reservation)
     setIsEditOpen(true)
   }
 
-  function handleCreateSubmit(data: any) {
-    const newRes = addReservation(data)
-    updateStatus(newRes.id, 'confirmed') // Auto-confirm for staff
+  async function handleCreateSubmit(data: ReservationInput) {
+    const result = await createManualReservation(data)
+    if (result.ok) {
+      toast.success(`Đã thêm đặt bàn cho ${data.name}`, {
+        description: 'Booking đang chờ gán bàn để xác nhận.',
+      })
+      setIsCreateOpen(false)
+      return
+    }
 
-    toast.success(`Đã thêm đặt bàn cho ${data.name}`, {
-      description: `Bàn đã tự động được xác nhận.`,
+    toast.error('Không thêm được đặt bàn', {
+      description: result.error,
     })
-    setIsCreateOpen(false)
   }
 
-  function handleEditSubmit(id: string, data: any) {
-    editReservation(id, data)
-    toast.success(`Đã cập nhật đặt bàn của ${data.name}`)
-    setIsEditOpen(false)
-    setEditingReservation(null)
+  async function handleEditSubmit(id: string, data: ReservationInput) {
+    const result = await editReservation(id, data)
+    if (result.ok) {
+      toast.success(`Đã cập nhật đặt bàn của ${data.name}`)
+      setIsEditOpen(false)
+      setEditingReservation(null)
+      return
+    }
+
+    toast.error('Không cập nhật được đặt bàn', {
+      description: result.error,
+    })
   }
 
   return (
     <div className="min-h-dvh bg-secondary/15">
-      {/* Premium Header */}
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/85 backdrop-blur-md shadow-xs">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-4">
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/85 shadow-xs backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-4">
           <div className="flex items-center gap-2">
             <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm shadow-primary/20">
               <UtensilsCrossed className="size-4" />
@@ -143,45 +244,73 @@ export function AdminDashboard() {
               <p className="font-serif text-lg font-bold text-foreground">
                 {RESTAURANT.name}
               </p>
-              <p className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground">Trang quản trị nhân viên</p>
+              <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
+                Trang quản trị nhân viên · {authMode === 'demo' ? 'Demo mode' : 'Supabase'}
+              </p>
             </div>
           </div>
-          <Button
-            render={<Link href="/">Quay về trang chủ</Link>}
-            nativeButton={false}
-            variant="outline"
-            size="sm"
-            className="rounded-lg text-xs"
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              render={<Link href="/">Trang chủ</Link>}
+              nativeButton={false}
+              variant="outline"
+              size="sm"
+              className="rounded-lg text-xs"
+            />
+            <form action={signOutAdmin}>
+              <Button type="submit" variant="ghost" size="sm" className="gap-1 rounded-lg text-xs">
+                <LogOut className="size-3.5" />
+                Đăng xuất
+              </Button>
+            </form>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-3 py-8 sm:px-4">
-        {/* Title and Action */}
+      <main className="mx-auto max-w-7xl px-3 py-8 sm:px-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-lg bg-primary/10 text-primary">
+            <span className="rounded-lg bg-primary/10 p-2 text-primary">
               <CalendarClock className="size-5" />
             </span>
             <div>
               <h1 className="font-serif text-2xl font-bold text-foreground">
-                Danh sách đặt bàn
+                Điều phối đặt bàn
               </h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Quản lý, tìm kiếm và tạo mới các lượt đặt bàn của khách.</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Quản lý booking, kiểm tra lịch và gán bàn khi xác nhận.
+              </p>
             </div>
           </div>
 
-          <Button
-            size="sm"
-            className="gap-1.5 shadow-sm shadow-primary/20 self-start sm:self-center"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            <Plus className="size-4" />
-            Thêm đặt bàn
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              onClick={() => void refreshAdminData()}
+              disabled={isLoading}
+            >
+              <RefreshCcw className={cn('size-4', isLoading && 'animate-spin')} />
+              Làm mới
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5 shadow-sm shadow-primary/20"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Plus className="size-4" />
+              Thêm đặt bàn
+            </Button>
+          </div>
         </div>
 
-        {/* Dynamic Stats Row */}
+        {actionError && (
+          <div className="mt-4 rounded-lg border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {actionError}
+          </div>
+        )}
+
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Đặt bàn hôm nay" value={stats.todayCount} icon={CalendarDays} colorClass="text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/30" />
           <StatCard label="Tổng khách hôm nay" value={stats.todayCovers} icon={Users} colorClass="text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30" />
@@ -189,118 +318,153 @@ export function AdminDashboard() {
           <StatCard label="Đã xác nhận" value={stats.confirmed} icon={Check} colorClass="text-primary bg-primary/10" />
         </div>
 
-        {/* Search & Filter Controls Card */}
-        <div className="mt-8 rounded-xl border border-border bg-card p-4 shadow-xs">
-          <div className="grid gap-4 sm:grid-cols-12 items-center">
-            {/* Search Input */}
-            <div className="relative sm:col-span-7 md:col-span-8">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Tìm tên khách hàng, số điện thoại, email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 placeholder:text-muted-foreground/50 text-sm rounded-lg"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
-                >
-                  Xóa
-                </button>
-              )}
-            </div>
-
-            {/* Date Filter */}
-            <div className="relative sm:col-span-5 md:col-span-4">
-              <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="pl-9 pr-8 text-sm rounded-lg cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
-              />
-              {dateFilter ? (
-                <button
-                  onClick={() => setDateFilter('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                >
-                  Tất cả
-                </button>
-              ) : (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] uppercase font-semibold text-muted-foreground/60 pointer-events-none">Lọc ngày</span>
-              )}
-            </div>
-          </div>
+        <div className="mt-8 flex flex-wrap gap-2 border-b border-border/80 pb-2">
+          <button
+            type="button"
+            onClick={() => setView('reservations')}
+            className={cn(
+              'rounded-lg px-3 py-2 text-xs font-bold transition-colors',
+              view === 'reservations' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary',
+            )}
+          >
+            Danh sách
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('calendar')}
+            className={cn(
+              'rounded-lg px-3 py-2 text-xs font-bold transition-colors',
+              view === 'calendar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary',
+            )}
+          >
+            Lịch ngày
+          </button>
         </div>
 
-        {/* Tab-based Listing */}
-        <div className="mt-6">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-            <div className="flex items-center justify-between border-b border-border/80 pb-1.5">
-              <TabsList className="bg-transparent p-0 gap-1 border-b-0 h-auto">
-                <TabsTrigger value="all" className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                  Tất cả ({reservations.length})
-                </TabsTrigger>
-                <TabsTrigger value="pending" className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                  Chờ duyệt ({reservations.filter(r => r.status === 'pending').length})
-                </TabsTrigger>
-                <TabsTrigger value="confirmed" className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                  Đã xác nhận ({reservations.filter(r => r.status === 'confirmed').length})
-                </TabsTrigger>
-                <TabsTrigger value="cancelled" className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
-                  Đã hủy ({reservations.filter(r => r.status === 'cancelled').length})
-                </TabsTrigger>
-              </TabsList>
+        {view === 'reservations' ? (
+          <>
+            <div className="mt-6 rounded-xl border border-border bg-card p-4 shadow-xs">
+              <div className="grid items-center gap-4 sm:grid-cols-12">
+                <div className="relative sm:col-span-7 md:col-span-8">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Tìm tên khách, số điện thoại, email, mã bàn..."
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    className="rounded-lg pl-9 text-sm placeholder:text-muted-foreground/50"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Xóa
+                    </button>
+                  )}
+                </div>
+
+                <div className="relative sm:col-span-5 md:col-span-4">
+                  <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(event) => setDateFilter(event.target.value)}
+                    className="cursor-pointer rounded-lg pl-9 pr-8 text-sm [&::-webkit-calendar-picker-indicator]:opacity-0"
+                  />
+                  {dateFilter ? (
+                    <button
+                      type="button"
+                      onClick={() => setDateFilter('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                    >
+                      Tất cả
+                    </button>
+                  ) : (
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold uppercase text-muted-foreground/60">
+                      Lọc ngày
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-2">
+              <div className="flex flex-wrap gap-1">
+                {FILTERS.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => setFilter(item.value)}
+                    className={cn(
+                      'rounded-none border-b-2 border-transparent px-3 py-2 text-xs font-semibold transition-colors',
+                      filter === item.value
+                        ? 'border-primary text-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {item.label} ({counts[item.value]})
+                  </button>
+                ))}
+              </div>
 
               {dateFilter && (
-                <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                   Ngày lọc: {formatDate(dateFilter)}
                 </span>
               )}
             </div>
 
-            <TabsContent value={filter} className="mt-6">
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/80 py-20 text-center bg-card shadow-xs">
+            <div className="mt-6">
+              {isLoading ? (
+                <div className="rounded-xl border border-border bg-card py-16 text-center text-sm text-muted-foreground shadow-xs">
+                  Đang tải danh sách đặt bàn...
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/80 bg-card py-20 text-center shadow-xs">
                   <CalendarDays className="size-9 text-muted-foreground/60" />
                   <div>
                     <p className="font-serif text-base font-bold text-foreground">
                       Không tìm thấy lượt đặt bàn nào
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-[280px] mx-auto">
+                    <p className="mx-auto mt-1 max-w-[280px] text-xs text-muted-foreground">
                       Vui lòng kiểm tra lại bộ lọc, ô tìm kiếm hoặc ngày được chọn.
                     </p>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-4">
-                  {filtered.map((r) => (
-                    <ReservationRow
-                      key={r.id}
-                      reservation={r}
-                      onConfirm={() => handleConfirm(r)}
-                      onCancel={() => handleCancel(r)}
-                      onEdit={() => openEdit(r)}
-                      onDelete={() => handleDelete(r)}
-                    />
-                  ))}
-                </div>
+                <ReservationTable
+                  reservations={filtered}
+                  onConfirm={(reservation) => void openAssignModal(reservation)}
+                  onCancel={(reservation) => void handleCancel(reservation)}
+                  onEdit={openEdit}
+                />
               )}
-            </TabsContent>
-          </Tabs>
-        </div>
+            </div>
+          </>
+        ) : (
+          <div className="mt-6">
+            <DayCalendarView
+              reservations={reservations}
+              tables={tables}
+              selectedDate={calendarDate}
+              onDateChange={setCalendarDate}
+              onConfirm={(reservation) => void openAssignModal(reservation)}
+              onCancel={(reservation) => void handleCancel(reservation)}
+              onEdit={openEdit}
+              onDelete={(reservation) => void handleDelete(reservation)}
+            />
+          </div>
+        )}
       </main>
 
-      {/* CREATE MODAL */}
       <CreateModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreateSubmit}
       />
 
-      {/* EDIT MODAL */}
       <EditModal
         isOpen={isEditOpen}
         onClose={() => {
@@ -309,6 +473,18 @@ export function AdminDashboard() {
         }}
         reservation={editingReservation}
         onSubmit={handleEditSubmit}
+      />
+
+      <AssignTableModal
+        isOpen={Boolean(assigningReservation)}
+        reservation={assigningReservation}
+        availableTables={availableTables}
+        isLoading={isLoadingTables}
+        onClose={() => {
+          setAssigningReservation(null)
+          setAvailableTables([])
+        }}
+        onConfirm={(tableId) => void handleAssignConfirm(tableId)}
       />
     </div>
   )

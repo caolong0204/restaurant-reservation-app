@@ -17,9 +17,9 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'Maison Laurent | Table Reservations',
+  title: 'Flambé | Table Reservations',
   description:
-    'Reserve your table at Maison Laurent, a seasonal fine-dining restaurant. Book online in seconds.',
+    'Reserve your table at Flambé, a seasonal fine-dining restaurant in Hanoi. Book online in seconds.',
   generator: 'v0.app',
   icons: {
     icon: [

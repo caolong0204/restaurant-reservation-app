@@ -3,6 +3,7 @@ import {
   Clock,
   CalendarDays,
   Edit3,
+  Armchair,
   Mail,
   Phone,
   Trash2,
@@ -63,7 +64,13 @@ export function ReservationRow({
               {r.occasion}
             </Badge>
           )}
-          {r.tableLocation && (
+          {r.table && (
+            <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-500/30 bg-emerald-500/10 dark:text-emerald-300">
+              <Armchair className="mr-1 size-3" />
+              {r.table.code}
+            </Badge>
+          )}
+          {r.tableLocation && !r.table && (
             <Badge variant="outline" className="text-xs text-primary border-primary/30 bg-primary/5">
               {r.tableLocation}
             </Badge>
@@ -111,7 +118,7 @@ export function ReservationRow({
             onClick={onConfirm}
           >
             <Check className="size-3.5" />
-            Xác nhận
+            Gán bàn
           </Button>
         )}
         {r.status !== 'cancelled' && (

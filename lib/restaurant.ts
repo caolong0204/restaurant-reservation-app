@@ -1,25 +1,63 @@
 export const RESTAURANT = {
-  name: 'Maison Laurent',
+  name: 'Flambé',
   tagline: 'Ẩm thực Pháp theo mùa',
-  address: '218 Pearl Street, San Francisco, CA',
-  phone: '(415) 555-0100',
-  hours: 'Thứ 3 – Chủ Nhật · 17:00 – 23:00',
+  address: '23 Gia Ngư, Hà Nội',
+  phone: '0927355656',
+  hours: 'Thứ 2 – Chủ Nhật · 10:00 – 22:30',
 }
 
-export const TIME_SLOTS = [
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-  '19:00',
-  '20:00',
-  '21:00',
-]
+export const TIME_SLOTS: string[] = (() => {
+  const slots: string[] = []
+  // 10:30 to 22:30 in 15-minute increments.
+  for (let h = 10; h <= 22; h++) {
+    for (const m of [0, 15, 30, 45]) {
+      if (h === 10 && m < 30) continue // starts at 10:30
+      if (h === 22 && m > 30) continue
+      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+    }
+  }
+  return slots
+})()
+
+/** The latest time shown for the operating day (HH:MM). */
+export const RESTAURANT_CLOSE_TIME = '22:30'
+
+/**
+ * Last visible booking/calendar slot: 22:00 on weekdays (Mon–Thu), 22:30 on weekends (Fri–Sun).
+ * Pass the selected date ISO string (YYYY-MM-DD) to get the correct cutoff.
+ */
+export function getLastBookingTime(dateIso?: string): string {
+  if (!dateIso) return '22:00'
+  const day = new Date(`${dateIso}T00:00:00`).getDay() // 0=Sun,5=Fri,6=Sat
+  return day === 0 || day === 5 || day === 6 ? '22:30' : '22:00'
+}
+
+/**
+ * Booking duration in minutes based on party size:
+ * 1–4 khách → 120 phút, 5–6 khách → 150 phút, 7+ → 180 phút (tuỳ chỉnh)
+ */
+export function getBookingDuration(partySize: number): number {
+  if (partySize <= 4) return 120
+  if (partySize <= 6) return 150
+  return 180
+}
+
+/**
+ * Returns the subset of TIME_SLOTS that fit within operating hours for the given date and party size.
+ */
+export function getAvailableTimeSlots(partySize: number, dateIso?: string): string[] {
+  const duration = getBookingDuration(partySize)
+  const lastBooking = getLastBookingTime(dateIso)
+  const [closeH, closeM] = RESTAURANT_CLOSE_TIME.split(':').map(Number)
+  const closeMinutes = (closeH ?? 23) * 60 + (closeM ?? 0)
+  const [lastH, lastM] = lastBooking.split(':').map(Number)
+  const lastBookingMinutes = (lastH ?? 21) * 60 + (lastM ?? 0)
+  return TIME_SLOTS.filter((slot) => {
+    const [h, m] = slot.split(':').map(Number)
+    const slotMinutes = (h ?? 0) * 60 + (m ?? 0)
+    return slotMinutes <= lastBookingMinutes && slotMinutes + duration <= closeMinutes
+  })
+}
 
 export const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]
 

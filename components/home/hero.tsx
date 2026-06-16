@@ -11,7 +11,7 @@ export function Hero() {
       <div className="relative h-[50vh] min-h-[390px] md:h-[78vh] md:min-h-[560px] w-full overflow-hidden">
         <Image
           src="/restaurant-hero.png"
-          alt="Phòng ăn ấm áp dưới ánh nến tại Maison Laurent"
+          alt="Phòng ăn ấm áp dưới ánh nến tại Flambé"
           fill
           priority
           className="object-cover"

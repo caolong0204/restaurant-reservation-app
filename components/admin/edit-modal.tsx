@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { type Reservation } from '@/components/reservation-provider'
+import type { ReservationInput } from '@/lib/reservation-types'
 import { TIME_SLOTS, OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
 import { validateVNPhone, validateEmail } from '@/lib/utils'
 
@@ -12,17 +13,7 @@ interface EditModalProps {
   isOpen: boolean
   onClose: () => void
   reservation: Reservation | null
-  onSubmit: (id: string, data: {
-    name: string
-    email: string
-    phone: string
-    date: string
-    time: string
-    partySize: number
-    occasion?: string
-    tableLocation?: string
-    notes?: string
-  }) => void
+  onSubmit: (id: string, data: ReservationInput) => void
 }
 
 export function EditModal({ isOpen, onClose, reservation, onSubmit }: EditModalProps) {
@@ -53,7 +44,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit }: EditModalP
   if (!isOpen || !reservation) return null
 
   // Form validations
-  const isEPirtyValid = Number(ePartySize) > 0 && !isNaN(Number(ePartySize))
+  const isEPartyValid = Number(ePartySize) > 0 && Number(ePartySize) <= 24 && !isNaN(Number(ePartySize))
   const isEPhoneValid = ePhone.trim() === '' || validateVNPhone(ePhone)
   const isEEmailValid = eEmail.trim() === '' || validateEmail(eEmail)
   const isEditValid = Boolean(
@@ -64,7 +55,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit }: EditModalP
     validateVNPhone(ePhone) &&
     eDate &&
     eTime &&
-    isEPirtyValid
+    isEPartyValid
   )
 
   function handleSubmit(e: React.FormEvent) {
@@ -138,7 +129,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit }: EditModalP
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="ePartySize" className="text-xs font-semibold">Số lượng khách</Label>
-              <Input id="ePartySize" type="number" min="1" value={ePartySize} onChange={(e) => setEPartySize(e.target.value)} required className="rounded-lg h-9 text-sm" />
+              <Input id="ePartySize" type="number" min="1" max="24" value={ePartySize} onChange={(e) => setEPartySize(e.target.value)} required className="rounded-lg h-9 text-sm" />
             </div>
           </div>
 
