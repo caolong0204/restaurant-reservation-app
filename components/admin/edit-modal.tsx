@@ -57,23 +57,19 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
     }
   }, [reservation, tables])
 
-  // Set eIsManualArrangement and reset secondary tables based on capacity and selections
+  // Manual arrangement is only an explicit override when selected tables are short on capacity.
   useEffect(() => {
     if (eTableId) {
       const mainTab = tables.find(t => t.id === eTableId)
       if (mainTab) {
-        if (mainTab.capacity >= Number(ePartySize)) {
-          if (eSecondaryTableIds.length === 0) {
-            setEIsManualArrangement(true)
-          }
-        } else {
-          if (eSecondaryTableIds.length === 0) {
-            setEIsManualArrangement(false)
-          }
-        }
+        const secondaryTables = tables.filter((t) => eSecondaryTableIds.includes(t.id))
+        const selectedCapacity =
+          mainTab.capacity + secondaryTables.reduce((sum, table) => sum + table.capacity, 0)
+
+        if (selectedCapacity >= Number(ePartySize)) setEIsManualArrangement(false)
       }
     }
-  }, [eTableId, ePartySize, tables, eSecondaryTableIds.length])
+  }, [eTableId, ePartySize, tables, eSecondaryTableIds])
 
   if (!isOpen || !reservation) return null
 
@@ -99,6 +95,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
 
   const hasCapacityWarning = eTableId && totalCapacity < partySize
   const showLargePartyTip = eTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && eSecondaryTableIds.length === 0
+  const hasUnresolvedCapacityWarning = Boolean(hasCapacityWarning && !eIsManualArrangement)
 
   const toggleSecondaryTable = (tableId: string) => {
     setESecondaryTableIds((prev) => {
@@ -127,7 +124,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!isEditValid || !reservation) return
+    if (!isEditValid || !reservation || hasUnresolvedCapacityWarning) return
 
     onSubmit(reservation.id, {
       name: eName.trim(),
@@ -187,17 +184,19 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
             <div className="flex flex-col gap-1">
               <Label htmlFor="eDate" className="text-xs font-semibold">Ngày dùng bữa</Label>
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="eDate"
-                    variant="outline"
-                    className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
-                    <span className={eDate ? 'text-foreground' : 'text-muted-foreground/60'}>
-                      {eDate ? formatDate(eDate) : 'Chọn ngày'}
-                    </span>
-                  </Button>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id="eDate"
+                      variant="outline"
+                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
+                    />
+                  }
+                >
+                  <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
+                  <span className={eDate ? 'text-foreground' : 'text-muted-foreground/60'}>
+                    {eDate ? formatDate(eDate) : 'Chọn ngày'}
+                  </span>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="start">
                   <RestaurantCalendar
@@ -262,27 +261,29 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
           {/* Secondary Table Checklist */}
           {eTableId && (
             <div className="flex flex-col gap-3 border border-border bg-secondary/5 rounded-lg p-3">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={eIsManualArrangement}
-                  onChange={(e) => {
-                    setEIsManualArrangement(e.target.checked)
-                    if (e.target.checked) {
-                      setESecondaryTableIds([])
-                    }
-                  }}
-                  className="rounded border-input text-primary focus:ring-primary size-3.5"
-                />
-                <div className="leading-tight">
-                  <span className="text-xs font-bold text-foreground block">
-                    Tự sắp xếp thêm ghế / bàn phụ ngoài hệ thống
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    Không cần ghép bàn trên ứng dụng.
-                  </span>
-                </div>
-              </label>
+              {hasCapacityWarning && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={eIsManualArrangement}
+                    onChange={(e) => {
+                      setEIsManualArrangement(e.target.checked)
+                      if (e.target.checked) {
+                        setESecondaryTableIds([])
+                      }
+                    }}
+                    className="rounded border-input text-primary focus:ring-primary size-3.5"
+                  />
+                  <div className="leading-tight">
+                    <span className="text-xs font-bold text-foreground block">
+                      Tự sắp xếp thêm ghế / bàn phụ ngoài hệ thống
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      Không cần ghép bàn trên ứng dụng.
+                    </span>
+                  </div>
+                </label>
+              )}
 
               {!eIsManualArrangement && tables.filter(t => t.active && t.id !== eTableId).length > 0 && (
                 <div className="border-t border-border/60 pt-2.5">
@@ -326,7 +327,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
           )}
 
           {/* Warning and Hint Notes */}
-          {eTableId && !eIsManualArrangement && (
+          {eTableId && hasCapacityWarning && (
             <div className="flex flex-col gap-1.5 text-xs bg-secondary/25 p-2.5 rounded-lg border border-border/60">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground font-semibold font-sans">Sức chứa tổng cộng:</span>
@@ -366,12 +367,21 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
             <textarea id="eNotes" value={eNotes} onChange={(e) => setENotes(e.target.value)} rows={2} className="rounded-lg border border-input bg-transparent px-3 py-2 text-sm resize-none outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 placeholder:text-muted-foreground/50" />
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-border pt-3 mt-1 shrink-0 bg-card">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Hủy bỏ</Button>
-            <Button type="submit" size="sm" disabled={!isEditValid} className="h-9 rounded-lg text-xs gap-1 shadow-xs">
-              <Check className="size-3.5" />
-              Lưu thay đổi
-            </Button>
+          <div className="flex flex-col gap-2 border-t border-border pt-3 mt-1 shrink-0 bg-card sm:flex-row sm:items-center sm:justify-between">
+            {hasUnresolvedCapacityWarning ? (
+              <p className="text-xs font-medium text-destructive">
+                Chưa thể lưu: cần ghép thêm bàn hoặc tick tự sắp xếp thêm ghế/bàn ngoài hệ thống.
+              </p>
+            ) : (
+              <span />
+            )}
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Hủy bỏ</Button>
+              <Button type="submit" size="sm" disabled={!isEditValid || hasUnresolvedCapacityWarning} className="h-9 rounded-lg text-xs gap-1 shadow-xs">
+                <Check className="size-3.5" />
+                Lưu thay đổi
+              </Button>
+            </div>
           </div>
         </form>
       </div>

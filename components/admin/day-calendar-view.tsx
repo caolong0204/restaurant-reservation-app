@@ -6,6 +6,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Users,
   X,
 } from 'lucide-react'
 
@@ -391,8 +392,13 @@ export function DayCalendarView({
                           <span className="min-w-0 truncate">
                             {isSecondary ? `[Ghép] ${reservation.name}` : reservation.name}
                           </span>
-                          <span className="shrink-0 rounded bg-black/10 px-1 py-0.5 text-[11px] leading-none">
-                            {reservation.partySize}p · {durationLabel(getBookingDurationMinutes(reservation.partySize))}
+                          <span className="inline-flex shrink-0 items-center gap-1 rounded bg-black/10 px-1 py-0.5 text-[11px] leading-none">
+                            <span className="inline-flex items-center gap-0.5">
+                              <Users className="size-3" />
+                              {reservation.partySize}
+                            </span>
+                            <span aria-hidden="true">·</span>
+                            <span>{durationLabel(getBookingDurationMinutes(reservation.partySize))}</span>
                           </span>
                         </button>
                       )

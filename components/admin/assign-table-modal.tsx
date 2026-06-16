@@ -39,29 +39,24 @@ export function AssignTableModal({
   useEffect(() => {
     if (bestFitTable && reservation) {
       setSelectedTableIds([bestFitTable.id])
-      const isCapacityShort = bestFitTable.capacity < reservation.partySize
-      setIsManualArrangement(!isCapacityShort)
+      setIsManualArrangement(false)
     } else {
       setSelectedTableIds([])
       setIsManualArrangement(false)
     }
   }, [bestFitTable, reservation])
 
-  // Set isManualArrangement based on main table capacity when selection changes
+  // Manual arrangement is only an explicit override when selected tables are short on capacity.
   useEffect(() => {
     if (selectedTableIds.length > 0 && reservation) {
       const mainTab = availableTables.find((t) => t.id === selectedTableIds[0])
       if (mainTab) {
         const selectedSecondaryIds = selectedTableIds.slice(1)
-        if (mainTab.capacity >= reservation.partySize) {
-          if (selectedSecondaryIds.length === 0) {
-            setIsManualArrangement(true)
-          }
-        } else {
-          if (selectedSecondaryIds.length === 0) {
-            setIsManualArrangement(false)
-          }
-        }
+        const selectedSecondaryTables = availableTables.filter((t) => selectedSecondaryIds.includes(t.id))
+        const selectedCapacity =
+          mainTab.capacity + selectedSecondaryTables.reduce((sum, table) => sum + table.capacity, 0)
+
+        if (selectedCapacity >= reservation.partySize) setIsManualArrangement(false)
       }
     }
   }, [selectedTableIds, availableTables, reservation])
@@ -84,6 +79,11 @@ export function AssignTableModal({
 
   const hasCapacityWarning = selectedTableId && totalCapacity < partySize
   const showLargePartyTip = selectedTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && selectedSecondaryIds.length === 0
+  const isConfirmDisabled = Boolean(
+    selectedTableIds.length === 0 ||
+    isLoading ||
+    (hasCapacityWarning && !isManualArrangement),
+  )
 
   const toggleTableSelect = (tableId: string) => {
     setSelectedTableIds((prev) => {
@@ -218,7 +218,7 @@ export function AssignTableModal({
         </div>
 
         {/* Dynamic Capacity Alerts Footer Note */}
-        {selectedTableIds.length > 0 && !isLoading && availableTables.length > 0 && (!isManualArrangement || (mainTable && mainTable.capacity < partySize)) && (
+        {selectedTableIds.length > 0 && !isLoading && availableTables.length > 0 && hasCapacityWarning && (
           <div className="border-t border-border px-5 py-3.5 bg-secondary/15 shrink-0 flex flex-col gap-2">
             <label className="flex items-center gap-2.5 pb-2.5 border-b border-border/50 cursor-pointer select-none">
               <input
@@ -288,20 +288,29 @@ export function AssignTableModal({
         )}
 
         {/* Buttons Action */}
-        <div className="flex justify-end gap-2 border-t border-border p-4 shrink-0 bg-card">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Hủy
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={selectedTableIds.length === 0 || isLoading}
-            onClick={() => onConfirm(selectedTableId, selectedSecondaryIds)}
-            className="gap-1 shadow-xs"
-          >
-            <Check className="size-3.5" />
-            Xác nhận bàn
-          </Button>
+        <div className="flex flex-col gap-2 border-t border-border p-4 shrink-0 bg-card sm:flex-row sm:items-center sm:justify-between">
+          {hasCapacityWarning && !isManualArrangement ? (
+            <p className="text-xs font-medium text-destructive">
+              Chưa thể xác nhận: cần chọn thêm bàn ghép hoặc tick tự sắp xếp thêm ghế/bàn ngoài hệ thống.
+            </p>
+          ) : (
+            <span />
+          )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose}>
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={isConfirmDisabled}
+              onClick={() => onConfirm(selectedTableId, selectedSecondaryIds)}
+              className="gap-1 shadow-xs"
+            >
+              <Check className="size-3.5" />
+              Xác nhận bàn
+            </Button>
+          </div>
         </div>
       </div>
     </div>
