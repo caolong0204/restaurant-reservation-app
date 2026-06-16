@@ -16,10 +16,11 @@ interface EditModalProps {
   onClose: () => void
   reservation: Reservation | null
   onSubmit: (id: string, data: ReservationInput) => void
+  onCancelBooking?: (id: string) => void
   tables: RestaurantTable[]
 }
 
-export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: EditModalProps) {
+export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBooking, tables }: EditModalProps) {
   const [eName, setEName] = useState('')
   const [ePhone, setEPhone] = useState('')
 
@@ -351,15 +352,28 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
 
 
           <div className="flex flex-col gap-2 border-t border-border pt-3 mt-1 shrink-0 bg-card sm:flex-row sm:items-center sm:justify-between">
-            {hasUnresolvedCapacityWarning ? (
-              <p className="text-xs font-medium text-destructive">
-                Chưa thể lưu: cần ghép thêm bàn hoặc tick tự sắp xếp thêm ghế/bàn ngoài hệ thống.
-              </p>
-            ) : (
-              <span />
-            )}
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Hủy bỏ</Button>
+            <div className="flex items-center">
+              {hasUnresolvedCapacityWarning ? (
+                <p className="text-xs font-medium text-destructive max-w-[200px] leading-tight">
+                  Chưa thể lưu: cần ghép thêm bàn.
+                </p>
+              ) : reservation && reservation.status !== 'cancelled' && onCancelBooking ? (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => onCancelBooking(reservation.id)} 
+                  className="h-9 rounded-lg text-xs border-rose-200 text-rose-600 hover:bg-rose-50/50 hover:text-rose-700 dark:border-rose-900/30 dark:hover:bg-rose-950/20 gap-1"
+                >
+                  <X className="size-3.5" />
+                  Hủy đặt bàn
+                </Button>
+              ) : (
+                <span />
+              )}
+            </div>
+            <div className="flex justify-end gap-2 shrink-0">
+              <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Đóng</Button>
               <Button type="submit" size="sm" disabled={!isEditValid || hasUnresolvedCapacityWarning} className="h-9 rounded-lg text-xs gap-1 shadow-xs">
                 <Check className="size-3.5" />
                 Lưu thay đổi

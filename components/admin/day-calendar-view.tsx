@@ -503,56 +503,61 @@ export function DayCalendarView({
               )}
             </div>
 
-            <div className="flex flex-wrap justify-end gap-2 border-t border-border p-4 bg-muted/20">
-              {selectedReservation.status !== 'confirmed' && (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => {
-                    onConfirm(selectedReservation)
-                    setSelectedReservation(null)
-                  }}
-                  className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
-                >
-                  <Check className="size-3.5" />
-                  Gán bàn
-                </Button>
-              )}
-              {selectedReservation.status !== 'cancelled' && (
+            <div className="flex flex-wrap justify-between items-center gap-2 border-t border-border p-4 bg-muted/20">
+              <div>
+                {selectedReservation.status !== 'cancelled' && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      onCancel(selectedReservation)
+                      setSelectedReservation(null)
+                    }}
+                    className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
+                  >
+                    <X className="size-3.5" />
+                    Hủy bàn
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedReservation.status !== 'confirmed' && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      onConfirm(selectedReservation)
+                      setSelectedReservation(null)
+                    }}
+                    className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                  >
+                    <Check className="size-3.5" />
+                    Gán bàn
+                  </Button>
+                )}
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    onCancel(selectedReservation)
+                    onEdit(selectedReservation)
                     setSelectedReservation(null)
                   }}
-                  className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
                 >
-                  <X className="size-3.5" />
-                  Hủy
+                  Sửa
                 </Button>
-              )}
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  onEdit(selectedReservation)
-                  setSelectedReservation(null)
-                }}
-              >
-                Sửa
-              </Button>
 
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedReservation(null)}
-              >
-                Đóng
-              </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedReservation(null)}
+                >
+                  Đóng
+                </Button>
+              </div>
             </div>
           </div>
         </div>

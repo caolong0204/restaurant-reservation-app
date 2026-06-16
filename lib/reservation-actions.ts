@@ -391,7 +391,7 @@ export async function cancelReservation(id: string): Promise<ActionResult<Reserv
   if (!staff.ok) return fail(staff.error)
 
   if (!isSupabaseConfigured()) {
-    const reservation = updateDemoReservation(id, { status: 'cancelled', tableId: undefined })
+    const reservation = updateDemoReservation(id, { status: 'cancelled', tableId: undefined, secondaryTableIds: undefined })
     if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
     revalidatePath('/admin')
     return ok(reservation)
@@ -401,7 +401,7 @@ export async function cancelReservation(id: string): Promise<ActionResult<Reserv
   const timestamp = new Date().toISOString()
   const { error } = await supabase
     .from('reservations')
-    .update({ status: 'cancelled', table_id: null, updated_at: timestamp })
+    .update({ status: 'cancelled', table_id: null, secondary_table_ids: null, updated_at: timestamp })
     .eq('id', id)
 
   if (error) {

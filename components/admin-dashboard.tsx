@@ -23,6 +23,7 @@ import { DayCalendarView } from '@/components/admin/day-calendar-view'
 import { EditModal } from '@/components/admin/edit-modal'
 import { ReservationTable } from '@/components/admin/reservation-table'
 import { StatCard } from '@/components/admin/stat-card'
+import { ConfirmModal } from '@/components/admin/confirm-modal'
 import {
   useReservations,
   type Reservation,
@@ -85,6 +86,7 @@ export function AdminDashboard() {
   const [assigningReservation, setAssigningReservation] = useState<Reservation | null>(null)
   const [availableTables, setAvailableTables] = useState<RestaurantTable[]>([])
   const [isLoadingTables, setIsLoadingTables] = useState(false)
+  const [cancelingReservation, setCancelingReservation] = useState<Reservation | null>(null)
 
   const counts = useMemo(() => {
     return {
@@ -175,16 +177,24 @@ export function AdminDashboard() {
     })
   }
 
-  async function handleCancel(reservation: Reservation) {
-    const result = await cancelReservation(reservation.id)
+  function handleCancel(reservation: Reservation) {
+    setCancelingReservation(reservation)
+  }
+
+  async function executeCancel() {
+    if (!cancelingReservation) return
+    const res = cancelingReservation
+    const result = await cancelReservation(res.id)
     if (result.ok) {
-      toast(`Đã hủy đặt bàn của ${reservation.name}`)
+      toast(`Đã hủy đặt bàn của ${res.name}`)
+      setCancelingReservation(null)
       return
     }
 
     toast.error('Không hủy được đặt bàn', {
       description: result.error,
     })
+    setCancelingReservation(null)
   }
 
 
@@ -490,6 +500,14 @@ export function AdminDashboard() {
         }}
         reservation={editingReservation}
         onSubmit={handleEditSubmit}
+        onCancelBooking={async (id) => {
+          const res = editingReservation || reservations.find(r => r.id === id)
+          if (res) {
+            await handleCancel(res)
+            setIsEditOpen(false)
+            setEditingReservation(null)
+          }
+        }}
         tables={tables}
       />
 
@@ -503,6 +521,16 @@ export function AdminDashboard() {
           setAvailableTables([])
         }}
         onConfirm={(tableId, secondaryTableIds) => void handleAssignConfirm(tableId, secondaryTableIds)}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(cancelingReservation)}
+        title="Xác nhận hủy đặt bàn"
+        description={`Bạn có chắc chắn muốn hủy đặt bàn của khách ${cancelingReservation?.name}? Các bàn đang gán sẽ được giải phóng.`}
+        confirmText="Hủy đặt bàn"
+        cancelText="Quay lại"
+        onConfirm={() => void executeCancel()}
+        onCancel={() => setCancelingReservation(null)}
       />
     </div>
   )
