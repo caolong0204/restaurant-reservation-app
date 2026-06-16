@@ -4,7 +4,6 @@ import {
   Armchair,
   Check,
   Edit3,
-  MoreHorizontal,
   Phone,
   Users,
   X,
@@ -53,6 +52,14 @@ function formatTableShorthand(table: RestaurantTable): string {
   const num = numMatch ? numMatch[0].padStart(2, '0') : '00'
   const floorStr = table.floor === 'Tầng 1' ? 'T1' : 'T2'
   return `${num}(${floorStr})`
+}
+
+function formatTableDisplay(reservation: Reservation): string {
+  if (!reservation.table) return ''
+  const main = formatTableShorthand(reservation.table)
+  if (!reservation.secondaryTables || reservation.secondaryTables.length === 0) return main
+  const secondary = reservation.secondaryTables.map(formatTableShorthand).join(' + ')
+  return `${main} + ${secondary}`
 }
 
 export function ReservationTable({
@@ -146,7 +153,7 @@ export function ReservationTable({
                   {reservation.table ? (
                     <Badge variant="outline" className="mx-auto rounded-md border-emerald-500/30 bg-emerald-500/10 text-emerald-700">
                       <Armchair className="mr-1 size-3" />
-                      {formatTableShorthand(reservation.table)}
+                      {formatTableDisplay(reservation)}
                     </Badge>
                   ) : (
                     <button

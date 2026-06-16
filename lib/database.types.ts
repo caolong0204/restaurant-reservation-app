@@ -56,6 +56,7 @@ export type Database = {
           notes: string | null
           status: 'pending' | 'confirmed' | 'cancelled'
           table_id: string | null
+          secondary_table_ids: string | null
           created_at: string
           updated_at: string
         }
@@ -72,6 +73,7 @@ export type Database = {
           notes?: string | null
           status?: 'pending' | 'confirmed' | 'cancelled'
           table_id?: string | null
+          secondary_table_ids?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -88,6 +90,7 @@ export type Database = {
           notes?: string | null
           status?: 'pending' | 'confirmed' | 'cancelled'
           table_id?: string | null
+          secondary_table_ids?: string | null
           created_at?: string
           updated_at?: string
         }

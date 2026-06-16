@@ -21,12 +21,22 @@ function nowMinus(hours: number): number {
   return Date.now() - 1000 * 60 * 60 * hours
 }
 
-function withTable(reservation: Omit<Reservation, 'table'>): Reservation {
+function withTable(reservation: Omit<Reservation, 'table' | 'secondaryTables'> & { secondaryTableIds?: string[] }): Reservation {
   const table = reservation.tableId
     ? DEFAULT_TABLES.find((item) => item.id === reservation.tableId)
     : undefined
 
-  return table ? { ...reservation, table } : reservation
+  const secondaryTableIds = reservation.secondaryTableIds ?? []
+  const secondaryTables = secondaryTableIds
+    .map((id) => DEFAULT_TABLES.find((item) => item.id === id))
+    .filter((t): t is RestaurantTable => !!t)
+
+  return {
+    ...reservation,
+    table,
+    secondaryTableIds,
+    secondaryTables,
+  }
 }
 
 const DEMO_RESERVATIONS: Reservation[] = [
@@ -102,6 +112,7 @@ const DEMO_RESERVATIONS: Reservation[] = [
     notes: 'Booking 180 phút (bắt đầu 13:45).',
     status: 'confirmed',
     tableId: 'tbl_08',
+    secondaryTableIds: ['tbl_01'],
     createdAt: nowMinus(40),
     updatedAt: nowMinus(3),
   }),
@@ -182,8 +193,17 @@ function attachTables(reservations: Reservation[]): Reservation[] {
     const table = reservation.tableId
       ? tables.find((item) => item.id === reservation.tableId)
       : undefined
+    const secondaryTableIds = reservation.secondaryTableIds ?? []
+    const secondaryTables = secondaryTableIds
+      .map((id) => tables.find((item) => item.id === id))
+      .filter((t): t is RestaurantTable => !!t)
 
-    return table ? { ...reservation, table } : { ...reservation, table: undefined }
+    return {
+      ...reservation,
+      table,
+      secondaryTableIds,
+      secondaryTables,
+    }
   })
 }
 
@@ -205,11 +225,11 @@ export function getDemoAvailableTables(
 ): RestaurantTable[] {
   const { reservations, tables } = getStore()
   return tables
-    .filter((table) => table.active && table.capacity >= partySize)
+    .filter((table) => table.active)
     .filter((table) =>
       !reservations.some((reservation) =>
         reservation.status === 'confirmed' &&
-        reservation.tableId === table.id &&
+        (reservation.tableId === table.id || (reservation.secondaryTableIds && reservation.secondaryTableIds.includes(table.id))) &&
         reservation.id !== excludingReservationId &&
         reservation.date === date &&
         overlaps(reservation.time, reservation.partySize, time, partySize),

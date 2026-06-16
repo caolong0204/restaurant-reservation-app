@@ -27,6 +27,8 @@ export type Reservation = {
   status: ReservationStatus
   tableId?: string
   table?: RestaurantTable
+  secondaryTableIds?: string[]
+  secondaryTables?: RestaurantTable[]
   createdAt: number
   updatedAt: number
 }
@@ -41,6 +43,9 @@ export type ReservationInput = {
   occasion?: string
   tableLocation?: string
   notes?: string
+  tableId?: string
+  secondaryTableIds?: string[]
+  status?: ReservationStatus
 }
 
 export type SlotAvailability = {

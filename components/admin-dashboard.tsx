@@ -32,6 +32,8 @@ import {
 } from '@/components/reservation-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { signOutAdmin } from '@/lib/auth-actions'
 import { RESTAURANT, formatDate } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
@@ -66,7 +68,6 @@ export function AdminDashboard() {
     confirmReservation,
     cancelReservation,
     editReservation,
-    deleteReservation,
     getAvailableTables,
   } = useReservations()
 
@@ -74,6 +75,7 @@ export function AdminDashboard() {
   const [filter, setFilter] = useState<Filter>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
   const [calendarDate, setCalendarDate] = useState(todayISO())
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -152,13 +154,17 @@ export function AdminDashboard() {
     setIsLoadingTables(false)
   }
 
-  async function handleAssignConfirm(tableId: string) {
+  async function handleAssignConfirm(tableId: string, secondaryTableIds: string[] = []) {
     if (!assigningReservation) return
 
-    const result = await confirmReservation(assigningReservation.id, tableId)
+    const result = await confirmReservation(assigningReservation.id, tableId, secondaryTableIds)
     if (result.ok) {
+      const mainCode = result.data.table?.code ?? ''
+      const secCodes = result.data.secondaryTables && result.data.secondaryTables.length > 0
+        ? ` + ${result.data.secondaryTables.map((t) => t.code).join(' + ')}`
+        : ''
       toast.success(`Đã xác nhận đặt bàn cho ${result.data.name}`, {
-        description: `Bàn ${result.data.table?.code ?? ''} đã được gán.`,
+        description: `Bàn ${mainCode}${secCodes} đã được gán.`,
       })
       setAssigningReservation(null)
       setAvailableTables([])
@@ -182,21 +188,6 @@ export function AdminDashboard() {
     })
   }
 
-  async function handleDelete(reservation: Reservation) {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn lượt đặt bàn của ${reservation.name}?`)) {
-      return
-    }
-
-    const result = await deleteReservation(reservation.id)
-    if (result.ok) {
-      toast.success(`Đã xóa lượt đặt bàn của ${reservation.name}`)
-      return
-    }
-
-    toast.error('Không xóa được đặt bàn', {
-      description: result.error,
-    })
-  }
 
   function openEdit(reservation: Reservation) {
     setEditingReservation(reservation)
@@ -366,26 +357,52 @@ export function AdminDashboard() {
                 </div>
 
                 <div className="relative sm:col-span-5 md:col-span-4">
-                  <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={dateFilter}
-                    onChange={(event) => setDateFilter(event.target.value)}
-                    className="cursor-pointer rounded-lg pl-9 pr-8 text-sm [&::-webkit-calendar-picker-indicator]:opacity-0"
-                  />
-                  {dateFilter ? (
-                    <button
-                      type="button"
-                      onClick={() => setDateFilter('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                    >
-                      Tất cả
-                    </button>
-                  ) : (
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold uppercase text-muted-foreground/60">
-                      Lọc ngày
-                    </span>
-                  )}
+                  <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          'w-full justify-start text-left font-normal pl-9 text-sm h-9 rounded-lg relative bg-background border border-input shadow-xs',
+                          !dateFilter && 'text-muted-foreground',
+                        )}
+                      >
+                        <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        {dateFilter ? formatDate(dateFilter) : 'Tất cả ngày'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="end">
+                      <RestaurantCalendar
+                        selected={dateFilter ? new Date(`${dateFilter}T00:00:00`) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const year = date.getFullYear()
+                            const month = String(date.getMonth() + 1).padStart(2, '0')
+                            const day = String(date.getDate()).padStart(2, '0')
+                            setDateFilter(`${year}-${month}-${day}`)
+                          } else {
+                            setDateFilter('')
+                          }
+                          setIsDateFilterOpen(false)
+                        }}
+                      />
+                      {dateFilter && (
+                        <div className="p-2 bg-background border-t border-border flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg h-8 px-2"
+                            onClick={() => {
+                              setDateFilter('')
+                              setIsDateFilterOpen(false)
+                            }}
+                          >
+                            Xóa lọc ngày
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
@@ -453,7 +470,6 @@ export function AdminDashboard() {
               onConfirm={(reservation) => void openAssignModal(reservation)}
               onCancel={(reservation) => void handleCancel(reservation)}
               onEdit={openEdit}
-              onDelete={(reservation) => void handleDelete(reservation)}
             />
           </div>
         )}
@@ -473,6 +489,7 @@ export function AdminDashboard() {
         }}
         reservation={editingReservation}
         onSubmit={handleEditSubmit}
+        tables={tables}
       />
 
       <AssignTableModal
@@ -484,7 +501,7 @@ export function AdminDashboard() {
           setAssigningReservation(null)
           setAvailableTables([])
         }}
-        onConfirm={(tableId) => void handleAssignConfirm(tableId)}
+        onConfirm={(tableId, secondaryTableIds) => void handleAssignConfirm(tableId, secondaryTableIds)}
       />
     </div>
   )

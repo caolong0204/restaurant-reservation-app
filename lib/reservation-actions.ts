@@ -64,6 +64,10 @@ function mapTable(row: RestaurantTableRow): RestaurantTable {
 
 function mapReservation(row: ReservationRow, tables: RestaurantTable[]): Reservation {
   const table = row.table_id ? tables.find((item) => item.id === row.table_id) : undefined
+  const secondaryTableIds = row.secondary_table_ids ? row.secondary_table_ids.split(',').filter(Boolean) : []
+  const secondaryTables = secondaryTableIds
+    .map((id) => tables.find((item) => item.id === id))
+    .filter((t): t is RestaurantTable => !!t)
 
   return {
     id: row.id,
@@ -79,6 +83,8 @@ function mapReservation(row: ReservationRow, tables: RestaurantTable[]): Reserva
     status: row.status,
     tableId: row.table_id ?? undefined,
     table,
+    secondaryTableIds,
+    secondaryTables,
     createdAt: dateFromTimestamp(row.created_at),
     updatedAt: dateFromTimestamp(row.updated_at),
   }
@@ -95,6 +101,9 @@ function normalizeInput(input: ReservationInput): ReservationInput {
     occasion: input.occasion?.trim() || undefined,
     tableLocation: input.tableLocation?.trim() || undefined,
     notes: input.notes?.trim() || undefined,
+    tableId: input.tableId,
+    secondaryTableIds: input.secondaryTableIds,
+    status: input.status,
   }
 }
 
@@ -227,6 +236,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
     notes: normalized.notes ?? null,
     status: 'pending',
     table_id: null,
+    secondary_table_ids: null,
     created_at: timestamp,
     updated_at: timestamp,
   })
@@ -240,6 +250,8 @@ export async function createReservation(input: ReservationInput): Promise<Action
     ...normalized,
     id,
     status: 'pending',
+    secondaryTableIds: [],
+    secondaryTables: [],
     createdAt: dateFromTimestamp(timestamp),
     updatedAt: dateFromTimestamp(timestamp),
   })
@@ -262,15 +274,38 @@ export async function editReservation(id: string, input: ReservationInput): Prom
 
   if (!isSupabaseConfigured()) {
     const current = listDemoReservations().find((reservation) => reservation.id === id)
-    if (current?.status === 'confirmed' && current.tableId) {
+    if (!current) return fail('Không tìm thấy lượt đặt bàn.')
+
+    const targetTableId = input.tableId === '' ? null : (input.tableId ?? current.tableId ?? null)
+    const targetSecondaryTableIds = targetTableId === null ? [] : (input.secondaryTableIds ?? current.secondaryTableIds ?? [])
+    let newStatus = current.status
+    if (targetTableId === null) {
+      if (current.status === 'confirmed') {
+        newStatus = 'pending'
+      }
+    } else {
+      newStatus = 'confirmed'
+    }
+
+    if (targetTableId) {
       const available = getDemoAvailableTables(normalized.date, normalized.time, normalized.partySize, id)
-      const stillAvailable = available.some((table) => table.id === current.tableId)
+      const stillAvailable = available.some((table) => table.id === targetTableId)
       if (!stillAvailable) {
-        return fail('Bàn đang gán bị trùng lịch sau khi sửa. Hãy hủy xác nhận rồi gán lại bàn khác.')
+        return fail('Bàn chính được chọn không còn trống trong khung giờ đã chọn.')
+      }
+      for (const secId of targetSecondaryTableIds) {
+        if (!available.some((table) => table.id === secId)) {
+          return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
+        }
       }
     }
 
-    const reservation = updateDemoReservation(id, normalized)
+    const reservation = updateDemoReservation(id, {
+      ...normalized,
+      tableId: targetTableId ?? undefined,
+      secondaryTableIds: targetSecondaryTableIds,
+      status: newStatus,
+    })
     if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
     revalidatePath('/admin')
     return ok(reservation)
@@ -284,17 +319,35 @@ export async function editReservation(id: string, input: ReservationInput): Prom
     return fail('Không tìm thấy lượt đặt bàn.')
   }
 
-  if (current.status === 'confirmed' && current.tableId) {
+  const targetTableId = input.tableId === '' ? null : (input.tableId ?? current.tableId ?? null)
+  const targetSecondaryTableIds = targetTableId === null ? [] : (input.secondaryTableIds ?? current.secondaryTableIds ?? [])
+  let newStatus = current.status
+  if (targetTableId === null) {
+    if (current.status === 'confirmed') {
+      newStatus = 'pending'
+    }
+  } else {
+    newStatus = 'confirmed'
+  }
+
+  if (targetTableId) {
     const availableTables = await getAvailableTables(normalized.date, normalized.time, normalized.partySize, id)
     if (!availableTables.ok) return fail(availableTables.error)
 
-    if (!availableTables.data.some((table) => table.id === current.tableId)) {
-      return fail('Bàn đang gán bị trùng lịch sau khi sửa. Hãy hủy xác nhận rồi gán lại bàn khác.')
+    if (!availableTables.data.some((table) => table.id === targetTableId)) {
+      return fail('Bàn chính được chọn không còn trống trong khung giờ đã chọn.')
+    }
+    for (const secId of targetSecondaryTableIds) {
+      if (!availableTables.data.some((table) => table.id === secId)) {
+        return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
+      }
     }
   }
 
   const supabase = await createClient()
   const timestamp = new Date().toISOString()
+  const secondaryTableIdsStr = targetSecondaryTableIds.length > 0 ? targetSecondaryTableIds.join(',') : null
+
   const { error } = await supabase
     .from('reservations')
     .update({
@@ -307,6 +360,9 @@ export async function editReservation(id: string, input: ReservationInput): Prom
       occasion: normalized.occasion ?? null,
       requested_area: normalized.tableLocation ?? null,
       notes: normalized.notes ?? null,
+      table_id: targetTableId,
+      secondary_table_ids: secondaryTableIdsStr,
+      status: newStatus,
       updated_at: timestamp,
     })
     .eq('id', id)
@@ -316,9 +372,17 @@ export async function editReservation(id: string, input: ReservationInput): Prom
   }
 
   revalidatePath('/admin')
+  const table = targetTableId ? snapshot.data.tables.find((t) => t.id === targetTableId) : undefined
+  const secondaryTables = targetSecondaryTableIds.map(sid => snapshot.data.tables.find((item) => item.id === sid)).filter((t): t is RestaurantTable => !!t)
+
   return ok({
     ...current,
     ...normalized,
+    tableId: targetTableId ?? undefined,
+    table: table ?? undefined,
+    secondaryTableIds: targetSecondaryTableIds,
+    secondaryTables,
+    status: newStatus,
     updatedAt: dateFromTimestamp(timestamp),
   })
 }
@@ -376,7 +440,11 @@ export async function deleteReservation(id: string): Promise<ActionResult<string
   return ok(id)
 }
 
-export async function confirmReservation(id: string, tableId: string): Promise<ActionResult<Reservation>> {
+export async function confirmReservation(
+  id: string,
+  tableId: string,
+  secondaryTableIds: string[] = []
+): Promise<ActionResult<Reservation>> {
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
 
@@ -386,10 +454,19 @@ export async function confirmReservation(id: string, tableId: string): Promise<A
 
     const available = getDemoAvailableTables(current.date, current.time, current.partySize, id)
     if (!available.some((table) => table.id === tableId)) {
-      return fail('Bàn này không còn trống trong khung giờ đã chọn.')
+      return fail('Bàn chính không còn trống trong khung giờ đã chọn.')
+    }
+    for (const secId of secondaryTableIds) {
+      if (!available.some((table) => table.id === secId)) {
+        return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
+      }
     }
 
-    const reservation = updateDemoReservation(id, { status: 'confirmed', tableId })
+    const reservation = updateDemoReservation(id, {
+      status: 'confirmed',
+      tableId,
+      secondaryTableIds,
+    })
     if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
     revalidatePath('/admin')
     return ok(reservation)
@@ -405,14 +482,26 @@ export async function confirmReservation(id: string, tableId: string): Promise<A
   if (!availableTables.ok) return fail(availableTables.error)
 
   if (!availableTables.data.some((table) => table.id === tableId)) {
-    return fail('Bàn này không còn trống trong khung giờ đã chọn.')
+    return fail('Bàn chính không còn trống trong khung giờ đã chọn.')
+  }
+  for (const secId of secondaryTableIds) {
+    if (!availableTables.data.some((table) => table.id === secId)) {
+      return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
+    }
   }
 
   const supabase = await createClient()
   const timestamp = new Date().toISOString()
+  const secondaryTableIdsStr = secondaryTableIds.length > 0 ? secondaryTableIds.join(',') : null
+
   const { error } = await supabase
     .from('reservations')
-    .update({ status: 'confirmed', table_id: tableId, updated_at: timestamp })
+    .update({
+      status: 'confirmed',
+      table_id: tableId,
+      secondary_table_ids: secondaryTableIdsStr,
+      updated_at: timestamp
+    })
     .eq('id', id)
 
   if (error) {
@@ -420,12 +509,16 @@ export async function confirmReservation(id: string, tableId: string): Promise<A
   }
 
   const table = snapshot.data.tables.find((item) => item.id === tableId)
+  const secondaryTables = secondaryTableIds.map(sid => snapshot.data.tables.find((item) => item.id === sid)).filter((t): t is RestaurantTable => !!t)
+
   revalidatePath('/admin')
   return ok({
     ...current,
     status: 'confirmed',
     tableId,
     table,
+    secondaryTableIds,
+    secondaryTables,
     updatedAt: dateFromTimestamp(timestamp),
   })
 }

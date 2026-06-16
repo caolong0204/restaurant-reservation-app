@@ -11,7 +11,6 @@ import {
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -20,7 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { formatDateLong, formatTime, getLastBookingTime } from '@/lib/restaurant'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
+import { formatDate, formatDateLong, formatTime, getLastBookingTime } from '@/lib/restaurant'
 import {
   getBookingDurationMinutes,
   type Reservation,
@@ -38,7 +39,6 @@ interface DayCalendarViewProps {
   onConfirm: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
-  onDelete: (reservation: Reservation) => void
 }
 
 function isoFromDate(date: Date): string {
@@ -124,7 +124,12 @@ function getSlotAvailability(
     const duration = getBookingDurationMinutes(reservation.partySize)
     const isOccupied = slotStart >= reservationStart && slotStart < reservationStart + duration
 
-    if (isOccupied) occupiedTables.add(reservation.tableId)
+    if (isOccupied) {
+      occupiedTables.add(reservation.tableId)
+      if (reservation.secondaryTableIds) {
+        reservation.secondaryTableIds.forEach((id) => occupiedTables.add(id))
+      }
+    }
   })
 
   return tableIds.length - occupiedTables.size
@@ -137,16 +142,32 @@ function getReservationGridStyle(
   const startMinutes = minutesFromTime(reservation.time)
   const duration = getBookingDurationMinutes(reservation.partySize)
   const endMinutes = startMinutes + duration
-  const startIndex = slots.findIndex((slot) => minutesFromTime(slot) >= startMinutes)
 
+  // Round start DOWN to nearest 30 minutes
+  const roundedStart = Math.floor(startMinutes / 30) * 30
+  // Round end UP to nearest 30 minutes
+  const roundedEnd = Math.ceil(endMinutes / 30) * 30
+
+  const startSlotStr = timeFromMinutes(roundedStart)
+  const endSlotStr = timeFromMinutes(roundedEnd)
+
+  const startIndex = slots.indexOf(startSlotStr)
   if (startIndex < 0) return null
 
-  const endIndex = slots.findIndex((slot) => minutesFromTime(slot) >= endMinutes)
+  const endIndex = slots.indexOf(endSlotStr)
   const safeEndIndex = endIndex < 0 ? slots.length : endIndex
+
+  const leftOffsetMinutes = startMinutes - roundedStart
+  const marginLeft = (leftOffsetMinutes / 30) * 52
+
+  const rightOffsetMinutes = roundedEnd - endMinutes
+  const marginRight = (rightOffsetMinutes / 30) * 52
 
   return {
     gridColumn: `${startIndex + 1} / ${safeEndIndex + 1}`,
     gridRow: '1',
+    marginLeft: `${marginLeft}px`,
+    marginRight: `${marginRight}px`,
   }
 }
 
@@ -158,9 +179,9 @@ export function DayCalendarView({
   onConfirm,
   onCancel,
   onEdit,
-  onDelete,
 }: DayCalendarViewProps) {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
   const slots = useMemo(() => createHalfHourSlots(selectedDate), [selectedDate])
   const activeTables = useMemo(
@@ -221,12 +242,31 @@ export function DayCalendarView({
             >
               <ChevronLeft className="size-4" />
             </Button>
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(event) => onDateChange(event.target.value)}
-              className="h-10 w-48 rounded-lg bg-background text-sm font-semibold"
-            />
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-10 w-48 rounded-lg bg-background text-sm font-semibold justify-start pl-3 text-left border shadow-xs"
+                >
+                  <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
+                  <span className="truncate">{formatDate(selectedDate)}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="end">
+                <RestaurantCalendar
+                  selected={new Date(`${selectedDate}T00:00:00`)}
+                  onSelect={(date) => {
+                    if (date) {
+                      const year = date.getFullYear()
+                      const month = String(date.getMonth() + 1).padStart(2, '0')
+                      const day = String(date.getDate()).padStart(2, '0')
+                      onDateChange(`${year}-${month}-${day}`)
+                    }
+                    setIsCalendarOpen(false)
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
             <Button
               type="button"
               variant="outline"
@@ -297,7 +337,11 @@ export function DayCalendarView({
           </TableHeader>
           <TableBody>
             {activeTables.map((table) => {
-              const tableReservations = assignedReservations.filter((reservation) => reservation.tableId === table.id)
+              const tableReservations = assignedReservations.filter(
+                (reservation) =>
+                  reservation.tableId === table.id ||
+                  (reservation.secondaryTableIds && reservation.secondaryTableIds.includes(table.id)),
+              )
 
               return (
               <TableRow key={table.id} className="border-border hover:bg-transparent">
@@ -320,13 +364,14 @@ export function DayCalendarView({
                         style={{ gridColumn: index + 1 }}
                         className={cn(
                           'row-start-1 border-r',
-                          isFullHourSlot(slot) ? 'border-border/25' : 'border-border/75',
+                          ((minutesFromTime(slot) + 30) % 60 === 0) ? 'border-border/75' : 'border-border/25',
                         )}
                       />
                     ))}
                     {tableReservations.map((reservation) => {
                       const style = getReservationGridStyle(reservation, slots)
                       if (!style) return null
+                      const isSecondary = reservation.tableId !== table.id
 
                       return (
                         <button
@@ -337,11 +382,12 @@ export function DayCalendarView({
                           className={cn(
                             'z-10 mx-0.5 my-3 flex h-10 items-center justify-between gap-2 rounded-sm border px-2 text-left text-xs font-bold shadow-sm ring-1 ring-black/5 transition-transform hover:-translate-y-0.5',
                             getBarClass(reservation),
+                            isSecondary && 'opacity-65 border-dashed border-primary bg-teal-700/35 text-white/90',
                           )}
-                          title={`${reservation.name} - ${statusText(reservation.status)}`}
+                          title={`${reservation.name} - ${statusText(reservation.status)}${isSecondary ? ' (Bàn phụ ghép thêm)' : ''}`}
                         >
                           <span className="min-w-0 truncate">
-                            {reservation.name}
+                            {isSecondary ? `[Ghép] ${reservation.name}` : reservation.name}
                           </span>
                           <span className="shrink-0 rounded bg-black/10 px-1 py-0.5 text-[11px] leading-none">
                             {reservation.partySize}p · {durationLabel(getBookingDurationMinutes(reservation.partySize))}
@@ -422,7 +468,20 @@ export function DayCalendarView({
                 </div>
                 <div>
                   <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Bàn chỉ định</span>
-                  <span className="font-bold text-primary">{selectedReservation.table?.code ?? 'Chưa gán bàn'}</span>
+                  <span className="font-bold text-primary">
+                    {selectedReservation.table ? (
+                      <>
+                        {selectedReservation.table.code}
+                        {selectedReservation.secondaryTables && selectedReservation.secondaryTables.length > 0 && (
+                          <span className="text-xs font-normal text-muted-foreground ml-1">
+                            (ghép: {selectedReservation.secondaryTables.map((t) => t.code).join(', ')})
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      'Chưa gán bàn'
+                    )}
+                  </span>
                 </div>
                 <div>
                   <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Vị trí mong muốn</span>
@@ -483,18 +542,7 @@ export function DayCalendarView({
               >
                 Sửa
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="text-rose-700 hover:bg-rose-50 hover:text-rose-800"
-                onClick={() => {
-                  onDelete(selectedReservation)
-                  setSelectedReservation(null)
-                }}
-              >
-                Xóa
-              </Button>
+
               <Button
                 type="button"
                 size="sm"

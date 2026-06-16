@@ -153,7 +153,7 @@ export function StepDate({
 
         {/* Weekday Headers starting on Monday */}
         <div className="grid grid-cols-7 gap-x-2 text-center mb-2 sm:mb-4">
-          {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => (
+          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => (
             <span
               key={day}
               className="text-[10px] font-bold tracking-wider text-muted-foreground/60 select-none py-1"

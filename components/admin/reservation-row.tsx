@@ -68,6 +68,7 @@ export function ReservationRow({
             <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-500/30 bg-emerald-500/10 dark:text-emerald-300">
               <Armchair className="mr-1 size-3" />
               {r.table.code}
+              {r.secondaryTables && r.secondaryTables.length > 0 && ` + ${r.secondaryTables.map((t) => t.code).join(' + ')}`}
             </Badge>
           )}
           {r.tableLocation && !r.table && (

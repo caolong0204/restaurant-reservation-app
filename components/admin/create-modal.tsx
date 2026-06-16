@@ -1,11 +1,13 @@
 import * as React from 'react'
 import { useState } from 'react'
-import { Check, Sparkles, X } from 'lucide-react'
+import { CalendarDays, Check, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import type { ReservationInput } from '@/lib/reservation-types'
-import { TIME_SLOTS, OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
+import { TIME_SLOTS, OCCASIONS, TABLE_LOCATIONS, formatDate } from '@/lib/restaurant'
 import { validateVNPhone, validateEmail } from '@/lib/utils'
 
 interface CreateModalProps {
@@ -19,6 +21,7 @@ export function CreateModal({ isOpen, onClose, onSubmit }: CreateModalProps) {
   const [cPhone, setCPhone] = useState('')
   const [cEmail, setCEmail] = useState('')
   const [cDate, setCDate] = useState('')
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [cTime, setCTime] = useState(TIME_SLOTS[7]) // default to 17:00
   const [cPartySize, setCPartySize] = useState('4')
   const [cOccasion, setCOccasion] = useState(OCCASIONS[0])
@@ -112,7 +115,37 @@ export function CreateModal({ isOpen, onClose, onSubmit }: CreateModalProps) {
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1">
               <Label htmlFor="cDate" className="text-xs font-semibold">Ngày dùng bữa</Label>
-              <Input id="cDate" type="date" value={cDate} onChange={(e) => setCDate(e.target.value)} required className="rounded-lg h-9 text-sm" />
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="cDate"
+                    variant="outline"
+                    className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
+                    <span className={cDate ? 'text-foreground' : 'text-muted-foreground/60'}>
+                      {cDate ? formatDate(cDate) : 'Chọn ngày'}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="start">
+                  <RestaurantCalendar
+                    selected={cDate ? new Date(`${cDate}T00:00:00`) : undefined}
+                    minDate={new Date()} // Prevent booking past dates
+                    onSelect={(date) => {
+                      if (date) {
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0')
+                        const day = String(date.getDate()).padStart(2, '0')
+                        setCDate(`${year}-${month}-${day}`)
+                      } else {
+                        setCDate('')
+                      }
+                      setIsCalendarOpen(false)
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="cTime" className="text-xs font-semibold">Giờ đón khách</Label>
