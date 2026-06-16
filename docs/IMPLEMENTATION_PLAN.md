@@ -104,7 +104,7 @@ Before deploying Supabase, sync these items with the current FE/demo logic:
 ## Acceptance Criteria
 
 - Admin can enter and manage one booking in under 30 seconds.
-- Search by phone/name/email/table is usable from row view.
+- Search by phone/name/table is usable from row view.
 - Staff can see table availability in the day timeline without reading empty-cell text.
 - Confirm flow prevents obvious short-capacity mistakes.
 - No TypeScript, lint, or production build failures before BE work starts.
