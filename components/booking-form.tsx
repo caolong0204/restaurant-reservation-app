@@ -36,8 +36,7 @@ interface BookingFormProps {
   setTime: React.Dispatch<React.SetStateAction<string>>
   name: string
   setName: (val: string) => void
-  email: string
-  setEmail: (val: string) => void
+
   phone: string
   setPhone: (val: string) => void
   occasion: string
@@ -65,8 +64,7 @@ export function BookingForm({
   setTime,
   name,
   setName,
-  email,
-  setEmail,
+
   phone,
   setPhone,
   occasion,
@@ -97,7 +95,7 @@ export function BookingForm({
     : Boolean(partySize)
   const isStep2Valid = Boolean(date)
   const isStep3Valid = Boolean(time)
-  const isStep4Valid = Boolean(name.trim() && email.trim() && validateEmail(email) && phone.trim() && validateVNPhone(phone))
+  const isStep4Valid = Boolean(name.trim() && phone.trim() && validateVNPhone(phone))
 
   useEffect(() => {
     if (step !== 3 || !date || !isStep1Valid) return
@@ -157,7 +155,7 @@ export function BookingForm({
 
     const result = await addReservation({
       name: name.trim(),
-      email: email.trim(),
+
       phone: phone.trim(),
       date: toISO(date),
       time,
@@ -188,7 +186,7 @@ export function BookingForm({
     setPartySize('4')
     setTime('')
     setName('')
-    setEmail('')
+
     setPhone('')
     setOccasion(OCCASIONS[0])
     setTableLocation(TABLE_LOCATIONS[0])
@@ -276,8 +274,7 @@ export function BookingForm({
             setName={setName}
             phone={phone}
             setPhone={setPhone}
-            email={email}
-            setEmail={setEmail}
+
             occasion={occasion}
             setOccasion={setOccasion}
             tableLocation={tableLocation}
@@ -291,7 +288,7 @@ export function BookingForm({
           <StepSuccess
             name={name}
             phone={phone}
-            email={email}
+
             date={date}
             time={time}
             partySize={partySize}

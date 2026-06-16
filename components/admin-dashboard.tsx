@@ -120,8 +120,7 @@ export function AdminDashboard() {
         return (
           reservation.name.toLowerCase().includes(normalizedSearch) ||
           reservation.phone.toLowerCase().includes(normalizedSearch) ||
-          reservation.email.toLowerCase().includes(normalizedSearch) ||
-          reservation.table?.code.toLowerCase().includes(normalizedSearch)
+          (reservation.table?.code.toLowerCase() ?? '').includes(normalizedSearch)
         )
       })
       .sort((a, b) =>
@@ -340,7 +339,7 @@ export function AdminDashboard() {
                   <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="text"
-                    placeholder="Tìm tên khách, số điện thoại, email, mã bàn..."
+                    placeholder="Tìm tên khách, số điện thoại, mã bàn..."
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     className="rounded-lg pl-9 text-sm placeholder:text-muted-foreground/50"

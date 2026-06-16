@@ -80,7 +80,7 @@ export function ReservationTable({
             <TableHead className="w-32 text-center font-bold text-foreground">SĐT</TableHead>
             <TableHead className="w-24 text-center font-bold text-foreground">Số lượng</TableHead>
             <TableHead className="w-36 text-center font-bold text-foreground">Dịp đặc biệt</TableHead>
-            <TableHead className="w-36 text-center font-bold text-foreground">Vị trí mong muốn</TableHead>
+
             <TableHead className="w-32 text-center font-bold text-foreground">Bàn</TableHead>
             <TableHead className="w-36 text-center font-bold text-foreground">Trạng thái</TableHead>
             <TableHead className="w-36 text-center font-bold text-foreground">Thao tác</TableHead>
@@ -145,9 +145,7 @@ export function ReservationTable({
                 <TableCell className={cn("text-center", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
                   {reservation.occasion || '-'}
                 </TableCell>
-                <TableCell className={cn("text-center", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
-                  {reservation.tableLocation || '-'}
-                </TableCell>
+
                 <TableCell className="text-center">
                   {reservation.table ? (
                     <Badge variant="outline" className="mx-auto rounded-md border-emerald-500/30 bg-emerald-500/10 text-emerald-700">

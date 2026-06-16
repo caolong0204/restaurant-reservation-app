@@ -4,7 +4,7 @@ import {
   CalendarDays,
   Edit3,
   Armchair,
-  Mail,
+
   Phone,
   Trash2,
   UserRound,
@@ -71,11 +71,7 @@ export function ReservationRow({
               {r.secondaryTables && r.secondaryTables.length > 0 && ` + ${r.secondaryTables.map((t) => t.code).join(' + ')}`}
             </Badge>
           )}
-          {r.tableLocation && !r.table && (
-            <Badge variant="outline" className="text-xs text-primary border-primary/30 bg-primary/5">
-              {r.tableLocation}
-            </Badge>
-          )}
+
         </div>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground font-medium">
@@ -94,10 +90,7 @@ export function ReservationRow({
         </div>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground/80">
-          <span className="flex items-center gap-1.5">
-            <Mail className="size-3.5" />
-            {r.email}
-          </span>
+
           <span className="flex items-center gap-1.5">
             <Phone className="size-3.5" />
             {r.phone}

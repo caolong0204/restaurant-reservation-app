@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { type Reservation } from '@/components/reservation-provider'
 import type { ReservationInput, RestaurantTable } from '@/lib/reservation-types'
-import { TIME_SLOTS, OCCASIONS, TABLE_LOCATIONS, formatDate } from '@/lib/restaurant'
+import { TIME_SLOTS, OCCASIONS, formatDate } from '@/lib/restaurant'
 import { validateVNPhone, validateEmail, cn } from '@/lib/utils'
 
 interface EditModalProps {
@@ -22,13 +22,12 @@ interface EditModalProps {
 export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: EditModalProps) {
   const [eName, setEName] = useState('')
   const [ePhone, setEPhone] = useState('')
-  const [eEmail, setEEmail] = useState('')
+
   const [eDate, setEDate] = useState('')
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [eTime, setETime] = useState('')
   const [ePartySize, setEPartySize] = useState('')
   const [eOccasion, setEOccasion] = useState('')
-  const [eTableLocation, setETableLocation] = useState('')
   const [eTableId, setETableId] = useState('')
   const [eSecondaryTableIds, setESecondaryTableIds] = useState<string[]>([])
   const [eIsManualArrangement, setEIsManualArrangement] = useState(false)
@@ -38,12 +37,11 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
     if (reservation) {
       setEName(reservation.name)
       setEPhone(reservation.phone)
-      setEEmail(reservation.email)
+
       setEDate(reservation.date)
       setETime(reservation.time)
       setEPartySize(String(reservation.partySize))
       setEOccasion(reservation.occasion || OCCASIONS[0])
-      setETableLocation(reservation.tableLocation || TABLE_LOCATIONS[0])
       setETableId(reservation.tableId || '')
       
       const secIds = reservation.secondaryTableIds || []
@@ -76,11 +74,9 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
   // Form validations
   const isEPartyValid = Number(ePartySize) > 0 && Number(ePartySize) <= 24 && !isNaN(Number(ePartySize))
   const isEPhoneValid = ePhone.trim() === '' || validateVNPhone(ePhone)
-  const isEEmailValid = eEmail.trim() === '' || validateEmail(eEmail)
+
   const isEditValid = Boolean(
     eName.trim() &&
-    eEmail.trim() &&
-    validateEmail(eEmail) &&
     ePhone.trim() &&
     validateVNPhone(ePhone) &&
     eDate &&
@@ -128,13 +124,12 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
 
     onSubmit(reservation.id, {
       name: eName.trim(),
-      email: eEmail.trim(),
+
       phone: ePhone.trim(),
       date: eDate,
       time: eTime,
       partySize: Number(ePartySize),
       occasion: eOccasion === OCCASIONS[0] ? undefined : eOccasion,
-      tableLocation: eTableLocation === TABLE_LOCATIONS[0] ? undefined : eTableLocation,
       notes: eNotes.trim() || undefined,
       tableId: eTableId,
       secondaryTableIds: eSecondaryTableIds,
@@ -172,13 +167,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
             </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="eEmail" className="text-xs font-semibold">Email</Label>
-            <Input id="eEmail" type="email" value={eEmail} onChange={(e) => setEEmail(e.target.value)} required className="rounded-lg h-9 text-sm" aria-invalid={!isEEmailValid || undefined} />
-            {!isEEmailValid && (
-              <span className="text-[10px] text-destructive font-medium">Email không hợp lệ</span>
-            )}
-          </div>
+
 
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1">
@@ -230,20 +219,12 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <Label htmlFor="eOccasion" className="text-xs font-semibold">Dịp đặc biệt</Label>
               <select id="eOccasion" value={eOccasion} onChange={(e) => setEOccasion(e.target.value)} className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-full">
                 {OCCASIONS.map((o) => (
                   <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="eTableLocation" className="text-xs font-semibold">Vị trí bàn</Label>
-              <select id="eTableLocation" value={eTableLocation} onChange={(e) => setETableLocation(e.target.value)} className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-full">
-                {TABLE_LOCATIONS.map((loc) => (
-                  <option key={loc} value={loc}>{loc}</option>
                 ))}
               </select>
             </div>
@@ -366,6 +347,8 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, tables }: Ed
             <Label htmlFor="eNotes" className="text-xs font-semibold">Ghi chú yêu cầu</Label>
             <textarea id="eNotes" value={eNotes} onChange={(e) => setENotes(e.target.value)} rows={2} className="rounded-lg border border-input bg-transparent px-3 py-2 text-sm resize-none outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 placeholder:text-muted-foreground/50" />
           </div>
+
+
 
           <div className="flex flex-col gap-2 border-t border-border pt-3 mt-1 shrink-0 bg-card sm:flex-row sm:items-center sm:justify-between">
             {hasUnresolvedCapacityWarning ? (

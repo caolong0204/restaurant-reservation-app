@@ -93,7 +93,7 @@ function mapReservation(row: ReservationRow, tables: RestaurantTable[]): Reserva
 function normalizeInput(input: ReservationInput): ReservationInput {
   return {
     name: input.name.trim(),
-    email: input.email.trim().toLowerCase(),
+    email: input.email?.trim().toLowerCase() || '',
     phone: input.phone.trim(),
     date: input.date,
     time: normalizeTime(input.time),
@@ -109,7 +109,6 @@ function normalizeInput(input: ReservationInput): ReservationInput {
 
 function validateReservationInput(input: ReservationInput): string | null {
   if (!input.name.trim()) return 'Vui lòng nhập tên khách.'
-  if (!validateEmail(input.email)) return 'Email không hợp lệ.'
   if (!validateVNPhone(input.phone)) return 'Số điện thoại không hợp lệ.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return 'Ngày đặt bàn không hợp lệ.'
   if (!TIME_SLOTS.includes(normalizeTime(input.time))) return 'Khung giờ đặt bàn không hợp lệ.'

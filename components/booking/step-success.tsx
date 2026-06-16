@@ -7,7 +7,7 @@ import {
   Clock,
   FileText,
   Layers,
-  Mail,
+
   Phone,
   User,
   Users,
@@ -18,7 +18,7 @@ import { formatTime, TABLE_LOCATIONS, OCCASIONS } from '@/lib/restaurant'
 interface StepSuccessProps {
   name: string
   phone: string
-  email: string
+
   date: Date | undefined
   time: string
   partySize: string
@@ -39,7 +39,7 @@ function formatDDMMYYYY(date: Date) {
 export function StepSuccess({
   name,
   phone,
-  email,
+
   date,
   time,
   partySize,
@@ -61,7 +61,7 @@ export function StepSuccess({
         </h4>
         <p className="max-w-sm text-xs sm:text-sm text-muted-foreground leading-relaxed">
           Yêu cầu đặt bàn của bạn đã được ghi nhận thành công. Nhà hàng sẽ liên hệ{' '}
-          <span className="font-semibold text-foreground">{email}</span> hoặc {phone} để xác nhận.
+          <span className="font-semibold text-foreground">{phone}</span> để xác nhận.
         </p>
       </div>
 
@@ -136,16 +136,7 @@ export function StepSuccess({
                 <span className="font-medium text-foreground">{phone}</span>
               </div>
 
-              {/* Email */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <Mail className="size-3.5" />
-                  Email
-                </span>
-                <span className="font-medium text-foreground truncate max-w-[180px]">
-                  {email}
-                </span>
-              </div>
+
 
               {/* Occasion */}
               {occasion && occasion !== OCCASIONS[0] && (

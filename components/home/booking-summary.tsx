@@ -6,7 +6,7 @@ import {
   Clock,
   FileText,
   Layers,
-  Mail,
+
   Phone,
   User,
   Users,
@@ -18,7 +18,7 @@ interface BookingSummaryProps {
   partySize: string
   time: string
   name: string
-  email: string
+
   phone: string
   occasion: string
   tableLocation: string
@@ -37,7 +37,7 @@ export function BookingSummary({
   partySize,
   time,
   name,
-  email,
+
   phone,
   occasion,
   tableLocation,
@@ -104,7 +104,7 @@ export function BookingSummary({
           </div>
 
           {/* Guest Details (only if step >= 4 or filled in) */}
-          {(name.trim() || phone.trim() || email.trim() || notes.trim()) && (
+          {(name.trim() || phone.trim() || notes.trim()) && (
             <div className="border-t border-dashed border-border/80 pt-4 flex flex-col gap-3.5">
               <h5 className="font-serif text-sm font-bold text-foreground opacity-90">
                 Thông tin liên hệ
@@ -133,18 +133,7 @@ export function BookingSummary({
                   </div>
                 )}
 
-                {/* Email */}
-                {email.trim() && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
-                      <Mail className="size-3.5" />
-                      Email
-                    </span>
-                    <span className="font-medium text-foreground truncate max-w-[160px]">
-                      {email}
-                    </span>
-                  </div>
-                )}
+
 
                 {/* Occasion */}
                 {occasion !== OCCASIONS[0] && (

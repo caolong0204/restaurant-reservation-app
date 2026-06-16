@@ -458,10 +458,7 @@ export function DayCalendarView({
                   <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Số điện thoại</span>
                   <span className="font-mono text-foreground">{selectedReservation.phone}</span>
                 </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</span>
-                  <span className="text-foreground">{selectedReservation.email}</span>
-                </div>
+
                 <div>
                   <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Ngày đặt bàn</span>
                   <span className="text-foreground">{selectedReservation.date.split('-').reverse().join('/')}</span>
@@ -491,10 +488,7 @@ export function DayCalendarView({
                     )}
                   </span>
                 </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Vị trí mong muốn</span>
-                  <span className="text-foreground">{selectedReservation.tableLocation || '-'}</span>
-                </div>
+
                 <div>
                   <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Dịp đặc biệt</span>
                   <span className="text-foreground">{selectedReservation.occasion || '-'}</span>

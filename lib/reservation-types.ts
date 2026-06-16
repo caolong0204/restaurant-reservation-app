@@ -35,7 +35,7 @@ export type Reservation = {
 
 export type ReservationInput = {
   name: string
-  email: string
+  email?: string
   phone: string
   date: string
   time: string

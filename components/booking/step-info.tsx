@@ -9,10 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
+import { OCCASIONS } from '@/lib/restaurant'
 import { cn, validateVNPhone, validateEmail } from '@/lib/utils'
 import {
-  Layers,
+  Info,
   Mail,
   MessageSquare,
   PartyPopper,
@@ -25,12 +25,9 @@ interface StepInfoProps {
   setName: (val: string) => void
   phone: string
   setPhone: (val: string) => void
-  email: string
-  setEmail: (val: string) => void
+
   occasion: string
   setOccasion: (val: string) => void
-  tableLocation: string
-  setTableLocation: (val: string) => void
   notes: string
   setNotes: (val: string) => void
 }
@@ -40,17 +37,14 @@ export function StepInfo({
   setName,
   phone,
   setPhone,
-  email,
-  setEmail,
+
   occasion,
   setOccasion,
-  tableLocation,
-  setTableLocation,
   notes,
   setNotes,
 }: StepInfoProps) {
   const isPhoneInvalid = phone.trim().length > 0 && !validateVNPhone(phone)
-  const isEmailInvalid = email.trim().length > 0 && !validateEmail(email)
+
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5">
@@ -100,62 +94,24 @@ export function StepInfo({
         </div>
       </div>
 
+
+
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email" className="flex items-center gap-1">
-          <Mail className={cn("size-3 text-muted-foreground", isEmailInvalid && "text-destructive")} /> Email
+        <Label className="flex items-center gap-1.5">
+          <PartyPopper className="size-3 text-muted-foreground" /> Dịp đặc biệt
         </Label>
-        <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="email@example.com"
-          className="rounded-lg"
-          aria-invalid={isEmailInvalid || undefined}
-        />
-        {isEmailInvalid && (
-          <span className="text-xs text-destructive font-medium mt-0.5">
-            Email không hợp lệ (ví dụ: email@example.com)
-          </span>
-        )}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label className="flex items-center gap-1.5">
-            <PartyPopper className="size-3 text-muted-foreground" /> Dịp đặc biệt
-          </Label>
-          <Select value={occasion} onValueChange={(val) => setOccasion(val ?? '')}>
-            <SelectTrigger className="w-full rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {OCCASIONS.map((o) => (
-                <SelectItem key={o} value={o}>
-                  {o}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Label className="flex items-center gap-1.5">
-            <Layers className="size-3 text-muted-foreground" /> Vị trí bàn
-          </Label>
-          <Select value={tableLocation} onValueChange={(val) => setTableLocation(val ?? '')}>
-            <SelectTrigger className="w-full rounded-lg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {TABLE_LOCATIONS.map((loc) => (
-                <SelectItem key={loc} value={loc}>
-                  {loc}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={occasion} onValueChange={(val) => setOccasion(val ?? '')}>
+          <SelectTrigger className="w-full rounded-lg">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {OCCASIONS.map((o) => (
+              <SelectItem key={o} value={o}>
+                {o}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -170,6 +126,15 @@ export function StepInfo({
           placeholder="Dị ứng thực phẩm, sở thích chỗ ngồi, chuẩn bị bánh kem chúc mừng..."
           className="resize-none rounded-lg border border-input bg-background px-3 py-2 text-[17px] md:text-[15px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 transition-all placeholder:text-muted-foreground/50"
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5 justify-center rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs text-primary font-medium mt-1">
+        <div className="flex gap-2">
+          <Info className="size-4 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            Vui lòng nhận bàn theo sự sắp xếp và tình trạng có sẵn tại thực tế.
+          </p>
+        </div>
       </div>
     </div>
   )
