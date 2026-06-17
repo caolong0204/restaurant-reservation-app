@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   Armchair,
   Check,
@@ -7,6 +8,9 @@ import {
   Phone,
   Users,
   X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -68,14 +72,75 @@ export function ReservationTable({
   onCancel,
   onEdit,
 }: ReservationTableProps) {
+  const [sortField, setSortField] = useState<'date' | 'time' | null>(null)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null)
+
+  const handleSort = (field: 'date' | 'time') => {
+    if (sortField === field) {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc')
+      } else if (sortOrder === 'desc') {
+        setSortField(null)
+        setSortOrder(null)
+      } else {
+        setSortOrder('asc')
+      }
+    } else {
+      setSortField(field)
+      setSortOrder('asc')
+    }
+  }
+
+  const displayReservations = sortField && sortOrder
+    ? [...reservations].sort((a, b) => {
+        if (sortField === 'date') {
+          const dateCompare = a.date.localeCompare(b.date)
+          if (dateCompare !== 0) {
+            return sortOrder === 'asc' ? dateCompare : -dateCompare
+          }
+          return a.time.localeCompare(b.time)
+        } else {
+          const timeCompare = a.time.localeCompare(b.time)
+          if (timeCompare !== 0) {
+            return sortOrder === 'asc' ? timeCompare : -timeCompare
+          }
+          return a.date.localeCompare(b.date)
+        }
+      })
+    : reservations
+
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
       <Table className="min-w-[1300px] text-[13px]">
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow className="border-border bg-emerald-500/15 hover:bg-emerald-500/15">
             <TableHead className="w-14 text-center font-bold text-foreground">#</TableHead>
-            <TableHead className="w-28 text-center font-bold text-foreground">Ngày</TableHead>
-            <TableHead className="w-20 text-center font-bold text-foreground">Giờ</TableHead>
+            <TableHead 
+              className="w-28 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+              onClick={() => handleSort('date')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <span>Ngày</span>
+                {sortField === 'date' ? (
+                  sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" /> : <ArrowDown className="size-3 text-primary" />
+                ) : (
+                  <ArrowUpDown className="size-3 text-muted-foreground/60" />
+                )}
+              </div>
+            </TableHead>
+            <TableHead 
+              className="w-20 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+              onClick={() => handleSort('time')}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <span>Giờ</span>
+                {sortField === 'time' ? (
+                  sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" /> : <ArrowDown className="size-3 text-primary" />
+                ) : (
+                  <ArrowUpDown className="size-3 text-muted-foreground/60" />
+                )}
+              </div>
+            </TableHead>
             <TableHead className="min-w-44 text-center font-bold text-foreground">Tên khách</TableHead>
             <TableHead className="w-32 text-center font-bold text-foreground">SĐT</TableHead>
             <TableHead className="w-24 text-center font-bold text-foreground">Số lượng</TableHead>
@@ -83,18 +148,23 @@ export function ReservationTable({
 
             <TableHead className="w-32 text-center font-bold text-foreground">Bàn</TableHead>
             <TableHead className="w-36 text-center font-bold text-foreground">Trạng thái</TableHead>
-            <TableHead className="w-36 text-center font-bold text-foreground">Thao tác</TableHead>
+            <TableHead className="w-36 text-center font-bold text-foreground sticky right-0 z-20 bg-[#dbf4ec] border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]">
+              Thao tác
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {reservations.map((reservation, index) => {
+          {displayReservations.map((reservation, index) => {
             const isCancelled = reservation.status === 'cancelled'
+            const stickyBgClass = isCancelled
+              ? 'bg-[#f4f4f5] group-hover:bg-[#e4e4e7]'
+              : 'bg-card group-hover:bg-[#f4f4f5]'
 
             return (
               <TableRow
                 key={reservation.id}
                 className={cn(
-                  'border-border/70 transition-colors',
+                  'border-border/70 transition-colors group',
                   isCancelled
                     ? 'bg-zinc-100/80 hover:bg-zinc-200/80 text-muted-foreground/85 dark:bg-zinc-900/35 dark:hover:bg-zinc-900/50'
                     : 'hover:bg-muted/50 text-foreground'
@@ -176,7 +246,7 @@ export function ReservationTable({
                     {STATUS_LABELS[reservation.status]}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className={cn("sticky right-0 z-10 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]", stickyBgClass)}>
                   <div className="flex justify-center gap-1">
                     <Button
                       size="icon-sm"

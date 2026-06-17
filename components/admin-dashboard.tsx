@@ -294,27 +294,6 @@ export function AdminDashboard() {
               </p>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-              onClick={() => void refreshAdminData()}
-              disabled={isLoading}
-            >
-              <RefreshCcw className={cn('size-4', isLoading && 'animate-spin')} />
-              Làm mới
-            </Button>
-            <Button
-              size="sm"
-              className="gap-1.5 shadow-sm shadow-primary/20"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <Plus className="size-4" />
-              Thêm đặt bàn
-            </Button>
-          </div>
         </div>
 
         {actionError && (
@@ -330,27 +309,50 @@ export function AdminDashboard() {
           <StatCard label="Đã xác nhận" value={stats.confirmed} icon={Check} colorClass="text-primary bg-primary/10" />
         </div>
 
-        <div className="mt-8 flex flex-wrap gap-2 border-b border-border/80 pb-2">
-          <button
-            type="button"
-            onClick={() => setView('reservations')}
-            className={cn(
-              'rounded-lg px-3 py-2 text-xs font-bold transition-colors',
-              view === 'reservations' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary',
-            )}
-          >
-            Danh sách
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('calendar')}
-            className={cn(
-              'rounded-lg px-3 py-2 text-xs font-bold transition-colors',
-              view === 'calendar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary',
-            )}
-          >
-            Lịch ngày
-          </button>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-border/80 pb-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setView('reservations')}
+              className={cn(
+                'rounded-lg px-3 py-2 text-xs font-bold transition-colors',
+                view === 'reservations' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary',
+              )}
+            >
+              Danh sách
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('calendar')}
+              className={cn(
+                'rounded-lg px-3 py-2 text-xs font-bold transition-colors',
+                view === 'calendar' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-secondary',
+              )}
+            >
+              Lịch ngày
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-8.5 rounded-lg text-xs"
+              onClick={() => void refreshAdminData()}
+              disabled={isLoading}
+            >
+              <RefreshCcw className={cn('size-3.5', isLoading && 'animate-spin')} />
+              Làm mới
+            </Button>
+            <Button
+              size="sm"
+              className="gap-1.5 h-8.5 rounded-lg text-xs shadow-xs"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <Plus className="size-3.5" />
+              Thêm đặt bàn
+            </Button>
+          </div>
         </div>
 
         {view === 'reservations' ? (

@@ -46,7 +46,7 @@ export function StepInfo({
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pb-2 sm:pb-3">
         <User className="size-4 sm:size-5 text-primary" />
         <div>
           <h4 className="font-serif text-base sm:text-lg font-bold text-foreground">
