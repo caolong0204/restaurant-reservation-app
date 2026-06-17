@@ -5,8 +5,8 @@
 - Repository: `restaurant-reservation-app`
 - Stack: Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4, Base UI/shadcn-style components, `sonner`, `lucide-react`
 - Product: public booking flow plus `/admin` reservation operations dashboard
-- Current mode: demo mode by default, backed by Server Actions and an in-memory server demo store
-- Next major step: Supabase/Postgres/Auth backend deployment and schema sync
+- Current mode: direct Supabase mode for public booking, admin auth, and reservation operations
+- Next major step: QA hardening, migration refinement, and production polish
 
 ## Current Product Decisions
 
@@ -26,7 +26,6 @@
 - Restaurant: Flambé
 - Address: 23 Gia Ngư, Hà Nội
 - Hotline: 0927355656
-- Current demo inventory: 17 active tables.
 - Public/admin selectable slots are 15-minute slots.
 - Weekday cutoff: `22:00`.
 - Friday/Saturday/Sunday cutoff: `22:30`.
@@ -53,18 +52,14 @@
   - Confirm with table assignment.
   - Day timeline by table.
   - Capacity guard for large groups in both confirm and edit flows.
-- Demo data:
-  - Stored in `lib/reservation-demo-store.ts`.
-  - Includes main and secondary table overlap checks.
 
 ## Backend Status
 
-- Supabase dependencies and helper files exist.
+- Supabase dependencies and helper files are wired into the app.
 - Supabase migrations exist under `supabase/migrations`.
-- The database has **not** been deployed in the current context.
-- Treat existing migrations as draft/outdated until they are synced against current FE/demo rules.
+- Public booking, admin booking actions, admin login, and route protection now work directly against Supabase.
 
-Before deploying BE, sync:
+Keep syncing:
 
 - Duration rules in SQL/RPC.
 - Slot availability by party size.
@@ -84,10 +79,8 @@ Before deploying BE, sync:
 - `components/booking-form.tsx`
 - `components/reservation-provider.tsx`
 - `lib/reservation-actions.ts`
-- `lib/reservation-demo-store.ts`
 - `lib/reservation-types.ts`
 - `lib/restaurant.ts`
-- `lib/table-seed.ts`
 - `lib/supabase/*`
 - `supabase/migrations/*`
 
@@ -104,7 +97,6 @@ pnpm build
 Production smoke check was run on a temporary `next start` server:
 
 - `/admin` rendered dashboard/list/calendar.
-- Calendar rendered 17 table rows.
 - Booking bars no longer used `p` for party size.
 - `/` rendered public booking form.
 
@@ -112,4 +104,4 @@ There is no `test` script yet.
 
 ## Recommended Next Step
 
-Start the BE phase by reviewing and rewriting Supabase migrations from the current frontend/demo truth, not by assuming the current SQL draft is production-ready.
+Continue with live-Supabase QA, migration refinement, and production hardening instead of maintaining a parallel demo path.

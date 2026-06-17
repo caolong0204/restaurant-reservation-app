@@ -63,7 +63,6 @@ export function AdminDashboard() {
     tables,
     isLoading,
     actionError,
-    authMode,
     refreshAdminData,
     createManualReservation,
     confirmReservation,
@@ -258,7 +257,7 @@ export function AdminDashboard() {
                 {RESTAURANT.name}
               </p>
               <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
-                Trang quản trị nhân viên · {authMode === 'demo' ? 'Demo mode' : 'Supabase'}
+                Trang quản trị nhân viên · Supabase
               </p>
             </div>
           </div>

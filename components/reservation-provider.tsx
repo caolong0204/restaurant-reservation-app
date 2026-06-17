@@ -42,7 +42,6 @@ type ReservationContextValue = {
   tables: RestaurantTable[]
   isLoading: boolean
   actionError: string | null
-  authMode: 'supabase' | 'demo'
   refreshAdminData: () => Promise<void>
   addReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
   createManualReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
@@ -78,7 +77,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
   const [tables, setTables] = useState<RestaurantTable[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [authMode, setAuthMode] = useState<'supabase' | 'demo'>('demo')
 
   const refreshAdminData = useCallback(async () => {
     setIsLoading(true)
@@ -88,7 +86,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     if (result.ok) {
       setReservations(result.data.reservations)
       setTables(result.data.tables)
-      setAuthMode(result.data.authMode)
     } else {
       setActionError(result.error)
     }
@@ -182,7 +179,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       tables,
       isLoading,
       actionError,
-      authMode,
       refreshAdminData,
       addReservation,
       createManualReservation,
@@ -197,7 +193,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       tables,
       isLoading,
       actionError,
-      authMode,
       refreshAdminData,
       addReservation,
       createManualReservation,

@@ -1,11 +1,13 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ArrowLeft, LockKeyhole, ShieldCheck, Sparkles, Star, UtensilsCrossed } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { signInAdmin } from '@/lib/auth-actions'
 import { RESTAURANT } from '@/lib/restaurant'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function AdminLoginPage({
   searchParams,
@@ -13,6 +15,22 @@ export default async function AdminLoginPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const params = await searchParams
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (user) {
+    const { data: staffProfile } = await supabase
+      .from('staff_profiles')
+      .select('active')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (staffProfile?.active) {
+      redirect('/admin')
+    }
+  }
 
   return (
     <main className="min-h-dvh bg-background">

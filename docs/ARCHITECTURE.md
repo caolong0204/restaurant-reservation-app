@@ -8,10 +8,8 @@ The app currently has:
 
 - Public booking experience at `/`.
 - Staff/admin operations dashboard at `/admin`.
-- Demo-mode data flow through Server Actions and an in-memory server store.
-- Supabase helper code and draft migrations for the upcoming backend phase.
-
-Supabase is optional at runtime. If Supabase environment variables are missing, the app runs in demo mode.
+- Supabase-backed data flow through Server Actions and RPC/table access.
+- Supabase helper code and linked migrations for the live backend phase.
 
 ## Tech Stack
 
@@ -34,7 +32,7 @@ Supabase is optional at runtime. If Supabase environment variables are missing, 
 | --- | --- |
 | `/` | Public restaurant page and booking wizard |
 | `/admin` | Staff/admin reservation operations |
-| `/admin/login` | Supabase Auth login page for admin mode |
+| `/admin/login` | Supabase Auth login page for staff/admin |
 
 ## Main Data Flow
 
@@ -42,30 +40,19 @@ Supabase is optional at runtime. If Supabase environment variables are missing, 
 Public BookingForm
   -> useReservations().addReservation()
   -> createReservation Server Action
-  -> demo store OR Supabase reservations insert
+  -> Supabase reservations insert
   -> pending reservation
 
 AdminDashboard
   -> useReservations()
   -> reservation Server Actions
-  -> demo store OR Supabase
+  -> Supabase
   -> local provider state upsert
 ```
 
-## Runtime Modes
+## Runtime Configuration
 
-### Demo Mode
-
-When Supabase env vars are not configured:
-
-- `isSupabaseConfigured()` returns false.
-- Admin route is not auth-protected.
-- Server Actions use `lib/reservation-demo-store.ts`.
-- Demo data resets with the server process.
-
-### Supabase Mode
-
-When these env vars exist:
+The app now expects these env vars to exist:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=...
@@ -75,8 +62,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 - `/admin` is protected by `proxy.ts`.
 - Staff must exist in `staff_profiles` and be active.
 - Server Actions use Supabase tables/RPCs.
-
-The current Supabase SQL should be treated as draft until synced with the latest frontend/demo rules.
+- The current Supabase SQL is the active backend source of truth and should be kept in sync with frontend rules.
 
 ## Core Domain Types
 
@@ -129,8 +115,6 @@ Operating cutoff:
 | File | Responsibility |
 | --- | --- |
 | `lib/reservation-actions.ts` | Server Actions for public/admin operations |
-| `lib/reservation-demo-store.ts` | Demo-mode server-memory data and overlap logic |
-| `lib/table-seed.ts` | Demo table inventory |
 | `lib/restaurant.ts` | Restaurant constants, slots, date/time helpers |
 | `lib/supabase/server.ts` | Cookie-based Supabase SSR client |
 | `lib/supabase/client.ts` | Browser Supabase client |
@@ -140,7 +124,6 @@ Operating cutoff:
 ## Known Gaps
 
 - No automated unit/e2e tests yet.
-- Supabase migrations are draft/outdated relative to current frontend/demo logic.
 - No email or payment flow.
 - No report/export flow yet.
 - No persisted audit trail for manual capacity override.

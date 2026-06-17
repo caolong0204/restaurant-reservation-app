@@ -33,13 +33,11 @@ This document defines the rules, styling guidelines, and architectural standards
 
 ## 3. State, Data Flow, And Mutability
 
-- The current app is still pre-backend. Admin and public booking flows use Server Actions in `lib/reservation-actions.ts`.
-- Demo mode is backed by the server-side in-memory store in `lib/reservation-demo-store.ts`, not by client-only local state.
+- Admin and public booking flows use Server Actions in `lib/reservation-actions.ts` backed by Supabase.
 - `ReservationProvider` is the client UI state bridge. It should call Server Actions and then sync local UI state from their returned values.
 - Do not reintroduce localStorage or client-only persistence for core reservation data.
 - Do not mutate reservation arrays or table arrays directly. Use immutable updates and preserve IDs, timestamps, and status transitions.
-- Keep demo mode and future Supabase mode behavior aligned. A rule that exists in FE/demo must be mirrored when Supabase is wired.
-- Existing Supabase migrations are draft/outdated until they are synced with the current frontend/demo truth.
+- Keep frontend booking rules aligned with the active Supabase schema and RPC behavior.
 
 ---
 
@@ -97,5 +95,5 @@ pnpm build
 Notes:
 
 - `pnpm build` can skip some type validation depending on Next.js config, so `pnpm exec tsc --noEmit` is required.
-- There is currently no `pnpm test` script. Add focused tests before the Supabase/backend phase where overlap, duration, and capacity rules become higher risk.
+- There is currently no `pnpm test` script. Add focused tests for overlap, duration, and capacity rules where risk is highest.
 - For frontend/admin UI changes, smoke test `/` and `/admin` in the browser.

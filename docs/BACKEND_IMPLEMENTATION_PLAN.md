@@ -29,8 +29,7 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 ```
 
-- Khi env này tồn tại, app sẽ chạy Supabase mode.
-- Khi env thiếu, app giữ demo mode.
+- App hiện yêu cầu các env này để chạy đúng public booking và admin flow.
 
 ### 3. Chuẩn hóa Supabase client SSR
 
@@ -82,8 +81,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
 
 ### 6. Seed table inventory
 
-- Seed đúng 17 bàn hiện tại từ `lib/table-seed.ts`.
-- Nên dùng UUID ổn định trong DB, sau đó update FE seed/demo map nếu cần.
+- Seed đúng inventory bàn hiện tại trong DB thật.
+- Nên dùng UUID ổn định trong DB.
 - Table code/capacity/sort order phải khớp calendar/admin hiện tại.
 
 ### 7. Bật RLS và policy
@@ -165,7 +164,6 @@ pnpm build
 ## Acceptance Criteria
 
 - Supabase mode chạy thành công với `.env.local`.
-- Demo mode vẫn chạy khi thiếu env.
 - Public user không đọc trực tiếp được reservations.
 - Admin chưa login bị redirect `/admin/login`.
 - Active staff login vào được `/admin`.

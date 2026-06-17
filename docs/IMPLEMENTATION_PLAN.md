@@ -3,8 +3,8 @@
 ## Current Status
 
 - Frontend/admin polish phase is mostly complete.
-- The app currently runs in demo mode using Server Actions plus `lib/reservation-demo-store.ts`.
-- Supabase/Postgres/Auth code and migrations exist, but DB has **not** been deployed yet. Treat SQL migrations as drafts that must be synced before the BE phase.
+- The app now runs directly against Supabase for public booking, admin auth, and reservation operations.
+- Supabase/Postgres/Auth code and migrations are already wired into the current app.
 - Validation gate is currently green:
   - `pnpm exec tsc --noEmit`
   - `pnpm lint`
@@ -25,7 +25,6 @@
 - Restaurant: Flambé
 - Address: 23 Gia Ngư, Hà Nội
 - Hotline: 0927355656
-- Current demo table inventory: 17 active tables.
 - Booking slots are 15-minute selectable slots in the public/admin forms.
 - Day calendar shows 30-minute grid cells and only labels full hours to reduce visual noise.
 - Operating cutoff:
@@ -55,13 +54,13 @@
   - Confirm booking with table assignment.
   - Day calendar/table timeline.
   - Booking bar shows party size with a people icon, not `p` text.
-- Demo overlap behavior:
+- Live availability behavior:
   - Pending bookings do not block tables.
   - Confirmed bookings block main and secondary/joined tables.
 
-## Backend Phase Plan
+## Current Backend Focus
 
-Before deploying Supabase, sync these items with the current FE/demo logic:
+Continue refining these items against the live Supabase flow:
 
 1. Duration rules:
    - DB/RPC/migrations must use `<=4 => 120`, `<=6 => 150`, `7+ => 180`.
@@ -72,15 +71,12 @@ Before deploying Supabase, sync these items with the current FE/demo logic:
    - Decide whether `secondary_table_ids` stays as text, becomes `uuid[]`, or becomes a join table.
    - Add DB-level protection against double-booking secondary/joined tables.
 4. Auth:
-   - Keep `/admin` protected only when Supabase env vars are configured.
+   - Keep `/admin` protected server-side.
    - Active staff check remains required for admin actions.
 5. RLS:
    - Public can only insert pending reservations with no assigned table.
    - Active staff can read/mutate admin data.
-6. Demo mode:
-   - Keep demo mode available when Supabase env vars are missing.
-
-## Test Plan Before BE Merge
+## Test Plan
 
 - Required commands:
   - `pnpm exec tsc --noEmit`
@@ -99,7 +95,7 @@ Before deploying Supabase, sync these items with the current FE/demo logic:
   - Admin can confirm with enough capacity.
   - Admin cannot confirm short capacity without joined tables or manual override.
   - Calendar shows table timeline correctly through weekday/weekend cutoff.
-  - `/admin` redirects to login once Supabase Auth is configured.
+  - `/admin` redirects to login when session is missing.
 
 ## Acceptance Criteria
 

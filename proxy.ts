@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/proxy'
-import { isSupabaseConfigured, getSupabaseEnv } from '@/lib/supabase/config'
+import { getSupabaseEnv } from '@/lib/supabase/config'
 import { createServerClient } from '@supabase/ssr'
 
 export async function proxy(request: NextRequest) {
@@ -9,11 +9,6 @@ export async function proxy(request: NextRequest) {
 
   // 2. Protect /admin routes (except /admin/login)
   if (request.nextUrl.pathname.startsWith('/admin') && request.nextUrl.pathname !== '/admin/login') {
-    if (!isSupabaseConfigured()) {
-      // In demo mode, no protection
-      return response
-    }
-
     const { url, publishableKey } = getSupabaseEnv()
     const supabase = createServerClient(url, publishableKey, {
       cookies: {

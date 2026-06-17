@@ -2,13 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import type { Database } from '@/lib/database.types'
-import { isSupabaseConfigured, getSupabaseEnv } from '@/lib/supabase/config'
+import { getSupabaseEnv } from '@/lib/supabase/config'
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.next({ request })
-  }
-
   const { url, publishableKey } = getSupabaseEnv()
   let response = NextResponse.next({ request })
 

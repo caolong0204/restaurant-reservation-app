@@ -2,14 +2,9 @@
 
 import { redirect } from 'next/navigation'
 
-import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createClient } from '@/lib/supabase/server'
 
 export async function signInAdmin(formData: FormData): Promise<void> {
-  if (!isSupabaseConfigured()) {
-    redirect('/admin')
-  }
-
   const email = String(formData.get('email') ?? '').trim()
   const password = String(formData.get('password') ?? '')
 
@@ -39,10 +34,8 @@ export async function signInAdmin(formData: FormData): Promise<void> {
 }
 
 export async function signOutAdmin(): Promise<void> {
-  if (isSupabaseConfigured()) {
-    const supabase = await createClient()
-    await supabase.auth.signOut()
-  }
+  const supabase = await createClient()
+  await supabase.auth.signOut()
 
   redirect('/admin/login')
 }

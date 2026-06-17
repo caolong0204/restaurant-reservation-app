@@ -39,24 +39,23 @@ Use this flow when changing reservations, tables, availability, or assignment lo
 
 1. Update shared types in `lib/reservation-types.ts` first.
 2. Keep all mutations behind Server Actions in `lib/reservation-actions.ts`.
-3. Keep demo behavior in `lib/reservation-demo-store.ts` aligned with future Supabase behavior.
-4. Do not store core booking data only in client state or localStorage.
-5. Preserve these current rules:
+3. Do not store core booking data only in client state or localStorage.
+4. Preserve these current rules:
    - Public bookings start as `pending`.
    - Guests do not select tables.
    - Pending bookings do not block tables.
    - Only confirmed bookings assigned to table(s) block availability.
    - Duration is 120 minutes for 1-4 guests, 150 minutes for 5-6 guests, and 180 minutes for 7+ guests.
    - Insufficient capacity must be blocked unless admin joins tables or marks manual outside-system arrangement.
-6. When changing status or assignment, return the updated reservation list/table state so the UI can sync deterministically.
+5. When changing status or assignment, return the updated reservation list/table state so the UI can sync deterministically.
 
 ---
 
 ## Skill 4: Supabase/Postgres Integration
 
-Use this flow when moving from demo mode to backend mode.
+Use this flow when changing the live backend contract or schema.
 
-1. Treat current SQL migrations as drafts. They must be synced with the latest FE/demo rules before running in a real project.
+1. Treat current SQL migrations as the active backend history and keep them synced with frontend booking rules.
 2. Model reservations with enough structure for:
    - Main table assignment.
    - Optional secondary/joined tables.
@@ -67,7 +66,7 @@ Use this flow when moving from demo mode to backend mode.
 4. Use Supabase Auth for `/admin`; protect admin routes server-side.
 5. Enable RLS on sensitive tables. Only active staff should read or mutate admin data.
 6. Public booking should use Server Actions and should not expose direct browser reads of `reservations`.
-7. After DB integration, keep demo mode available only if explicitly useful for local development.
+7. Keep public booking behind Server Actions; do not expose direct browser reads of reservations.
 
 ---
 
@@ -104,7 +103,7 @@ pnpm build
 
 Frontend smoke checks:
 
-- Public booking wizard renders and can submit a pending reservation in demo mode.
+- Public booking wizard renders and can submit a pending reservation through Supabase.
 - `/admin` list view shows reservations and admin actions.
 - `/admin` calendar view shows table rows, compact 30-minute columns, booking duration bars, and no raw `p` suffix.
 - Confirm flow blocks overlapping confirmed reservations and insufficient capacity.

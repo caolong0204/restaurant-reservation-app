@@ -5,15 +5,6 @@ import { revalidatePath } from 'next/cache'
 import type { Database } from '@/lib/database.types'
 import { TIME_SLOTS, isPastTimeSlot } from '@/lib/restaurant'
 import {
-  createDemoReservation,
-  deleteDemoReservation,
-  getDemoAvailableTables,
-  getDemoSlotAvailability,
-  listDemoReservations,
-  listDemoTables,
-  updateDemoReservation,
-} from '@/lib/reservation-demo-store'
-import {
   type ActionResult,
   type Reservation,
   type ReservationInput,
@@ -21,7 +12,6 @@ import {
   type RestaurantTable,
   type SlotAvailability,
 } from '@/lib/reservation-types'
-import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createClient } from '@/lib/supabase/server'
 import { validateVNPhone } from '@/lib/utils'
 
@@ -31,7 +21,6 @@ type RestaurantTableRow = Database['public']['Tables']['restaurant_tables']['Row
 type AdminSnapshot = {
   reservations: Reservation[]
   tables: RestaurantTable[]
-  authMode: 'supabase' | 'demo'
 }
 
 function ok<T>(data: T): ActionResult<T> {
@@ -155,10 +144,6 @@ function validateReservationInput(input: ReservationInput): string | null {
 }
 
 async function requireStaff(): Promise<ActionResult<true>> {
-  if (!isSupabaseConfigured()) {
-    return ok(true)
-  }
-
   const supabase = await createClient()
   const { data: claims, error: claimsError } = await supabase.auth.getClaims()
   const userId = claims?.claims.sub
@@ -213,14 +198,6 @@ export async function getAdminSnapshot(): Promise<ActionResult<AdminSnapshot>> {
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
 
-  if (!isSupabaseConfigured()) {
-    return ok({
-      reservations: listDemoReservations(),
-      tables: listDemoTables(),
-      authMode: 'demo',
-    })
-  }
-
   const tables = await listSupabaseTables()
   if (!tables.ok) return fail(tables.error)
 
@@ -230,7 +207,6 @@ export async function getAdminSnapshot(): Promise<ActionResult<AdminSnapshot>> {
   return ok({
     reservations: reservations.data,
     tables: tables.data,
-    authMode: 'supabase',
   })
 }
 
@@ -245,12 +221,6 @@ export async function createReservation(input: ReservationInput): Promise<Action
     if (matchingSlot && matchingSlot.availableCount < 1) {
       return fail('Khung giờ này đã hết bàn phù hợp. Vui lòng chọn giờ khác.')
     }
-  }
-
-  if (!isSupabaseConfigured()) {
-    const reservation = createDemoReservation(normalized)
-    revalidatePath('/admin')
-    return ok(reservation)
   }
 
   const supabase = await createClient()
@@ -304,50 +274,6 @@ export async function createManualReservation(input: ReservationInput): Promise<
   const targetSecondaryTableIds = targetTableId ? (normalized.secondaryTableIds ?? []) : []
   const targetManualArrangement = targetTableId ? Boolean(normalized.manualArrangement) : false
   const targetStatus: ReservationStatus = targetTableId ? 'confirmed' : 'pending'
-
-  if (!isSupabaseConfigured()) {
-    if (targetTableId) {
-      const availableTables = getDemoAvailableTables(normalized.date, normalized.time, normalized.partySize)
-
-      if (!availableTables.some((table) => table.id === targetTableId)) {
-        return fail('Bàn chính được chọn không còn trống trong khung giờ đã chọn.')
-      }
-
-      for (const secondaryId of targetSecondaryTableIds) {
-        if (!availableTables.some((table) => table.id === secondaryId)) {
-          return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
-        }
-      }
-
-      const capacityError = validateAssignmentCapacity(
-        targetTableId,
-        targetSecondaryTableIds,
-        normalized.partySize,
-        targetManualArrangement,
-        listDemoTables(),
-      )
-      if (capacityError) return fail(capacityError)
-    } else {
-      const availableSlots = getDemoSlotAvailability(normalized.date, normalized.partySize)
-      const matchingSlot = availableSlots.find((slot) => slot.time === normalized.time)
-      if (matchingSlot && matchingSlot.availableCount < 1) {
-        return fail('Khung giờ này đã hết bàn phù hợp. Vui lòng chọn giờ khác.')
-      }
-    }
-
-    const reservation = createDemoReservation(
-      {
-        ...normalized,
-        manualArrangement: targetManualArrangement,
-        tableId: targetTableId ?? undefined,
-        secondaryTableIds: targetSecondaryTableIds,
-        status: targetStatus,
-      },
-      targetStatus,
-    )
-    revalidatePath('/admin')
-    return ok(reservation)
-  }
 
   if (targetTableId) {
     const availableTables = await getAvailableTables(
@@ -455,56 +381,6 @@ export async function editReservation(id: string, input: ReservationInput): Prom
   const validationError = validateReservationInput(normalized)
   if (validationError) return fail(validationError)
 
-  if (!isSupabaseConfigured()) {
-    const current = listDemoReservations().find((reservation) => reservation.id === id)
-    if (!current) return fail('Không tìm thấy lượt đặt bàn.')
-
-    const targetTableId = input.tableId === '' ? null : (input.tableId ?? current.tableId ?? null)
-    const targetSecondaryTableIds = targetTableId === null ? [] : (input.secondaryTableIds ?? current.secondaryTableIds ?? [])
-    const targetManualArrangement = targetTableId === null ? false : Boolean(input.manualArrangement)
-    let newStatus = current.status
-    if (targetTableId === null) {
-      if (current.status === 'confirmed') {
-        newStatus = 'pending'
-      }
-    } else {
-      newStatus = 'confirmed'
-    }
-
-    if (targetTableId) {
-      const available = getDemoAvailableTables(normalized.date, normalized.time, normalized.partySize, id)
-      const stillAvailable = available.some((table) => table.id === targetTableId)
-      if (!stillAvailable) {
-        return fail('Bàn chính được chọn không còn trống trong khung giờ đã chọn.')
-      }
-      for (const secId of targetSecondaryTableIds) {
-        if (!available.some((table) => table.id === secId)) {
-          return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
-        }
-      }
-
-      const capacityError = validateAssignmentCapacity(
-        targetTableId,
-        targetSecondaryTableIds,
-        normalized.partySize,
-        targetManualArrangement,
-        listDemoTables(),
-      )
-      if (capacityError) return fail(capacityError)
-    }
-
-    const reservation = updateDemoReservation(id, {
-      ...normalized,
-      manualArrangement: targetManualArrangement,
-      tableId: targetTableId ?? undefined,
-      secondaryTableIds: targetSecondaryTableIds,
-      status: newStatus,
-    })
-    if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
-    revalidatePath('/admin')
-    return ok(reservation)
-  }
-
   const snapshot = await getAdminSnapshot()
   if (!snapshot.ok) return fail(snapshot.error)
   const current = snapshot.data.reservations.find((reservation) => reservation.id === id)
@@ -596,18 +472,6 @@ export async function cancelReservation(id: string): Promise<ActionResult<Reserv
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
 
-  if (!isSupabaseConfigured()) {
-    const reservation = updateDemoReservation(id, {
-      status: 'cancelled',
-      manualArrangement: false,
-      tableId: undefined,
-      secondaryTableIds: undefined,
-    })
-    if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
-    revalidatePath('/admin')
-    return ok(reservation)
-  }
-
   const supabase = await createClient()
   const timestamp = new Date().toISOString()
   const { error } = await supabase
@@ -639,12 +503,6 @@ export async function deleteReservation(id: string): Promise<ActionResult<string
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
 
-  if (!isSupabaseConfigured()) {
-    if (!deleteDemoReservation(id)) return fail('Không tìm thấy lượt đặt bàn.')
-    revalidatePath('/admin')
-    return ok(id)
-  }
-
   const supabase = await createClient()
   const { error } = await supabase.from('reservations').delete().eq('id', id)
 
@@ -664,40 +522,6 @@ export async function confirmReservation(
 ): Promise<ActionResult<Reservation>> {
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
-
-  if (!isSupabaseConfigured()) {
-    const current = listDemoReservations().find((reservation) => reservation.id === id)
-    if (!current) return fail('Không tìm thấy lượt đặt bàn.')
-
-    const available = getDemoAvailableTables(current.date, current.time, current.partySize, id)
-    if (!available.some((table) => table.id === tableId)) {
-      return fail('Bàn chính không còn trống trong khung giờ đã chọn.')
-    }
-    for (const secId of secondaryTableIds) {
-      if (!available.some((table) => table.id === secId)) {
-        return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
-      }
-    }
-
-    const capacityError = validateAssignmentCapacity(
-      tableId,
-      secondaryTableIds,
-      current.partySize,
-      manualArrangement,
-      listDemoTables(),
-    )
-    if (capacityError) return fail(capacityError)
-
-    const reservation = updateDemoReservation(id, {
-      status: 'confirmed',
-      manualArrangement,
-      tableId,
-      secondaryTableIds,
-    })
-    if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
-    revalidatePath('/admin')
-    return ok(reservation)
-  }
 
   const snapshot = await getAdminSnapshot()
   if (!snapshot.ok) return fail(snapshot.error)
@@ -767,10 +591,6 @@ export async function getAvailableTables(
   partySize: number,
   excludingReservationId?: string,
 ): Promise<ActionResult<RestaurantTable[]>> {
-  if (!isSupabaseConfigured()) {
-    return ok(getDemoAvailableTables(date, time, partySize, excludingReservationId))
-  }
-
   const supabase = await createClient()
   const { data, error } = await supabase.rpc('get_available_tables', {
     p_date: date,
@@ -801,10 +621,6 @@ export async function getPublicSlotAvailability(
 ): Promise<ActionResult<SlotAvailability[]>> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(partySize) || partySize < 1) {
     return fail('Thông tin ngày hoặc số khách không hợp lệ.')
-  }
-
-  if (!isSupabaseConfigured()) {
-    return ok(getDemoSlotAvailability(date, partySize))
   }
 
   const supabase = await createClient()

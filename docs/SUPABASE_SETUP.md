@@ -40,7 +40,7 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
-Without these values, the app runs in demo mode.
+These values are required because the app now runs directly against Supabase.
 
 ## Staff Setup
 
