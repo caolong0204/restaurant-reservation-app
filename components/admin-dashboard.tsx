@@ -503,6 +503,7 @@ export function AdminDashboard() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreateSubmit}
+        tables={tables}
         getAvailableTables={getAvailableTables}
       />
 

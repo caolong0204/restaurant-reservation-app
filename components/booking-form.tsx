@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useReservations } from '@/components/reservation-provider'
-import { OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
+import { OCCASIONS, TABLE_LOCATIONS, isPastTimeSlot } from '@/lib/restaurant'
 import { getPublicSlotAvailability } from '@/lib/reservation-actions'
 import type { SlotAvailability } from '@/lib/reservation-types'
 import { cn, validateVNPhone } from '@/lib/utils'
@@ -110,9 +110,11 @@ export function BookingForm({
 
         if (result.ok) {
           setSlotAvailability(result.data)
-          // Clear selected time only if it has become fully booked
+          // Clear selected time if it is no longer selectable.
           setTime((prev) => {
             const selectedSlot = result.data.find((slot) => slot.time === prev)
+            if (!prev) return prev
+            if (isPastTimeSlot(prev, toISO(date))) return ''
             return selectedSlot?.availableCount === 0 ? '' : prev
           })
         } else {

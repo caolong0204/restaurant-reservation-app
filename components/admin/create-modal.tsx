@@ -7,13 +7,14 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import type { ActionResult, ReservationInput, RestaurantTable } from '@/lib/reservation-types'
-import { TIME_SLOTS, OCCASIONS, formatDate } from '@/lib/restaurant'
+import { TIME_SLOTS, OCCASIONS, formatDate, isPastTimeSlot } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
 
 interface CreateModalProps {
   isOpen: boolean
   onClose: () => void
   onSubmit: (data: ReservationInput) => Promise<boolean>
+  tables: RestaurantTable[]
   getAvailableTables: (
     date: string,
     time: string,
@@ -21,7 +22,7 @@ interface CreateModalProps {
   ) => Promise<ActionResult<RestaurantTable[]>>
 }
 
-export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: CreateModalProps) {
+export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTables }: CreateModalProps) {
   const [cName, setCName] = useState('')
   const [cPhone, setCPhone] = useState('')
 
@@ -43,9 +44,11 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
   const isCPhoneValid = cPhone.trim() === '' || validateVNPhone(cPhone)
   const hasSchedulingFields = Boolean(cDate && cTime && isCPartyValid)
   const partySize = Number(cPartySize) || 0
+  const activeTables = tables.filter((table) => table.active)
+  const availableTableIds = new Set(availableTables.map((table) => table.id))
 
-  const mainTable = availableTables.find((t) => t.id === cTableId)
-  const secondaryTables = availableTables.filter((t) => cSecondaryTableIds.includes(t.id))
+  const mainTable = activeTables.find((t) => t.id === cTableId)
+  const secondaryTables = activeTables.filter((t) => cSecondaryTableIds.includes(t.id))
   const totalCapacity =
     (mainTable?.capacity ?? 0) + secondaryTables.reduce((sum, table) => sum + table.capacity, 0)
   const hasCapacityWarning = Boolean(cTableId && totalCapacity < partySize)
@@ -62,6 +65,12 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
     isCPartyValid &&
     !hasUnresolvedCapacityWarning
   )
+
+  useEffect(() => {
+    if (cTime && isPastTimeSlot(cTime, cDate)) {
+      setCTime('')
+    }
+  }, [cDate, cTime])
 
   useEffect(() => {
     if (!isOpen || !hasSchedulingFields) {
@@ -121,19 +130,19 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
       return
     }
 
-    const currentMainTable = availableTables.find((table) => table.id === cTableId)
+    const currentMainTable = activeTables.find((table) => table.id === cTableId)
     if (!currentMainTable) return
 
     const selectedCapacity =
       currentMainTable.capacity +
-      availableTables
+      activeTables
         .filter((table) => cSecondaryTableIds.includes(table.id))
         .reduce((sum, table) => sum + table.capacity, 0)
 
     if (selectedCapacity >= partySize && cIsManualArrangement) {
       setCIsManualArrangement(false)
     }
-  }, [availableTables, cIsManualArrangement, cSecondaryTableIds, cTableId, partySize])
+  }, [activeTables, cIsManualArrangement, cSecondaryTableIds, cTableId, partySize])
 
   const handleMainTableChange = (value: string) => {
     setCTableId(value)
@@ -144,7 +153,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
       return
     }
 
-    const nextMainTable = availableTables.find((table) => table.id === value)
+    const nextMainTable = activeTables.find((table) => table.id === value)
     if (nextMainTable && nextMainTable.capacity >= partySize) {
       setCSecondaryTableIds([])
       return
@@ -185,7 +194,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
     setCPhone('')
 
     setCDate('')
-    setCTime(TIME_SLOTS[7])
+    setCTime('')
     setCPartySize('4')
     setCOccasion(OCCASIONS[0])
     setCTableId('')
@@ -271,9 +280,17 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
             <div className="flex flex-col gap-1">
               <Label htmlFor="cTime" className="text-xs font-semibold">Giờ đón khách</Label>
               <select id="cTime" value={cTime} onChange={(e) => setCTime(e.target.value)} required className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-                {TIME_SLOTS.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                <option value="" disabled>
+                  Chọn giờ
+                </option>
+                {TIME_SLOTS.map((t) => {
+                  const isPast = isPastTimeSlot(t, cDate)
+                  return (
+                    <option key={t} value={t} disabled={isPast}>
+                      {isPast ? `${t} · Qua giờ` : t}
+                    </option>
+                  )
+                })}
               </select>
             </div>
             <div className="flex flex-col gap-1">
@@ -316,8 +333,8 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
                 className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="">Chưa gán bàn (tạo pending)</option>
-                {availableTables.map((table) => (
-                  <option key={table.id} value={table.id}>
+                {activeTables.map((table) => (
+                  <option key={table.id} value={table.id} disabled={!availableTableIds.has(table.id)}>
                     {table.code} ({table.floor === 'Tầng 1' ? 'T1' : 'T2'}) - {table.capacity} ghế
                   </option>
                 ))}
@@ -366,29 +383,34 @@ export function CreateModal({ isOpen, onClose, onSubmit, getAvailableTables }: C
                   </label>
                 )}
 
-                {!cIsManualArrangement && availableTables.filter((table) => table.id !== cTableId).length > 0 && (
+                {!cIsManualArrangement && activeTables.filter((table) => table.id !== cTableId).length > 0 && (
                   <div>
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
                       Ghép thêm bàn phụ (Không bắt buộc)
                     </span>
                     <div className="grid gap-1.5 grid-cols-2 max-h-[120px] overflow-y-auto pr-1">
-                      {availableTables.filter((table) => table.id !== cTableId).map((table) => {
+                      {activeTables.filter((table) => table.id !== cTableId).map((table) => {
                         const isChecked = cSecondaryTableIds.includes(table.id)
+                        const isAvailable = availableTableIds.has(table.id)
                         return (
                           <button
                             key={table.id}
                             type="button"
+                            disabled={!isAvailable}
                             onClick={() => toggleSecondaryTable(table.id)}
                             className={cn(
-                              'rounded-lg border p-2 text-left transition-all flex items-center justify-between text-xs',
+                              'rounded-lg border p-2 text-left transition-all flex items-center justify-between text-xs disabled:cursor-not-allowed disabled:opacity-45',
                               isChecked
                                 ? 'border-amber-500 bg-amber-500/10'
                                 : 'border-border bg-card hover:border-amber-500/40',
+                              !isAvailable && 'hover:border-border bg-muted/30',
                             )}
                           >
                             <div className="truncate pr-1">
                               <span className="font-bold">{table.code}</span>
-                              <span className="text-[10px] text-muted-foreground ml-1.5">({table.capacity} ghế)</span>
+                              <span className="text-[10px] text-muted-foreground ml-1.5">
+                                ({table.capacity} ghế{!isAvailable ? ' · bận' : ''})
+                              </span>
                             </div>
                             <div
                               className={cn(

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import type { Database } from '@/lib/database.types'
-import { TIME_SLOTS } from '@/lib/restaurant'
+import { TIME_SLOTS, isPastTimeSlot } from '@/lib/restaurant'
 import {
   createDemoReservation,
   deleteDemoReservation,
@@ -144,6 +144,9 @@ function validateReservationInput(input: ReservationInput): string | null {
   if (!validateVNPhone(input.phone)) return 'Số điện thoại không hợp lệ.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return 'Ngày đặt bàn không hợp lệ.'
   if (!TIME_SLOTS.includes(normalizeTime(input.time))) return 'Khung giờ đặt bàn không hợp lệ.'
+  if (isPastTimeSlot(normalizeTime(input.time), input.date)) {
+    return 'Không thể đặt bàn vào khung giờ đã trôi qua.'
+  }
   if (!Number.isInteger(input.partySize) || input.partySize < 1 || input.partySize > 24) {
     return 'Số lượng khách phải từ 1 đến 24.'
   }

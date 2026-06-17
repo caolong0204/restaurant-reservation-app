@@ -1,7 +1,7 @@
 'use client'
 
 import type { SlotAvailability } from '@/lib/reservation-types'
-import { formatTime, getAvailableTimeSlots } from '@/lib/restaurant'
+import { formatTime, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
 import { Clock, Loader2 } from 'lucide-react'
 
@@ -78,7 +78,8 @@ export function StepTime({
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
               {group.slots.map((slot) => {
                 const availableCount = availabilityByTime.get(slot)
-                const isUnavailable = availableCount === 0
+                const isPast = isPastTimeSlot(slot, date)
+                const isUnavailable = availableCount === 0 || isPast
                 return (
                   <button
                     key={slot}
@@ -98,7 +99,9 @@ export function StepTime({
                   >
                     <span>{formatTime(slot)}</span>
                     {isUnavailable && (
-                      <span className="mt-0.5 text-[10px] font-medium opacity-75">Hết bàn</span>
+                      <span className="mt-0.5 text-[10px] font-medium opacity-75">
+                        {isPast ? 'Qua giờ' : 'Hết bàn'}
+                      </span>
                     )}
                   </button>
                 )

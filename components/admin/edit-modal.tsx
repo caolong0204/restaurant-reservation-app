@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { type Reservation } from '@/components/reservation-provider'
 import type { ReservationInput, RestaurantTable } from '@/lib/reservation-types'
-import { TIME_SLOTS, OCCASIONS, formatDate } from '@/lib/restaurant'
+import { TIME_SLOTS, OCCASIONS, formatDate, isPastTimeSlot } from '@/lib/restaurant'
 import { validateVNPhone, cn } from '@/lib/utils'
 
 interface EditModalProps {
@@ -33,6 +33,12 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const [eSecondaryTableIds, setESecondaryTableIds] = useState<string[]>([])
   const [eIsManualArrangement, setEIsManualArrangement] = useState(false)
   const [eNotes, setENotes] = useState('')
+
+  useEffect(() => {
+    if (eTime && isPastTimeSlot(eTime, eDate)) {
+      setETime('')
+    }
+  }, [eDate, eTime])
 
   useEffect(() => {
     if (reservation) {
@@ -210,9 +216,17 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
             <div className="flex flex-col gap-1">
               <Label htmlFor="eTime" className="text-xs font-semibold">Giờ đón khách</Label>
               <select id="eTime" value={eTime} onChange={(e) => setETime(e.target.value)} required className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-                {TIME_SLOTS.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                <option value="" disabled>
+                  Chọn giờ
+                </option>
+                {TIME_SLOTS.map((t) => {
+                  const isPast = isPastTimeSlot(t, eDate)
+                  return (
+                    <option key={t} value={t} disabled={isPast}>
+                      {isPast ? `${t} · Qua giờ` : t}
+                    </option>
+                  )
+                })}
               </select>
             </div>
             <div className="flex flex-col gap-1">

@@ -19,6 +19,32 @@ export const TIME_SLOTS: string[] = (() => {
   return slots
 })()
 
+function minutesFromTimeString(time: string): number {
+  const [hours = '0', minutes = '0'] = time.split(':')
+  return Number(hours) * 60 + Number(minutes)
+}
+
+export function isTodayDate(dateIso?: string): boolean {
+  if (!dateIso) return false
+
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+
+  return dateIso === `${year}-${month}-${day}`
+}
+
+export function isPastTimeSlot(time: string, dateIso?: string): boolean {
+  if (!isTodayDate(dateIso)) return false
+
+  const now = new Date()
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const slotMinutes = minutesFromTimeString(time)
+
+  return slotMinutes <= nowMinutes
+}
+
 /** The latest time shown for the operating day (HH:MM). */
 export const RESTAURANT_CLOSE_TIME = '22:30'
 
@@ -53,8 +79,7 @@ export function getAvailableTimeSlots(partySize: number, dateIso?: string): stri
   const [lastH, lastM] = lastBooking.split(':').map(Number)
   const lastBookingMinutes = (lastH ?? 21) * 60 + (lastM ?? 0)
   return TIME_SLOTS.filter((slot) => {
-    const [h, m] = slot.split(':').map(Number)
-    const slotMinutes = (h ?? 0) * 60 + (m ?? 0)
+    const slotMinutes = minutesFromTimeString(slot)
     return slotMinutes <= lastBookingMinutes && slotMinutes + duration <= closeMinutes
   })
 }
