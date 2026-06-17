@@ -7,7 +7,7 @@ import { useReservations } from '@/components/reservation-provider'
 import { OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
 import { getPublicSlotAvailability } from '@/lib/reservation-actions'
 import type { SlotAvailability } from '@/lib/reservation-types'
-import { cn, validateVNPhone, validateEmail } from '@/lib/utils'
+import { cn, validateVNPhone } from '@/lib/utils'
 
 // Import split sub-components
 import { ProgressSteps } from './booking/progress-steps'
@@ -274,11 +274,8 @@ export function BookingForm({
             setName={setName}
             phone={phone}
             setPhone={setPhone}
-
             occasion={occasion}
             setOccasion={setOccasion}
-            tableLocation={tableLocation}
-            setTableLocation={setTableLocation}
             notes={notes}
             setNotes={setNotes}
           />

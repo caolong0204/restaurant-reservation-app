@@ -10,10 +10,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { OCCASIONS } from '@/lib/restaurant'
-import { cn, validateVNPhone, validateEmail } from '@/lib/utils'
+import { cn, validateVNPhone } from '@/lib/utils'
 import {
   Info,
-  Mail,
   MessageSquare,
   PartyPopper,
   Phone,

@@ -155,10 +155,19 @@ export function AdminDashboard() {
     setIsLoadingTables(false)
   }
 
-  async function handleAssignConfirm(tableId: string, secondaryTableIds: string[] = []) {
+  async function handleAssignConfirm(
+    tableId: string,
+    secondaryTableIds: string[] = [],
+    manualArrangement = false,
+  ) {
     if (!assigningReservation) return
 
-    const result = await confirmReservation(assigningReservation.id, tableId, secondaryTableIds)
+    const result = await confirmReservation(
+      assigningReservation.id,
+      tableId,
+      secondaryTableIds,
+      manualArrangement,
+    )
     if (result.ok) {
       const mainCode = result.data.table?.code ?? ''
       const secCodes = result.data.secondaryTables && result.data.secondaryTables.length > 0
@@ -207,15 +216,19 @@ export function AdminDashboard() {
     const result = await createManualReservation(data)
     if (result.ok) {
       toast.success(`Đã thêm đặt bàn cho ${data.name}`, {
-        description: 'Booking đang chờ gán bàn để xác nhận.',
+        description:
+          result.data.status === 'confirmed'
+            ? `Booking đã được xác nhận với ${result.data.table?.code ?? 'bàn đã chọn'}.`
+            : 'Booking đang chờ gán bàn để xác nhận.',
       })
       setIsCreateOpen(false)
-      return
+      return true
     }
 
     toast.error('Không thêm được đặt bàn', {
       description: result.error,
     })
+    return false
   }
 
   async function handleEditSubmit(id: string, data: ReservationInput) {
@@ -490,6 +503,7 @@ export function AdminDashboard() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreateSubmit}
+        getAvailableTables={getAvailableTables}
       />
 
       <EditModal
@@ -520,7 +534,9 @@ export function AdminDashboard() {
           setAssigningReservation(null)
           setAvailableTables([])
         }}
-        onConfirm={(tableId, secondaryTableIds) => void handleAssignConfirm(tableId, secondaryTableIds)}
+        onConfirm={(tableId, secondaryTableIds, manualArrangement) =>
+          void handleAssignConfirm(tableId, secondaryTableIds, manualArrangement)
+        }
       />
 
       <ConfirmModal

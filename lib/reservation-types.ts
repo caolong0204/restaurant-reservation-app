@@ -16,7 +16,6 @@ export type RestaurantTable = {
 export type Reservation = {
   id: string
   name: string
-  email: string
   phone: string
   date: string
   time: string
@@ -25,6 +24,7 @@ export type Reservation = {
   tableLocation?: string
   notes?: string
   status: ReservationStatus
+  manualArrangement?: boolean
   tableId?: string
   table?: RestaurantTable
   secondaryTableIds?: string[]
@@ -35,7 +35,6 @@ export type Reservation = {
 
 export type ReservationInput = {
   name: string
-  email?: string
   phone: string
   date: string
   time: string
@@ -43,6 +42,7 @@ export type ReservationInput = {
   occasion?: string
   tableLocation?: string
   notes?: string
+  manualArrangement?: boolean
   tableId?: string
   secondaryTableIds?: string[]
   status?: ReservationStatus

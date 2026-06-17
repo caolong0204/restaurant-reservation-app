@@ -17,12 +17,13 @@ import {
   type ActionResult,
   type Reservation,
   type ReservationInput,
+  type ReservationStatus,
   type RestaurantTable,
   type SlotAvailability,
 } from '@/lib/reservation-types'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { createClient } from '@/lib/supabase/server'
-import { validateEmail, validateVNPhone } from '@/lib/utils'
+import { validateVNPhone } from '@/lib/utils'
 
 type ReservationRow = Database['public']['Tables']['reservations']['Row']
 type RestaurantTableRow = Database['public']['Tables']['restaurant_tables']['Row']
@@ -72,7 +73,6 @@ function mapReservation(row: ReservationRow, tables: RestaurantTable[]): Reserva
   return {
     id: row.id,
     name: row.guest_name,
-    email: row.guest_email,
     phone: row.guest_phone,
     date: row.reservation_date,
     time: normalizeTime(row.reservation_time),
@@ -80,7 +80,8 @@ function mapReservation(row: ReservationRow, tables: RestaurantTable[]): Reserva
     occasion: row.occasion ?? undefined,
     tableLocation: row.requested_area ?? undefined,
     notes: row.notes ?? undefined,
-    status: row.status,
+    status: row.status as ReservationStatus,
+    manualArrangement: row.manual_arrangement,
     tableId: row.table_id ?? undefined,
     table,
     secondaryTableIds,
@@ -93,7 +94,6 @@ function mapReservation(row: ReservationRow, tables: RestaurantTable[]): Reserva
 function normalizeInput(input: ReservationInput): ReservationInput {
   return {
     name: input.name.trim(),
-    email: input.email?.trim().toLowerCase() || '',
     phone: input.phone.trim(),
     date: input.date,
     time: normalizeTime(input.time),
@@ -101,10 +101,42 @@ function normalizeInput(input: ReservationInput): ReservationInput {
     occasion: input.occasion?.trim() || undefined,
     tableLocation: input.tableLocation?.trim() || undefined,
     notes: input.notes?.trim() || undefined,
+    manualArrangement: input.manualArrangement,
     tableId: input.tableId,
     secondaryTableIds: input.secondaryTableIds,
     status: input.status,
   }
+}
+
+function getSelectedCapacity(
+  tableId: string,
+  secondaryTableIds: string[] | undefined,
+  tables: RestaurantTable[],
+): number {
+  const mainTable = tables.find((table) => table.id === tableId)
+  const secondaryCapacity = (secondaryTableIds ?? []).reduce((sum, secondaryId) => {
+    const table = tables.find((item) => item.id === secondaryId)
+    return sum + (table?.capacity ?? 0)
+  }, 0)
+
+  return (mainTable?.capacity ?? 0) + secondaryCapacity
+}
+
+function validateAssignmentCapacity(
+  tableId: string | null,
+  secondaryTableIds: string[],
+  partySize: number,
+  manualArrangement: boolean,
+  tables: RestaurantTable[],
+): string | null {
+  if (!tableId) return null
+
+  const totalCapacity = getSelectedCapacity(tableId, secondaryTableIds, tables)
+  if (totalCapacity < partySize && !manualArrangement) {
+    return 'Tổng số ghế của các bàn đã chọn chưa đủ cho số lượng khách. Vui lòng ghép thêm bàn hoặc chọn tự sắp xếp thêm ghế / bàn phụ ngoài hệ thống.'
+  }
+
+  return null
 }
 
 function validateReservationInput(input: ReservationInput): string | null {
@@ -225,7 +257,6 @@ export async function createReservation(input: ReservationInput): Promise<Action
   const { error } = await supabase.from('reservations').insert({
     id,
     guest_name: normalized.name,
-    guest_email: normalized.email,
     guest_phone: normalized.phone,
     reservation_date: normalized.date,
     reservation_time: normalized.time,
@@ -234,6 +265,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
     requested_area: normalized.tableLocation ?? null,
     notes: normalized.notes ?? null,
     status: 'pending',
+    manual_arrangement: false,
     table_id: null,
     secondary_table_ids: null,
     created_at: timestamp,
@@ -249,6 +281,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
     ...normalized,
     id,
     status: 'pending',
+    manualArrangement: false,
     secondaryTableIds: [],
     secondaryTables: [],
     createdAt: dateFromTimestamp(timestamp),
@@ -260,7 +293,155 @@ export async function createManualReservation(input: ReservationInput): Promise<
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
 
-  return createReservation(input)
+  const normalized = normalizeInput(input)
+  const validationError = validateReservationInput(normalized)
+  if (validationError) return fail(validationError)
+
+  const targetTableId = normalized.tableId?.trim() ? normalized.tableId : null
+  const targetSecondaryTableIds = targetTableId ? (normalized.secondaryTableIds ?? []) : []
+  const targetManualArrangement = targetTableId ? Boolean(normalized.manualArrangement) : false
+  const targetStatus: ReservationStatus = targetTableId ? 'confirmed' : 'pending'
+
+  if (!isSupabaseConfigured()) {
+    if (targetTableId) {
+      const availableTables = getDemoAvailableTables(normalized.date, normalized.time, normalized.partySize)
+
+      if (!availableTables.some((table) => table.id === targetTableId)) {
+        return fail('Bàn chính được chọn không còn trống trong khung giờ đã chọn.')
+      }
+
+      for (const secondaryId of targetSecondaryTableIds) {
+        if (!availableTables.some((table) => table.id === secondaryId)) {
+          return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
+        }
+      }
+
+      const capacityError = validateAssignmentCapacity(
+        targetTableId,
+        targetSecondaryTableIds,
+        normalized.partySize,
+        targetManualArrangement,
+        listDemoTables(),
+      )
+      if (capacityError) return fail(capacityError)
+    } else {
+      const availableSlots = getDemoSlotAvailability(normalized.date, normalized.partySize)
+      const matchingSlot = availableSlots.find((slot) => slot.time === normalized.time)
+      if (matchingSlot && matchingSlot.availableCount < 1) {
+        return fail('Khung giờ này đã hết bàn phù hợp. Vui lòng chọn giờ khác.')
+      }
+    }
+
+    const reservation = createDemoReservation(
+      {
+        ...normalized,
+        manualArrangement: targetManualArrangement,
+        tableId: targetTableId ?? undefined,
+        secondaryTableIds: targetSecondaryTableIds,
+        status: targetStatus,
+      },
+      targetStatus,
+    )
+    revalidatePath('/admin')
+    return ok(reservation)
+  }
+
+  if (targetTableId) {
+    const availableTables = await getAvailableTables(
+      normalized.date,
+      normalized.time,
+      normalized.partySize,
+    )
+    if (!availableTables.ok) return fail(availableTables.error)
+
+    if (!availableTables.data.some((table) => table.id === targetTableId)) {
+      return fail('Bàn chính được chọn không còn trống trong khung giờ đã chọn.')
+    }
+
+    for (const secondaryId of targetSecondaryTableIds) {
+      if (!availableTables.data.some((table) => table.id === secondaryId)) {
+        return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
+      }
+    }
+
+    const snapshot = await getAdminSnapshot()
+    if (!snapshot.ok) return fail(snapshot.error)
+
+    const capacityError = validateAssignmentCapacity(
+      targetTableId,
+      targetSecondaryTableIds,
+      normalized.partySize,
+      targetManualArrangement,
+      snapshot.data.tables,
+    )
+    if (capacityError) return fail(capacityError)
+  } else {
+    const availableSlots = await getPublicSlotAvailability(normalized.date, normalized.partySize)
+    if (availableSlots.ok) {
+      const matchingSlot = availableSlots.data.find((slot) => slot.time === normalized.time)
+      if (matchingSlot && matchingSlot.availableCount < 1) {
+        return fail('Khung giờ này đã hết bàn phù hợp. Vui lòng chọn giờ khác.')
+      }
+    }
+  }
+
+  const supabase = await createClient()
+  const id = crypto.randomUUID()
+  const timestamp = new Date().toISOString()
+  const secondaryTableIdsStr = targetSecondaryTableIds.length > 0 ? targetSecondaryTableIds.join(',') : null
+
+  const { error } = await supabase.from('reservations').insert({
+    id,
+    guest_name: normalized.name,
+    guest_phone: normalized.phone,
+    reservation_date: normalized.date,
+    reservation_time: normalized.time,
+    party_size: normalized.partySize,
+    occasion: normalized.occasion ?? null,
+    requested_area: normalized.tableLocation ?? null,
+    notes: normalized.notes ?? null,
+    status: targetStatus,
+    manual_arrangement: targetManualArrangement,
+    table_id: targetTableId,
+    secondary_table_ids: secondaryTableIdsStr,
+    created_at: timestamp,
+    updated_at: timestamp,
+  })
+
+  if (error) {
+    return fail(
+      targetTableId
+        ? 'Không tạo được đặt bàn với bàn đã chọn. Bàn có thể vừa bị giữ bởi lượt khác.'
+        : 'Không thêm được đặt bàn. Vui lòng thử lại.',
+    )
+  }
+
+  revalidatePath('/admin')
+
+  const snapshot = await getAdminSnapshot()
+  if (snapshot.ok) {
+    const createdReservation = snapshot.data.reservations.find((reservation) => reservation.id === id)
+    if (createdReservation) return ok(createdReservation)
+  }
+
+  return ok({
+    id,
+    name: normalized.name,
+    phone: normalized.phone,
+    date: normalized.date,
+    time: normalized.time,
+    partySize: normalized.partySize,
+    occasion: normalized.occasion,
+    tableLocation: normalized.tableLocation,
+    notes: normalized.notes,
+    status: targetStatus,
+    manualArrangement: targetManualArrangement,
+    tableId: targetTableId ?? undefined,
+    secondaryTableIds: targetSecondaryTableIds,
+    secondaryTables: [],
+    createdAt: dateFromTimestamp(timestamp),
+    updatedAt: dateFromTimestamp(timestamp),
+  })
 }
 
 export async function editReservation(id: string, input: ReservationInput): Promise<ActionResult<Reservation>> {
@@ -277,6 +458,7 @@ export async function editReservation(id: string, input: ReservationInput): Prom
 
     const targetTableId = input.tableId === '' ? null : (input.tableId ?? current.tableId ?? null)
     const targetSecondaryTableIds = targetTableId === null ? [] : (input.secondaryTableIds ?? current.secondaryTableIds ?? [])
+    const targetManualArrangement = targetTableId === null ? false : Boolean(input.manualArrangement)
     let newStatus = current.status
     if (targetTableId === null) {
       if (current.status === 'confirmed') {
@@ -297,10 +479,20 @@ export async function editReservation(id: string, input: ReservationInput): Prom
           return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
         }
       }
+
+      const capacityError = validateAssignmentCapacity(
+        targetTableId,
+        targetSecondaryTableIds,
+        normalized.partySize,
+        targetManualArrangement,
+        listDemoTables(),
+      )
+      if (capacityError) return fail(capacityError)
     }
 
     const reservation = updateDemoReservation(id, {
       ...normalized,
+      manualArrangement: targetManualArrangement,
       tableId: targetTableId ?? undefined,
       secondaryTableIds: targetSecondaryTableIds,
       status: newStatus,
@@ -320,6 +512,7 @@ export async function editReservation(id: string, input: ReservationInput): Prom
 
   const targetTableId = input.tableId === '' ? null : (input.tableId ?? current.tableId ?? null)
   const targetSecondaryTableIds = targetTableId === null ? [] : (input.secondaryTableIds ?? current.secondaryTableIds ?? [])
+  const targetManualArrangement = targetTableId === null ? false : Boolean(input.manualArrangement)
   let newStatus = current.status
   if (targetTableId === null) {
     if (current.status === 'confirmed') {
@@ -341,6 +534,15 @@ export async function editReservation(id: string, input: ReservationInput): Prom
         return fail('Một trong các bàn phụ được chọn không còn trống trong khung giờ đã chọn.')
       }
     }
+
+    const capacityError = validateAssignmentCapacity(
+      targetTableId,
+      targetSecondaryTableIds,
+      normalized.partySize,
+      targetManualArrangement,
+      snapshot.data.tables,
+    )
+    if (capacityError) return fail(capacityError)
   }
 
   const supabase = await createClient()
@@ -351,7 +553,6 @@ export async function editReservation(id: string, input: ReservationInput): Prom
     .from('reservations')
     .update({
       guest_name: normalized.name,
-      guest_email: normalized.email,
       guest_phone: normalized.phone,
       reservation_date: normalized.date,
       reservation_time: normalized.time,
@@ -359,6 +560,7 @@ export async function editReservation(id: string, input: ReservationInput): Prom
       occasion: normalized.occasion ?? null,
       requested_area: normalized.tableLocation ?? null,
       notes: normalized.notes ?? null,
+      manual_arrangement: targetManualArrangement,
       table_id: targetTableId,
       secondary_table_ids: secondaryTableIdsStr,
       status: newStatus,
@@ -377,6 +579,7 @@ export async function editReservation(id: string, input: ReservationInput): Prom
   return ok({
     ...current,
     ...normalized,
+    manualArrangement: targetManualArrangement,
     tableId: targetTableId ?? undefined,
     table: table ?? undefined,
     secondaryTableIds: targetSecondaryTableIds,
@@ -391,7 +594,12 @@ export async function cancelReservation(id: string): Promise<ActionResult<Reserv
   if (!staff.ok) return fail(staff.error)
 
   if (!isSupabaseConfigured()) {
-    const reservation = updateDemoReservation(id, { status: 'cancelled', tableId: undefined, secondaryTableIds: undefined })
+    const reservation = updateDemoReservation(id, {
+      status: 'cancelled',
+      manualArrangement: false,
+      tableId: undefined,
+      secondaryTableIds: undefined,
+    })
     if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
     revalidatePath('/admin')
     return ok(reservation)
@@ -401,7 +609,13 @@ export async function cancelReservation(id: string): Promise<ActionResult<Reserv
   const timestamp = new Date().toISOString()
   const { error } = await supabase
     .from('reservations')
-    .update({ status: 'cancelled', table_id: null, secondary_table_ids: null, updated_at: timestamp })
+    .update({
+      status: 'cancelled',
+      manual_arrangement: false,
+      table_id: null,
+      secondary_table_ids: null,
+      updated_at: timestamp,
+    })
     .eq('id', id)
 
   if (error) {
@@ -442,7 +656,8 @@ export async function deleteReservation(id: string): Promise<ActionResult<string
 export async function confirmReservation(
   id: string,
   tableId: string,
-  secondaryTableIds: string[] = []
+  secondaryTableIds: string[] = [],
+  manualArrangement = false,
 ): Promise<ActionResult<Reservation>> {
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
@@ -461,8 +676,18 @@ export async function confirmReservation(
       }
     }
 
+    const capacityError = validateAssignmentCapacity(
+      tableId,
+      secondaryTableIds,
+      current.partySize,
+      manualArrangement,
+      listDemoTables(),
+    )
+    if (capacityError) return fail(capacityError)
+
     const reservation = updateDemoReservation(id, {
       status: 'confirmed',
+      manualArrangement,
       tableId,
       secondaryTableIds,
     })
@@ -489,6 +714,15 @@ export async function confirmReservation(
     }
   }
 
+  const capacityError = validateAssignmentCapacity(
+    tableId,
+    secondaryTableIds,
+    current.partySize,
+    manualArrangement,
+    snapshot.data.tables,
+  )
+  if (capacityError) return fail(capacityError)
+
   const supabase = await createClient()
   const timestamp = new Date().toISOString()
   const secondaryTableIdsStr = secondaryTableIds.length > 0 ? secondaryTableIds.join(',') : null
@@ -497,6 +731,7 @@ export async function confirmReservation(
     .from('reservations')
     .update({
       status: 'confirmed',
+      manual_arrangement: manualArrangement,
       table_id: tableId,
       secondary_table_ids: secondaryTableIdsStr,
       updated_at: timestamp
@@ -514,6 +749,7 @@ export async function confirmReservation(
   return ok({
     ...current,
     status: 'confirmed',
+    manualArrangement,
     tableId,
     table,
     secondaryTableIds,
@@ -537,7 +773,7 @@ export async function getAvailableTables(
     p_date: date,
     p_time: normalizeTime(time),
     p_party_size: partySize,
-    p_excluding_reservation_id: excludingReservationId ?? null,
+    p_excluding_reservation_id: excludingReservationId,
   })
 
   if (error) {

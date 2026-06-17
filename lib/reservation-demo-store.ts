@@ -43,7 +43,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1001',
     name: 'Nguyễn Văn Anh',
-    email: 'vananh.nguyen@example.com',
     phone: '0901234567',
     date: todayPlus(0),
     time: '19:00',
@@ -59,7 +58,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1002',
     name: 'Trần Thị Bình',
-    email: 'binh.tran@example.com',
     phone: '0912345678',
     date: todayPlus(0),
     time: '20:30',
@@ -73,7 +71,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1006',
     name: 'Phạm Minh Đức',
-    email: 'duc.pham@example.com',
     phone: '0933334444',
     date: todayPlus(0),
     time: '11:15',
@@ -88,7 +85,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1007',
     name: 'Hoàng Lan',
-    email: 'lan.hoang@example.com',
     phone: '0988776655',
     date: todayPlus(0),
     time: '12:30',
@@ -103,7 +99,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1008',
     name: 'Võ Thành Đạt',
-    email: 'dat.vo@example.com',
     phone: '0900112233',
     date: todayPlus(0),
     time: '13:45',
@@ -119,7 +114,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1003',
     name: 'Lê Hoàng Nam',
-    email: 'nam.lehoang@example.com',
     phone: '0987654321',
     date: todayPlus(0),
     time: '18:30',
@@ -135,7 +129,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1004',
     name: 'Phạm Minh Đức',
-    email: 'duc.pham@example.com',
     phone: '0345678912',
     date: todayPlus(0),
     time: '21:00',
@@ -149,7 +142,6 @@ const DEMO_RESERVATIONS: Reservation[] = [
   withTable({
     id: 'res_1005',
     name: 'Vũ Mỹ Linh',
-    email: 'mylinh.vu@example.com',
     phone: '0765432109',
     date: todayPlus(0),
     time: '19:30',
@@ -239,13 +231,15 @@ export function getDemoAvailableTables(
 }
 
 export function getDemoSlotAvailability(date: string, partySize: number): SlotAvailability[] {
-  void partySize
+  return TIME_SLOTS.map((time) => {
+    const availableTables = getDemoAvailableTables(date, time, partySize)
+    const totalCapacity = availableTables.reduce((sum, table) => sum + table.capacity, 0)
 
-  return TIME_SLOTS.map((time) => ({
-    time,
-    // When counting slot availability for display, we want to show all unoccupied tables, not just ones fitting the party
-    availableCount: getDemoAvailableTables(date, time, 1).length,
-  }))
+    return {
+      time,
+      availableCount: totalCapacity >= partySize ? availableTables.length : 0,
+    }
+  })
 }
 
 export function createDemoReservation(input: ReservationInput, status: ReservationStatus = 'pending'): Reservation {

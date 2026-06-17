@@ -46,7 +46,12 @@ type ReservationContextValue = {
   refreshAdminData: () => Promise<void>
   addReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
   createManualReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
-  confirmReservation: (id: string, tableId: string, secondaryTableIds?: string[]) => Promise<ActionResult<Reservation>>
+  confirmReservation: (
+    id: string,
+    tableId: string,
+    secondaryTableIds?: string[],
+    manualArrangement?: boolean,
+  ) => Promise<ActionResult<Reservation>>
   cancelReservation: (id: string) => Promise<ActionResult<Reservation>>
   editReservation: (id: string, data: ReservationInput) => Promise<ActionResult<Reservation>>
   deleteReservation: (id: string) => Promise<ActionResult<string>>
@@ -116,8 +121,13 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     return result
   }, [])
 
-  const confirmReservation = useCallback(async (id: string, tableId: string, secondaryTableIds?: string[]) => {
-    const result = await confirmReservationAction(id, tableId, secondaryTableIds)
+  const confirmReservation = useCallback(async (
+    id: string,
+    tableId: string,
+    secondaryTableIds?: string[],
+    manualArrangement?: boolean,
+  ) => {
+    const result = await confirmReservationAction(id, tableId, secondaryTableIds, manualArrangement)
     if (result.ok) {
       setReservations((prev) => upsertReservation(prev, result.data))
     } else {

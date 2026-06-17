@@ -9,7 +9,7 @@ import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { type Reservation } from '@/components/reservation-provider'
 import type { ReservationInput, RestaurantTable } from '@/lib/reservation-types'
 import { TIME_SLOTS, OCCASIONS, formatDate } from '@/lib/restaurant'
-import { validateVNPhone, validateEmail, cn } from '@/lib/utils'
+import { validateVNPhone, cn } from '@/lib/utils'
 
 interface EditModalProps {
   isOpen: boolean
@@ -50,7 +50,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
       
       const mainTab = tables.find(t => t.id === reservation.tableId)
       const isCapacityShort = mainTab && mainTab.capacity < reservation.partySize
-      setEIsManualArrangement(Boolean(isCapacityShort && secIds.length === 0))
+      setEIsManualArrangement(Boolean(reservation.manualArrangement ?? (isCapacityShort && secIds.length === 0)))
       
       setENotes(reservation.notes || '')
     }
@@ -132,6 +132,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
       partySize: Number(ePartySize),
       occasion: eOccasion === OCCASIONS[0] ? undefined : eOccasion,
       notes: eNotes.trim() || undefined,
+      manualArrangement: eIsManualArrangement,
       tableId: eTableId,
       secondaryTableIds: eSecondaryTableIds,
     })

@@ -15,7 +15,7 @@ interface AssignTableModalProps {
   availableTables: RestaurantTable[]
   isLoading: boolean
   onClose: () => void
-  onConfirm: (tableId: string, secondaryTableIds: string[]) => void
+  onConfirm: (tableId: string, secondaryTableIds: string[], manualArrangement: boolean) => void
 }
 
 export function AssignTableModal({
@@ -304,7 +304,7 @@ export function AssignTableModal({
               type="button"
               size="sm"
               disabled={isConfirmDisabled}
-              onClick={() => onConfirm(selectedTableId, selectedSecondaryIds)}
+              onClick={() => onConfirm(selectedTableId, selectedSecondaryIds, isManualArrangement)}
               className="gap-1 shadow-xs"
             >
               <Check className="size-3.5" />
