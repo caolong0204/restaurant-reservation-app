@@ -1,6 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { subDays, addDays } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 
 import type { Database } from '@/lib/database.types'
 import { TIME_SLOTS, isPastTimeSlot } from '@/lib/restaurant'
@@ -181,9 +183,17 @@ async function listSupabaseTables(): Promise<ActionResult<RestaurantTable[]>> {
 
 async function listSupabaseReservations(tables: RestaurantTable[]): Promise<ActionResult<Reservation[]>> {
   const supabase = await createClient()
+  
+  // Limit data to prevent large payload and slow queries
+  const today = new Date()
+  const fromDate = formatInTimeZone(subDays(today, 7), 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd')
+  const toDate = formatInTimeZone(addDays(today, 30), 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd')
+
   const { data, error } = await supabase
     .from('reservations')
     .select('*')
+    .gte('reservation_date', fromDate)
+    .lte('reservation_date', toDate)
     .order('reservation_date', { ascending: true })
     .order('reservation_time', { ascending: true })
 
@@ -218,9 +228,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
   const availableSlots = await getPublicSlotAvailability(normalized.date, normalized.partySize)
   if (availableSlots.ok) {
     const matchingSlot = availableSlots.data.find((slot) => slot.time === normalized.time)
-    if (matchingSlot && matchingSlot.availableCount < 1) {
-      return fail('Khung giờ này đã hết bàn phù hợp. Vui lòng chọn giờ khác.')
-    }
+    // Removed strict availableCount < 1 check to support waitlist
   }
 
   const supabase = await createClient()
@@ -308,9 +316,7 @@ export async function createManualReservation(input: ReservationInput): Promise<
     const availableSlots = await getPublicSlotAvailability(normalized.date, normalized.partySize)
     if (availableSlots.ok) {
       const matchingSlot = availableSlots.data.find((slot) => slot.time === normalized.time)
-      if (matchingSlot && matchingSlot.availableCount < 1) {
-        return fail('Khung giờ này đã hết bàn phù hợp. Vui lòng chọn giờ khác.')
-      }
+      // Removed strict availableCount < 1 check to support waitlist
     }
   }
 

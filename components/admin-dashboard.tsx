@@ -22,7 +22,7 @@ import { CreateModal } from '@/components/admin/create-modal'
 import { DayCalendarView } from '@/components/admin/day-calendar-view'
 import { EditModal } from '@/components/admin/edit-modal'
 import { ReservationTable } from '@/components/admin/reservation-table'
-import { StatCard } from '@/components/admin/stat-card'
+import { AdminStatsBar } from '@/components/admin/admin-stats-bar'
 import { ConfirmModal } from '@/components/admin/confirm-modal'
 import {
   useReservations,
@@ -37,6 +37,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { signOutAdmin } from '@/lib/auth-actions'
 import { RESTAURANT, formatDate } from '@/lib/restaurant'
+import { useDebounce } from '@/lib/hooks/use-debounce'
 import { cn } from '@/lib/utils'
 
 type Filter = 'all' | ReservationStatus
@@ -87,6 +88,9 @@ export function AdminDashboard() {
   const [isLoadingTables, setIsLoadingTables] = useState(false)
   const [cancelingReservation, setCancelingReservation] = useState<Reservation | null>(null)
 
+  // Apply debounce to searchTerm (300ms delay) to prevent excessive filtering
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
+
   const counts = useMemo(() => {
     return {
       all: reservations.length,
@@ -96,21 +100,8 @@ export function AdminDashboard() {
     }
   }, [reservations])
 
-  const stats = useMemo(() => {
-    const today = todayISO()
-    const todays = reservations.filter(
-      (reservation) => reservation.date === today && reservation.status !== 'cancelled',
-    )
-    return {
-      todayCount: todays.length,
-      todayCovers: todays.reduce((sum, reservation) => sum + reservation.partySize, 0),
-      pending: counts.pending,
-      confirmed: counts.confirmed,
-    }
-  }, [counts.confirmed, counts.pending, reservations])
-
   const filtered = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase()
+    const normalizedSearch = debouncedSearchTerm.trim().toLowerCase()
 
     return reservations
       .filter((reservation) => {
@@ -124,12 +115,12 @@ export function AdminDashboard() {
           (reservation.table?.code.toLowerCase() ?? '').includes(normalizedSearch)
         )
       })
-      .sort((a, b) =>
-        a.date === b.date
-          ? a.time.localeCompare(b.time)
-          : a.date.localeCompare(b.date),
-      )
-  }, [reservations, filter, searchTerm, dateFilter])
+      .sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date)
+        if (a.time !== b.time) return a.time.localeCompare(b.time)
+        return a.createdAt - b.createdAt
+      })
+  }, [reservations, filter, debouncedSearchTerm, dateFilter])
 
   async function openAssignModal(reservation: Reservation) {
     setAssigningReservation(reservation)
@@ -302,12 +293,7 @@ export function AdminDashboard() {
           </div>
         )}
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Đặt bàn hôm nay" value={stats.todayCount} icon={CalendarDays} colorClass="text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/30" />
-          <StatCard label="Tổng khách hôm nay" value={stats.todayCovers} icon={Users} colorClass="text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30" />
-          <StatCard label="Đang chờ duyệt" value={stats.pending} icon={Clock} colorClass="text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30" />
-          <StatCard label="Đã xác nhận" value={stats.confirmed} icon={Check} colorClass="text-primary bg-primary/10" />
-        </div>
+        <AdminStatsBar reservations={reservations} />
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-border/80 pb-2">
           <div className="flex gap-2">

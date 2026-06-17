@@ -12,6 +12,8 @@ import {
 import { OCCASIONS } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
 import {
+  AlertCircle,
+  Clock,
   MessageSquare,
   PartyPopper,
   Phone,
@@ -28,6 +30,7 @@ interface StepInfoProps {
   setOccasion: (val: string) => void
   notes: string
   setNotes: (val: string) => void
+  availableCount?: number
 }
 
 export function StepInfo({
@@ -40,12 +43,34 @@ export function StepInfo({
   setOccasion,
   notes,
   setNotes,
+  availableCount = 10,
 }: StepInfoProps) {
   const isPhoneInvalid = phone.trim().length > 0 && !validateVNPhone(phone)
-
+  const isWaitlist = availableCount === 0
+  const isScarcity = availableCount > 0 && availableCount < 2
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
+      {isWaitlist && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 flex items-start gap-2.5 shadow-sm">
+          <Clock className="size-4.5 shrink-0 mt-0.5" />
+          <div className="text-[13px] leading-relaxed">
+            <strong className="block text-sm font-bold mb-0.5">Danh sách chờ (Waitlist)</strong>
+            Khung giờ này hiện đang kín lịch. Yêu cầu của bạn sẽ được lưu vào danh sách chờ và nhà hàng sẽ chủ động liên hệ nếu có khách hủy bàn.
+          </div>
+        </div>
+      )}
+
+      {isScarcity && (
+        <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-rose-800 flex items-start gap-2.5 shadow-sm">
+          <AlertCircle className="size-4.5 shrink-0 mt-0.5" />
+          <div className="text-[13px] leading-relaxed">
+            <strong className="block text-sm font-bold mb-0.5">Sắp hết bàn!</strong>
+            Chỉ còn lại rất ít bàn trống trong khung giờ này. Vui lòng hoàn tất nhanh để hệ thống ghi nhận.
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 pb-2 sm:pb-3">
         <User className="size-4 sm:size-5 text-primary" />
         <div>

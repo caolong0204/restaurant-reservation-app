@@ -29,6 +29,24 @@ export function AssignTableModal({
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([])
   const [isManualArrangement, setIsManualArrangement] = useState(false)
 
+  // Prevent background body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+    return () => {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isOpen])
+
   const bestFitTable = useMemo(() => {
     if (reservation && reservation.partySize <= 4) {
       return availableTables.find((t) => t.capacity >= reservation.partySize) || availableTables[0]

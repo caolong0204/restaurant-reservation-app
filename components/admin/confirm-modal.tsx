@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -20,6 +21,24 @@ export function ConfirmModal({
   onConfirm, 
   onCancel 
 }: ConfirmModalProps) {
+  // Prevent background body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+    return () => {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   return (

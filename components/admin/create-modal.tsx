@@ -1,14 +1,17 @@
 import * as React from 'react'
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CalendarDays, Check, Info, Loader2, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, Clock, Info, Loader2, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import type { ActionResult, ReservationInput, RestaurantTable } from '@/lib/reservation-types'
-import { TIME_SLOTS, OCCASIONS, formatDate, isPastTimeSlot } from '@/lib/restaurant'
+import { TIME_SLOTS, OCCASIONS, formatDate, isPastTimeSlot, getAvailableTimeSlots } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
+import { TableSelectionGrid } from '@/components/admin/table-selection-grid'
+import { CapacityWarningAlert } from '@/components/admin/capacity-warning-alert'
+import { TimePickerDropdown } from '@/components/admin/time-picker-dropdown'
 
 interface CreateModalProps {
   isOpen: boolean
@@ -26,9 +29,28 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
   const [cName, setCName] = useState('')
   const [cPhone, setCPhone] = useState('')
 
+  // Prevent background body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+    return () => {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isOpen])
+
   const [cDate, setCDate] = useState('')
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [cTime, setCTime] = useState(TIME_SLOTS[7]) // default to 17:00
+  const [isTimeOpen, setIsTimeOpen] = useState(false)
   const [cPartySize, setCPartySize] = useState('4')
   const [cOccasion, setCOccasion] = useState(OCCASIONS[0])
   const [cTableId, setCTableId] = useState('')
@@ -38,6 +60,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
   const [availableTables, setAvailableTables] = useState<RestaurantTable[]>([])
   const [isLoadingTables, setIsLoadingTables] = useState(false)
   const [tableError, setTableError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form validations
   const isCPartyValid = Number(cPartySize) > 0 && Number(cPartySize) <= 24 && !isNaN(Number(cPartySize))
@@ -49,10 +72,20 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
 
   const mainTable = activeTables.find((t) => t.id === cTableId)
   const secondaryTables = activeTables.filter((t) => cSecondaryTableIds.includes(t.id))
+  const groupedTables = activeTables.reduce<Record<string, RestaurantTable[]>>((acc, table) => {
+    acc[table.floor] = [...(acc[table.floor] ?? []), table]
+    return acc
+  }, {})
   const totalCapacity =
     (mainTable?.capacity ?? 0) + secondaryTables.reduce((sum, table) => sum + table.capacity, 0)
-  const hasCapacityWarning = Boolean(cTableId && totalCapacity < partySize)
-  const hasUnresolvedCapacityWarning = Boolean(hasCapacityWarning && !cIsManualArrangement)
+  const isCapacityInsufficient = Boolean(cTableId && totalCapacity < partySize)
+  const selectedTables = [mainTable, ...secondaryTables].filter(Boolean)
+  const isCapacityExcessive = Boolean(
+    cTableId &&
+      selectedTables.length > 1 &&
+      selectedTables.some((table) => totalCapacity - table.capacity >= partySize)
+  )
+  const hasUnresolvedCapacityWarning = Boolean(isCapacityInsufficient && !cIsManualArrangement)
   const showLargePartyTip =
     Boolean(cTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && cSecondaryTableIds.length === 0)
 
@@ -71,6 +104,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
       setCTime('')
     }
   }, [cDate, cTime])
+
 
   useEffect(() => {
     if (!isOpen || !hasSchedulingFields) {
@@ -144,86 +178,98 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
     }
   }, [activeTables, cIsManualArrangement, cSecondaryTableIds, cTableId, partySize])
 
-  const handleMainTableChange = (value: string) => {
-    setCTableId(value)
+  const handleTableToggle = (tableId: string) => {
     setCIsManualArrangement(false)
 
-    if (!value) {
+    if (!tableId) {
+      setCTableId('')
       setCSecondaryTableIds([])
       return
     }
 
-    const nextMainTable = activeTables.find((table) => table.id === value)
-    if (nextMainTable && nextMainTable.capacity >= partySize) {
-      setCSecondaryTableIds([])
-      return
+    const isMain = cTableId === tableId
+    const isSecondary = cSecondaryTableIds.includes(tableId)
+
+    if (isMain) {
+      // Deselecting main table
+      if (cSecondaryTableIds.length > 0) {
+        setCTableId(cSecondaryTableIds[0])
+        setCSecondaryTableIds(cSecondaryTableIds.slice(1))
+      } else {
+        setCTableId('')
+      }
+    } else if (isSecondary) {
+      // Deselecting secondary table
+      setCSecondaryTableIds((prev) => prev.filter((id) => id !== tableId))
+    } else {
+      // Selecting new table (always additive/multi-select)
+      if (!cTableId) {
+        setCTableId(tableId)
+      } else {
+        setCSecondaryTableIds((prev) => [...prev, tableId])
+      }
     }
-
-    setCSecondaryTableIds((prev) => prev.filter((id) => id !== value))
-  }
-
-  const toggleSecondaryTable = (tableId: string) => {
-    setCSecondaryTableIds((prev) => {
-      const next = prev.includes(tableId) ? prev.filter((id) => id !== tableId) : [...prev, tableId]
-      if (next.length > 0) setCIsManualArrangement(false)
-      return next
-    })
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!isCreateValid) return
+    if (!isCreateValid || isSubmitting) return
 
-    const didCreate = await onSubmit({
-      name: cName.trim(),
-      phone: cPhone.trim(),
-      date: cDate,
-      time: cTime,
-      partySize: Number(cPartySize),
-      occasion: cOccasion === OCCASIONS[0] ? undefined : cOccasion,
-      manualArrangement: cTableId ? cIsManualArrangement : false,
-      tableId: cTableId || undefined,
-      secondaryTableIds: cTableId ? cSecondaryTableIds : [],
-      notes: cNotes.trim() || undefined,
-    })
+    setIsSubmitting(true)
+    try {
+      const didCreate = await onSubmit({
+        name: cName.trim(),
+        phone: cPhone.trim(),
+        date: cDate,
+        time: cTime,
+        partySize: Number(cPartySize),
+        occasion: cOccasion === OCCASIONS[0] ? undefined : cOccasion,
+        manualArrangement: cTableId ? cIsManualArrangement : false,
+        tableId: cTableId || undefined,
+        secondaryTableIds: cTableId ? cSecondaryTableIds : [],
+        notes: cNotes.trim() || undefined,
+      })
 
-    if (!didCreate) return
+      if (!didCreate) return
 
-    // Reset fields
-    setCName('')
-    setCPhone('')
+      // Reset fields
+      setCName('')
+      setCPhone('')
 
-    setCDate('')
-    setCTime('')
-    setCPartySize('4')
-    setCOccasion(OCCASIONS[0])
-    setCTableId('')
-    setCSecondaryTableIds([])
-    setCIsManualArrangement(false)
-    setCNotes('')
-    setAvailableTables([])
-    setTableError(null)
+      setCDate('')
+      setCTime('')
+      setCPartySize('4')
+      setCOccasion(OCCASIONS[0])
+      setCTableId('')
+      setCSecondaryTableIds([])
+      setCIsManualArrangement(false)
+      setCNotes('')
+      setAvailableTables([])
+      setTableError(null)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl relative overflow-hidden animate-in scale-in duration-200">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl relative overflow-hidden animate-in scale-in duration-200 max-h-[95dvh] flex flex-col">
         {/* Top brand line */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-primary" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-primary shrink-0" />
         
-        <div className="flex items-center justify-between border-b border-border pb-3">
+        <div className="flex items-center justify-between border-b border-border pb-3 shrink-0">
           <div className="flex items-center gap-1.5">
             <Sparkles className="size-4 text-primary" />
             <h3 className="font-serif text-lg font-bold text-foreground">Thêm Đặt Bàn Thủ Công</h3>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground cursor-pointer">
             <X className="size-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className={cn("mt-4 flex flex-col gap-4 flex-1 pr-1 no-scrollbar", (isTimeOpen || isCalendarOpen) ? "overflow-hidden" : "overflow-y-auto")}>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <Label htmlFor="cName" className="text-xs font-semibold">Tên khách hàng</Label>
@@ -279,19 +325,38 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="cTime" className="text-xs font-semibold">Giờ đón khách</Label>
-              <select id="cTime" value={cTime} onChange={(e) => setCTime(e.target.value)} required className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-                <option value="" disabled>
-                  Chọn giờ
-                </option>
-                {TIME_SLOTS.map((t) => {
-                  const isPast = isPastTimeSlot(t, cDate)
-                  return (
-                    <option key={t} value={t} disabled={isPast}>
-                      {isPast ? `${t} · Qua giờ` : t}
-                    </option>
-                  )
-                })}
-              </select>
+              <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id="cTime"
+                      variant="outline"
+                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
+                    />
+                  }
+                >
+                  <Clock className="size-4 mr-2 text-muted-foreground shrink-0" />
+                  <span className={cTime ? 'text-foreground' : 'text-muted-foreground/60'}>
+                    {cTime || 'Chọn giờ'}
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-3 max-h-[350px] overflow-y-auto" align="start">
+                    {(() => {
+                      const slots = getAvailableTimeSlots(partySize, cDate).filter(
+                        (t) => !isPastTimeSlot(t, cDate)
+                      )
+
+                      return (
+                        <TimePickerDropdown
+                          slots={slots}
+                          selectedTime={cTime}
+                          onTimeSelect={setCTime}
+                          onClose={() => setIsTimeOpen(false)}
+                        />
+                      )
+                    })()}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="cPartySize" className="text-xs font-semibold">Số lượng khách</Label>
@@ -310,36 +375,41 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
 
           <div className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/5 p-3">
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <Label htmlFor="cTableId" className="text-xs font-semibold">Gán bàn ngay</Label>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="cTableId" className="text-xs font-semibold">Gán bàn ngay</Label>
+                  {cTableId && (
+                    <button
+                      type="button"
+                      onClick={() => handleTableToggle('')}
+                      className="text-[10px] text-destructive hover:underline font-semibold cursor-pointer"
+                    >
+                      Bỏ chọn bàn (tạo pending)
+                    </button>
+                  )}
+                </div>
                 <p className="mt-1 text-[10px] text-muted-foreground">
                   Có thể để trống để tạo booking chờ duyệt, hoặc chọn bàn để xác nhận ngay.
                 </p>
               </div>
               {isLoadingTables ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground shrink-0">
                   <Loader2 className="size-3 animate-spin" />
                   Đang kiểm tra
                 </span>
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-1">
-              <select
-                id="cTableId"
-                value={cTableId}
-                onChange={(e) => handleMainTableChange(e.target.value)}
-                disabled={!hasSchedulingFields || isLoadingTables}
-                className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <option value="">Chưa gán bàn (tạo pending)</option>
-                {activeTables.map((table) => (
-                  <option key={table.id} value={table.id} disabled={!availableTableIds.has(table.id)}>
-                    {table.code} ({table.floor === 'Tầng 1' ? 'T1' : 'T2'}) - {table.capacity} ghế
-                  </option>
-                ))}
-              </select>
-            </div>
+            {hasSchedulingFields && (
+              <TableSelectionGrid
+                groupedTables={groupedTables}
+                availableTableIds={availableTableIds}
+                cTableId={cTableId}
+                cSecondaryTableIds={cSecondaryTableIds}
+                isLoadingTables={isLoadingTables}
+                onToggleTable={handleTableToggle}
+              />
+            )}
 
             {tableError && (
               <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-[11px] font-medium text-destructive">
@@ -359,112 +429,18 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
               </div>
             )}
 
-            {cTableId && (
-              <div className="flex flex-col gap-3 border-t border-border/60 pt-3">
-                {hasCapacityWarning && (
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={cIsManualArrangement}
-                      onChange={(e) => {
-                        setCIsManualArrangement(e.target.checked)
-                        if (e.target.checked) setCSecondaryTableIds([])
-                      }}
-                      className="rounded border-input text-primary focus:ring-primary size-3.5"
-                    />
-                    <div className="leading-tight">
-                      <span className="text-xs font-bold text-foreground block">
-                        Tự sắp xếp thêm ghế / bàn phụ ngoài hệ thống
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        Không cần ghép bàn trên ứng dụng.
-                      </span>
-                    </div>
-                  </label>
-                )}
-
-                {!cIsManualArrangement && activeTables.filter((table) => table.id !== cTableId).length > 0 && (
-                  <div>
-                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-                      Ghép thêm bàn phụ (Không bắt buộc)
-                    </span>
-                    <div className="grid gap-1.5 grid-cols-2 max-h-[120px] overflow-y-auto pr-1">
-                      {activeTables.filter((table) => table.id !== cTableId).map((table) => {
-                        const isChecked = cSecondaryTableIds.includes(table.id)
-                        const isAvailable = availableTableIds.has(table.id)
-                        return (
-                          <button
-                            key={table.id}
-                            type="button"
-                            disabled={!isAvailable}
-                            onClick={() => toggleSecondaryTable(table.id)}
-                            className={cn(
-                              'rounded-lg border p-2 text-left transition-all flex items-center justify-between text-xs disabled:cursor-not-allowed disabled:opacity-45',
-                              isChecked
-                                ? 'border-amber-500 bg-amber-500/10'
-                                : 'border-border bg-card hover:border-amber-500/40',
-                              !isAvailable && 'hover:border-border bg-muted/30',
-                            )}
-                          >
-                            <div className="truncate pr-1">
-                              <span className="font-bold">{table.code}</span>
-                              <span className="text-[10px] text-muted-foreground ml-1.5">
-                                ({table.capacity} ghế{!isAvailable ? ' · bận' : ''})
-                              </span>
-                            </div>
-                            <div
-                              className={cn(
-                                'size-3.5 rounded border flex items-center justify-center transition-all shrink-0 ml-1',
-                                isChecked
-                                  ? 'border-amber-500 bg-amber-500 text-white'
-                                  : 'border-border bg-card',
-                              )}
-                            >
-                              {isChecked && <Check className="size-2.5" />}
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {hasCapacityWarning && (
-                  <div className="flex flex-col gap-1.5 text-xs bg-secondary/25 p-2.5 rounded-lg border border-border/60">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground font-semibold">Sức chứa tổng cộng:</span>
-                      <span className={cn('font-bold font-mono', hasCapacityWarning && !cIsManualArrangement ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
-                        Đã chọn: {totalCapacity} ghế / {partySize} khách
-                      </span>
-                    </div>
-                    {hasCapacityWarning && !cIsManualArrangement && (
-                      <div className="text-[10.5px] text-destructive leading-tight flex items-start gap-1 font-medium mt-1">
-                        <AlertTriangle className="size-3.5 shrink-0" />
-                        <span>
-                          <strong>Cảnh báo:</strong> Số lượng khách ({partySize}) nhiều hơn tổng số ghế ({totalCapacity}) của các bàn đã chọn. Vui lòng ghép thêm bàn phụ hoặc tích chọn tự sắp xếp thêm ghế/bàn ngoài.
-                        </span>
-                      </div>
-                    )}
-                    {cIsManualArrangement && (
-                      <div className="text-[10.5px] text-emerald-700 dark:text-emerald-400 leading-tight flex items-start gap-1 font-medium mt-1">
-                        <Check className="size-3.5 shrink-0" />
-                        <span>
-                          Admin xác nhận tự sắp xếp thêm ghế hoặc bàn phụ ngoài hệ thống.
-                        </span>
-                      </div>
-                    )}
-                    {showLargePartyTip && !cIsManualArrangement && (
-                      <div className="text-[10.5px] text-blue-700 dark:text-blue-400 leading-tight flex items-start gap-1 font-medium mt-1">
-                        <Info className="size-3.5 shrink-0" />
-                        <span>
-                          <strong>Gợi ý:</strong> Đặt bàn này dành cho nhóm đông ({partySize} người). Vui lòng ghép thêm bàn phụ để phục vụ tốt nhất.
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+            <CapacityWarningAlert
+              cTableId={cTableId}
+              totalCapacity={totalCapacity}
+              partySize={partySize}
+              isCapacityInsufficient={isCapacityInsufficient}
+              isCapacityExcessive={isCapacityExcessive}
+              cIsManualArrangement={cIsManualArrangement}
+              setCIsManualArrangement={setCIsManualArrangement}
+              cSecondaryTableIds={cSecondaryTableIds}
+              setCSecondaryTableIds={setCSecondaryTableIds}
+              showLargePartyTip={showLargePartyTip}
+            />
           </div>
 
           <div className="flex flex-col gap-1">
@@ -476,9 +452,18 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
 
           <div className="flex justify-end gap-2 border-t border-border pt-3 mt-1">
             <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Hủy bỏ</Button>
-            <Button type="submit" size="sm" disabled={!isCreateValid} className="h-9 rounded-lg text-xs gap-1">
-              <Check className="size-3.5" />
-              Xác nhận đặt bàn
+            <Button type="submit" size="sm" disabled={!isCreateValid || isSubmitting} className="h-9 rounded-lg text-xs gap-1 w-36">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <Check className="size-3.5" />
+                  Xác nhận đặt bàn
+                </>
+              )}
             </Button>
           </div>
         </form>

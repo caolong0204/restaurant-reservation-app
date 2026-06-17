@@ -112,10 +112,9 @@ export function BookingForm({
           setSlotAvailability(result.data)
           // Clear selected time if it is no longer selectable.
           setTime((prev) => {
-            const selectedSlot = result.data.find((slot) => slot.time === prev)
             if (!prev) return prev
             if (isPastTimeSlot(prev, toISO(date))) return ''
-            return selectedSlot?.availableCount === 0 ? '' : prev
+            return prev
           })
         } else {
           setSlotError(result.error)
@@ -280,6 +279,7 @@ export function BookingForm({
             setOccasion={setOccasion}
             notes={notes}
             setNotes={setNotes}
+            availableCount={slotAvailability.find((s) => s.time === time)?.availableCount ?? 0}
           />
         )}
 

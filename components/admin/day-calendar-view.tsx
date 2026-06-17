@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type CSSProperties } from 'react'
+import { memo, useMemo, useState, type CSSProperties } from 'react'
 import {
   CalendarDays,
   Check,
@@ -98,8 +98,7 @@ function statusText(status: Reservation['status']): string {
 }
 
 function durationLabel(minutes: number): string {
-  if (minutes % 60 === 0) return `${minutes / 60} tiếng`
-  return `${minutes / 60} tiếng`
+  return `${minutes / 60}h`
 }
 
 function getBarClass(reservation: Reservation): string {
@@ -171,6 +170,87 @@ function getReservationGridStyle(
     marginRight: `${marginRight}px`,
   }
 }
+
+const TimelineRow = memo(function TimelineRow({
+  table,
+  tableReservations,
+  slots,
+  gridTemplateColumns,
+  timelineWidth,
+  onSelectReservation
+}: {
+  table: RestaurantTable
+  tableReservations: Reservation[]
+  slots: string[]
+  gridTemplateColumns: string
+  timelineWidth: number
+  onSelectReservation: (reservation: Reservation) => void
+}) {
+  return (
+    <TableRow className="border-border hover:bg-transparent">
+      <TableCell className="sticky left-0 z-20 h-16 border-r border-border bg-card font-bold text-foreground">
+        <div className="leading-none">
+          {table.code}({table.floor === 'Tầng 1' ? 'T1' : 'T2'})
+        </div>
+        <div className="mt-1 text-xs font-medium leading-none text-muted-foreground">
+          {table.capacity} ghế
+        </div>
+      </TableCell>
+      <TableCell className="h-16 p-0">
+        <div
+          className="grid h-16 bg-background"
+          style={{ gridTemplateColumns, width: timelineWidth }}
+        >
+          {slots.map((slot, index) => (
+            <div
+              key={`${table.id}-${slot}`}
+              style={{ gridColumn: index + 1 }}
+              className={cn(
+                'row-start-1 border-r',
+                ((minutesFromTime(slot) + 30) % 60 === 0) ? 'border-border/75' : 'border-border/25',
+              )}
+            />
+          ))}
+          {tableReservations.map((reservation) => {
+            const style = getReservationGridStyle(reservation, slots)
+            if (!style) return null
+            const isSecondary = reservation.tableId !== table.id
+
+            return (
+              <button
+                key={reservation.id}
+                type="button"
+                onClick={() => onSelectReservation(reservation)}
+                style={style}
+                className={cn(
+                  'z-10 mx-0.5 my-3 flex h-10 items-center justify-between gap-2 rounded-sm border px-2 text-left text-xs font-bold shadow-sm ring-1 ring-black/5 transition-transform hover:-translate-y-0.5',
+                  getBarClass(reservation),
+                  isSecondary && 'opacity-65 border-dashed border-primary bg-teal-700/35 text-white/90',
+                )}
+                title={`${reservation.name} - ${statusText(reservation.status)}${isSecondary ? ' (Bàn phụ ghép thêm)' : ''}`}
+              >
+                <span className="min-w-0 truncate">
+                  {isSecondary ? `[Ghép] ${reservation.name}` : reservation.name}
+                  {reservation.phone && (
+                    <span className="opacity-75 ml-1 font-medium">({reservation.phone.slice(-3)})</span>
+                  )}
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1 rounded bg-black/10 px-1 py-0.5 text-[11px] leading-none">
+                  <span className="inline-flex items-center gap-0.5">
+                    <Users className="size-3" />
+                    {reservation.partySize}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{durationLabel(getBookingDurationMinutes(reservation.partySize))}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+})
 
 export function DayCalendarView({
   reservations,
@@ -347,65 +427,15 @@ export function DayCalendarView({
               )
 
               return (
-              <TableRow key={table.id} className="border-border hover:bg-transparent">
-                <TableCell className="sticky left-0 z-20 h-16 border-r border-border bg-card font-bold text-foreground">
-                  <div className="leading-none">
-                    {table.code}({table.floor === 'Tầng 1' ? 'T1' : 'T2'})
-                  </div>
-                  <div className="mt-1 text-xs font-medium leading-none text-muted-foreground">
-                    {table.capacity} ghế
-                  </div>
-                </TableCell>
-                <TableCell className="h-16 p-0">
-                  <div
-                    className="grid h-16 bg-background"
-                    style={{ gridTemplateColumns, width: timelineWidth }}
-                  >
-                    {slots.map((slot, index) => (
-                      <div
-                        key={`${table.id}-${slot}`}
-                        style={{ gridColumn: index + 1 }}
-                        className={cn(
-                          'row-start-1 border-r',
-                          ((minutesFromTime(slot) + 30) % 60 === 0) ? 'border-border/75' : 'border-border/25',
-                        )}
-                      />
-                    ))}
-                    {tableReservations.map((reservation) => {
-                      const style = getReservationGridStyle(reservation, slots)
-                      if (!style) return null
-                      const isSecondary = reservation.tableId !== table.id
-
-                      return (
-                        <button
-                          key={reservation.id}
-                          type="button"
-                          onClick={() => setSelectedReservation(reservation)}
-                          style={style}
-                          className={cn(
-                            'z-10 mx-0.5 my-3 flex h-10 items-center justify-between gap-2 rounded-sm border px-2 text-left text-xs font-bold shadow-sm ring-1 ring-black/5 transition-transform hover:-translate-y-0.5',
-                            getBarClass(reservation),
-                            isSecondary && 'opacity-65 border-dashed border-primary bg-teal-700/35 text-white/90',
-                          )}
-                          title={`${reservation.name} - ${statusText(reservation.status)}${isSecondary ? ' (Bàn phụ ghép thêm)' : ''}`}
-                        >
-                          <span className="min-w-0 truncate">
-                            {isSecondary ? `[Ghép] ${reservation.name}` : reservation.name}
-                          </span>
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded bg-black/10 px-1 py-0.5 text-[11px] leading-none">
-                            <span className="inline-flex items-center gap-0.5">
-                              <Users className="size-3" />
-                              {reservation.partySize}
-                            </span>
-                            <span aria-hidden="true">·</span>
-                            <span>{durationLabel(getBookingDurationMinutes(reservation.partySize))}</span>
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </TableCell>
-              </TableRow>
+                <TimelineRow
+                  key={table.id}
+                  table={table}
+                  tableReservations={tableReservations}
+                  slots={slots}
+                  gridTemplateColumns={gridTemplateColumns}
+                  timelineWidth={timelineWidth}
+                  onSelectReservation={setSelectedReservation}
+                />
               )
             })}
           </TableBody>
@@ -466,6 +496,10 @@ export function DayCalendarView({
                 <div>
                   <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Giờ đặt bàn</span>
                   <span className="text-foreground">{selectedReservation.time}</span>
+                </div>
+                <div>
+                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Tạo lúc</span>
+                  <span className="text-foreground">{new Date(selectedReservation.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                 </div>
                 <div>
                   <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Số lượng khách</span>

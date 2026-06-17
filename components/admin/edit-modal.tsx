@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
-import { AlertTriangle, CalendarDays, Check, Edit3, Info, X } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Check, Clock, Edit3, Info, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,14 +8,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { type Reservation } from '@/components/reservation-provider'
 import type { ReservationInput, RestaurantTable } from '@/lib/reservation-types'
-import { TIME_SLOTS, OCCASIONS, formatDate, isPastTimeSlot } from '@/lib/restaurant'
+import { OCCASIONS, formatDate, isPastTimeSlot, getAvailableTimeSlots } from '@/lib/restaurant'
 import { validateVNPhone, cn } from '@/lib/utils'
+import { TableSelectionGrid } from '@/components/admin/table-selection-grid'
+import { CapacityWarningAlert } from '@/components/admin/capacity-warning-alert'
+import { TimePickerDropdown } from '@/components/admin/time-picker-dropdown'
 
 interface EditModalProps {
   isOpen: boolean
   onClose: () => void
   reservation: Reservation | null
-  onSubmit: (id: string, data: ReservationInput) => void
+  onSubmit: (id: string, data: ReservationInput) => Promise<void> | void
   onCancelBooking?: (id: string) => void
   tables: RestaurantTable[]
 }
@@ -24,21 +27,42 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const [eName, setEName] = useState('')
   const [ePhone, setEPhone] = useState('')
 
+  // Prevent background body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+    return () => {
+      const activeModals = document.querySelectorAll('.fixed.inset-0')
+      if (activeModals.length <= 1) {
+        document.body.style.overflow = ''
+      }
+    }
+  }, [isOpen])
+
   const [eDate, setEDate] = useState('')
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [eTime, setETime] = useState('')
+  const [isTimeOpen, setIsTimeOpen] = useState(false)
   const [ePartySize, setEPartySize] = useState('')
   const [eOccasion, setEOccasion] = useState('')
   const [eTableId, setETableId] = useState('')
   const [eSecondaryTableIds, setESecondaryTableIds] = useState<string[]>([])
   const [eIsManualArrangement, setEIsManualArrangement] = useState(false)
   const [eNotes, setENotes] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (eTime && isPastTimeSlot(eTime, eDate)) {
       setETime('')
     }
   }, [eDate, eTime])
+
 
   useEffect(() => {
     if (reservation) {
@@ -93,55 +117,79 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
 
   const mainTable = tables.find((t) => t.id === eTableId)
   const secondaryTables = tables.filter((t) => eSecondaryTableIds.includes(t.id))
+  const activeTables = tables.filter((t) => t.active)
+  const availableTableIds = new Set(activeTables.map(t => t.id)) // All active tables are selectable in edit mode
+  const groupedTables = activeTables.reduce<Record<string, RestaurantTable[]>>((acc, table) => {
+    acc[table.floor] = [...(acc[table.floor] ?? []), table]
+    return acc
+  }, {})
   const totalCapacity = (mainTable?.capacity ?? 0) + secondaryTables.reduce((sum, t) => sum + t.capacity, 0)
   const partySize = Number(ePartySize) || 0
 
-  const hasCapacityWarning = eTableId && totalCapacity < partySize
+  const isCapacityInsufficient = Boolean(eTableId && totalCapacity < partySize)
+  const selectedTables = [mainTable, ...secondaryTables].filter(Boolean)
+  const isCapacityExcessive = Boolean(
+    eTableId &&
+      selectedTables.length > 1 &&
+      selectedTables.some((table) => totalCapacity - table.capacity >= partySize)
+  )
+  const hasUnresolvedCapacityWarning = Boolean(isCapacityInsufficient && !eIsManualArrangement)
   const showLargePartyTip = eTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && eSecondaryTableIds.length === 0
-  const hasUnresolvedCapacityWarning = Boolean(hasCapacityWarning && !eIsManualArrangement)
 
-  const toggleSecondaryTable = (tableId: string) => {
-    setESecondaryTableIds((prev) => {
-      const next = prev.includes(tableId) ? prev.filter((id) => id !== tableId) : [...prev, tableId]
-      if (next.length > 0) {
-        setEIsManualArrangement(false)
-      }
-      return next
-    })
-  }
-
-  const handleMainTableChange = (val: string) => {
-    setETableId(val)
+  const handleTableToggle = (tableId: string) => {
     setEIsManualArrangement(false)
-    if (!val) {
+
+    if (!tableId) {
+      setETableId('')
       setESecondaryTableIds([])
-    } else {
-      const newMainTable = tables.find((t) => t.id === val)
-      if (newMainTable && newMainTable.capacity >= partySize) {
-        setESecondaryTableIds([])
+      return
+    }
+
+    const isMain = eTableId === tableId
+    const isSecondary = eSecondaryTableIds.includes(tableId)
+
+    if (isMain) {
+      // Deselecting main table
+      if (eSecondaryTableIds.length > 0) {
+        setETableId(eSecondaryTableIds[0])
+        setESecondaryTableIds(eSecondaryTableIds.slice(1))
       } else {
-        setESecondaryTableIds((prev) => prev.filter((id) => id !== val))
+        setETableId('')
+      }
+    } else if (isSecondary) {
+      // Deselecting secondary table
+      setESecondaryTableIds((prev) => prev.filter((id) => id !== tableId))
+    } else {
+      // Selecting new table (always additive/multi-select)
+      if (!eTableId) {
+        setETableId(tableId)
+      } else {
+        setESecondaryTableIds((prev) => [...prev, tableId])
       }
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!isEditValid || !reservation || hasUnresolvedCapacityWarning) return
 
-    onSubmit(reservation.id, {
-      name: eName.trim(),
-
-      phone: ePhone.trim(),
-      date: eDate,
-      time: eTime,
-      partySize: Number(ePartySize),
-      occasion: eOccasion === OCCASIONS[0] ? undefined : eOccasion,
-      notes: eNotes.trim() || undefined,
-      manualArrangement: eIsManualArrangement,
-      tableId: eTableId,
-      secondaryTableIds: eSecondaryTableIds,
-    })
+    setIsSubmitting(true)
+    try {
+      await onSubmit(reservation.id, {
+        name: eName.trim(),
+        phone: ePhone.trim(),
+        date: eDate,
+        time: eTime,
+        partySize: Number(ePartySize),
+        occasion: eOccasion === OCCASIONS[0] ? undefined : eOccasion,
+        notes: eNotes.trim() || undefined,
+        manualArrangement: eIsManualArrangement,
+        tableId: eTableId,
+        secondaryTableIds: eSecondaryTableIds,
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -160,7 +208,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4 overflow-y-auto flex-1 pr-1">
+        <form onSubmit={handleSubmit} className={cn("mt-4 flex flex-col gap-4 flex-1 pr-1 no-scrollbar", (isTimeOpen || isCalendarOpen) ? "overflow-hidden" : "overflow-y-auto")}>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1">
               <Label htmlFor="eName" className="text-xs font-semibold">Tên khách hàng</Label>
@@ -215,19 +263,43 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="eTime" className="text-xs font-semibold">Giờ đón khách</Label>
-              <select id="eTime" value={eTime} onChange={(e) => setETime(e.target.value)} required className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
-                <option value="" disabled>
-                  Chọn giờ
-                </option>
-                {TIME_SLOTS.map((t) => {
-                  const isPast = isPastTimeSlot(t, eDate)
-                  return (
-                    <option key={t} value={t} disabled={isPast}>
-                      {isPast ? `${t} · Qua giờ` : t}
-                    </option>
-                  )
-                })}
-              </select>
+              <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      id="eTime"
+                      variant="outline"
+                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
+                    />
+                  }
+                >
+                  <Clock className="size-4 mr-2 text-muted-foreground shrink-0" />
+                  <span className={eTime ? 'text-foreground' : 'text-muted-foreground/60'}>
+                    {eTime || 'Chọn giờ'}
+                  </span>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-3 max-h-[350px] overflow-y-auto" align="start">
+                    {(() => {
+                      const slots = getAvailableTimeSlots(partySize, eDate).filter(
+                        (t) => !(isPastTimeSlot(t, eDate) && reservation && t !== reservation.time)
+                      )
+                      // Always include reservation.time if pre-selected to avoid state loss
+                      if (reservation && !slots.includes(reservation.time)) {
+                        slots.push(reservation.time)
+                        slots.sort()
+                      }
+
+                      return (
+                        <TimePickerDropdown
+                          slots={slots}
+                          selectedTime={eTime}
+                          onTimeSelect={setETime}
+                          onClose={() => setIsTimeOpen(false)}
+                        />
+                      )
+                    })()}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="ePartySize" className="text-xs font-semibold">Số lượng khách</Label>
@@ -235,129 +307,52 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="eOccasion" className="text-xs font-semibold">Dịp đặc biệt</Label>
-              <select id="eOccasion" value={eOccasion} onChange={(e) => setEOccasion(e.target.value)} className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-full">
-                {OCCASIONS.map((o) => (
-                  <option key={o} value={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="eTableId" className="text-xs font-semibold">Bàn chỉ định</Label>
-              <select id="eTableId" value={eTableId} onChange={(e) => handleMainTableChange(e.target.value)} className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-full">
-                <option value="">Chưa gán bàn</option>
-                {tables.filter(t => t.active).map((t) => (
-                  <option key={t.id} value={t.id}>{t.code} ({t.floor === 'Tầng 1' ? 'T1' : 'T2'}) - {t.capacity} ghế</option>
-                ))}
-              </select>
-            </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="eOccasion" className="text-xs font-semibold">Dịp đặc biệt</Label>
+            <select id="eOccasion" value={eOccasion} onChange={(e) => setEOccasion(e.target.value)} className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-full">
+              {OCCASIONS.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
           </div>
 
-          {/* Secondary Table Checklist */}
-          {eTableId && (
-            <div className="flex flex-col gap-3 border border-border bg-secondary/5 rounded-lg p-3">
-              {hasCapacityWarning && (
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={eIsManualArrangement}
-                    onChange={(e) => {
-                      setEIsManualArrangement(e.target.checked)
-                      if (e.target.checked) {
-                        setESecondaryTableIds([])
-                      }
-                    }}
-                    className="rounded border-input text-primary focus:ring-primary size-3.5"
-                  />
-                  <div className="leading-tight">
-                    <span className="text-xs font-bold text-foreground block">
-                      Tự sắp xếp thêm ghế / bàn phụ ngoài hệ thống
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Không cần ghép bàn trên ứng dụng.
-                    </span>
-                  </div>
-                </label>
-              )}
-
-              {!eIsManualArrangement && tables.filter(t => t.active && t.id !== eTableId).length > 0 && (
-                <div className="border-t border-border/60 pt-2.5">
-                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider block mb-2">
-                    Ghép thêm bàn phụ (Không bắt buộc)
-                  </span>
-                  <div className="grid gap-1.5 grid-cols-2 max-h-[120px] overflow-y-auto pr-1">
-                    {tables.filter(t => t.active && t.id !== eTableId).map((table) => {
-                      const isChecked = eSecondaryTableIds.includes(table.id)
-                      return (
-                        <button
-                          key={table.id}
-                          type="button"
-                          onClick={() => toggleSecondaryTable(table.id)}
-                          className={cn(
-                            'rounded-lg border p-2 text-left transition-all flex items-center justify-between text-xs',
-                            isChecked
-                              ? 'border-amber-500 bg-amber-500/10'
-                              : 'border-border bg-card hover:border-amber-500/40',
-                          )}
-                        >
-                          <div className="truncate pr-1">
-                            <span className="font-bold">{table.code}</span>
-                            <span className="text-[10px] text-muted-foreground ml-1.5">({table.capacity} ghế)</span>
-                          </div>
-                          <div className={cn(
-                            'size-3.5 rounded border flex items-center justify-center transition-all shrink-0 ml-1',
-                            isChecked
-                              ? 'border-amber-500 bg-amber-500 text-white'
-                              : 'border-border bg-card',
-                          )}>
-                            {isChecked && <Check className="size-2.5" />}
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="eTableId" className="text-xs font-semibold">Bàn chỉ định</Label>
+              {eTableId && (
+                <button
+                  type="button"
+                  onClick={() => handleTableToggle('')}
+                  className="text-[10px] text-destructive hover:underline font-semibold cursor-pointer"
+                >
+                  Bỏ chọn bàn (tạo pending)
+                </button>
               )}
             </div>
-          )}
+            <div className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/5 p-3">
+              <TableSelectionGrid
+                groupedTables={groupedTables}
+                availableTableIds={availableTableIds}
+                cTableId={eTableId}
+                cSecondaryTableIds={eSecondaryTableIds}
+                isLoadingTables={false}
+                onToggleTable={handleTableToggle}
+              />
 
-          {/* Warning and Hint Notes */}
-          {eTableId && hasCapacityWarning && (
-            <div className="flex flex-col gap-1.5 text-xs bg-secondary/25 p-2.5 rounded-lg border border-border/60">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground font-semibold font-sans">Sức chứa tổng cộng:</span>
-                <span className={cn('font-bold font-mono', hasCapacityWarning && !eIsManualArrangement ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400')}>
-                  Đã chọn: {totalCapacity} ghế / {partySize} khách
-                </span>
-              </div>
-              {hasCapacityWarning && !eIsManualArrangement && (
-                <div className="text-[10.5px] text-destructive leading-tight flex items-start gap-1 font-medium mt-1">
-                  <AlertTriangle className="size-3.5 shrink-0" />
-                  <span>
-                    <strong>Cảnh báo:</strong> Số lượng khách ({partySize}) nhiều hơn tổng số ghế ({totalCapacity}) của các bàn đã chọn. Vui lòng ghép thêm bàn phụ hoặc tích chọn tự sắp xếp thêm ghế/bàn ngoài.
-                  </span>
-                </div>
-              )}
-              {eIsManualArrangement && (
-                <div className="text-[10.5px] text-emerald-700 dark:text-emerald-400 leading-tight flex items-start gap-1 font-medium mt-1">
-                  <Check className="size-3.5 shrink-0" />
-                  <span>
-                    Admin xác nhận tự sắp xếp thêm ghế hoặc bàn phụ ngoài hệ thống.
-                  </span>
-                </div>
-              )}
-              {showLargePartyTip && !eIsManualArrangement && (
-                <div className="text-[10.5px] text-blue-700 dark:text-blue-400 leading-tight flex items-start gap-1 font-medium mt-1">
-                  <Info className="size-3.5 shrink-0" />
-                  <span>
-                    <strong>Gợi ý:</strong> Đặt bàn này dành cho nhóm đông ({partySize} người). Vui lòng ghép thêm bàn phụ để phục vụ tốt nhất.
-                  </span>
-                </div>
-              )}
+              <CapacityWarningAlert
+                cTableId={eTableId}
+                totalCapacity={totalCapacity}
+                partySize={partySize}
+                isCapacityInsufficient={isCapacityInsufficient}
+                isCapacityExcessive={isCapacityExcessive}
+                cIsManualArrangement={eIsManualArrangement}
+                setCIsManualArrangement={setEIsManualArrangement}
+                cSecondaryTableIds={eSecondaryTableIds}
+                setCSecondaryTableIds={setESecondaryTableIds}
+                showLargePartyTip={showLargePartyTip}
+              />
             </div>
-          )}
+          </div>
 
           <div className="flex flex-col gap-1">
             <Label htmlFor="eNotes" className="text-xs font-semibold">Ghi chú yêu cầu</Label>
@@ -389,9 +384,18 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
             </div>
             <div className="flex justify-end gap-2 shrink-0">
               <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Đóng</Button>
-              <Button type="submit" size="sm" disabled={!isEditValid || hasUnresolvedCapacityWarning} className="h-9 rounded-lg text-xs gap-1 shadow-xs">
-                <Check className="size-3.5" />
-                Lưu thay đổi
+              <Button type="submit" size="sm" disabled={!isEditValid || hasUnresolvedCapacityWarning || isSubmitting} className="h-9 rounded-lg text-xs gap-1 shadow-xs min-w-[120px]">
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Check className="size-3.5" />
+                    Lưu thay đổi
+                  </>
+                )}
               </Button>
             </div>
           </div>

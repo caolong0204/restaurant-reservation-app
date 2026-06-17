@@ -1,9 +1,11 @@
+import { formatInTimeZone } from 'date-fns-tz'
+
 export const RESTAURANT = {
   name: 'Flambé',
   tagline: 'Ẩm thực Pháp theo mùa',
   address: '23 Gia Ngư, Hà Nội',
   phone: '0927355656',
-  hours: 'Thứ 2 – Chủ Nhật · 10:00 – 22:30',
+  hours: 'Thứ 2 – Thứ 5: 10:00 – 22:00 · Thứ 6 – Chủ Nhật: 10:00 – 22:30',
 }
 
 export const TIME_SLOTS: string[] = (() => {
@@ -27,35 +29,42 @@ function minutesFromTimeString(time: string): number {
 export function isTodayDate(dateIso?: string): boolean {
   if (!dateIso) return false
 
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-
-  return dateIso === `${year}-${month}-${day}`
+  const nowStr = formatInTimeZone(new Date(), 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd')
+  return dateIso === nowStr
 }
 
 export function isPastTimeSlot(time: string, dateIso?: string): boolean {
   if (!isTodayDate(dateIso)) return false
 
-  const now = new Date()
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const timeStr = formatInTimeZone(new Date(), 'Asia/Ho_Chi_Minh', 'HH:mm')
+  const [h, m] = timeStr.split(':').map(Number)
+  const nowMinutes = (h ?? 0) * 60 + (m ?? 0)
   const slotMinutes = minutesFromTimeString(time)
 
   return slotMinutes <= nowMinutes
 }
 
-/** The latest time shown for the operating day (HH:MM). */
-export const RESTAURANT_CLOSE_TIME = '22:30'
-
 /**
- * Last visible booking/calendar slot: 22:00 on weekdays (Mon–Thu), 22:30 on weekends (Fri–Sun).
- * Pass the selected date ISO string (YYYY-MM-DD) to get the correct cutoff.
+ * Closing time: 22:00 on weekdays (Mon–Thu), 22:30 on weekends (Fri–Sun).
  */
-export function getLastBookingTime(dateIso?: string): string {
+export function getClosingTime(dateIso?: string): string {
   if (!dateIso) return '22:00'
   const day = new Date(`${dateIso}T00:00:00`).getDay() // 0=Sun,5=Fri,6=Sat
   return day === 0 || day === 5 || day === 6 ? '22:30' : '22:00'
+}
+
+/**
+ * Last visible booking/calendar slot: 30 minutes before closing time.
+ * Pass the selected date ISO string (YYYY-MM-DD) to get the correct cutoff.
+ */
+export function getLastBookingTime(dateIso?: string): string {
+  const closingTime = getClosingTime(dateIso)
+  const [h, m] = closingTime.split(':').map(Number)
+  const closeMinutes = (h ?? 22) * 60 + (m ?? 0)
+  const lastBookingMinutes = closeMinutes - 30
+  const lastH = Math.floor(lastBookingMinutes / 60)
+  const lastM = lastBookingMinutes % 60
+  return `${String(lastH).padStart(2, '0')}:${String(lastM).padStart(2, '0')}`
 }
 
 /**
@@ -72,15 +81,12 @@ export function getBookingDuration(partySize: number): number {
  * Returns the subset of TIME_SLOTS that fit within operating hours for the given date and party size.
  */
 export function getAvailableTimeSlots(partySize: number, dateIso?: string): string[] {
-  const duration = getBookingDuration(partySize)
   const lastBooking = getLastBookingTime(dateIso)
-  const [closeH, closeM] = RESTAURANT_CLOSE_TIME.split(':').map(Number)
-  const closeMinutes = (closeH ?? 23) * 60 + (closeM ?? 0)
   const [lastH, lastM] = lastBooking.split(':').map(Number)
   const lastBookingMinutes = (lastH ?? 21) * 60 + (lastM ?? 0)
   return TIME_SLOTS.filter((slot) => {
     const slotMinutes = minutesFromTimeString(slot)
-    return slotMinutes <= lastBookingMinutes && slotMinutes + duration <= closeMinutes
+    return slotMinutes <= lastBookingMinutes
   })
 }
 
