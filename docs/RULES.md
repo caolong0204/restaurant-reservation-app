@@ -97,3 +97,10 @@ Notes:
 - `pnpm build` can skip some type validation depending on Next.js config, so `pnpm exec tsc --noEmit` is required.
 - There is currently no `pnpm test` script. Add focused tests for overlap, duration, and capacity rules where risk is highest.
 - For frontend/admin UI changes, smoke test `/` and `/admin` in the browser.
+
+---
+
+## 8. UX, Animation & Layout Stability (Anti-Flicker)
+
+- **Eliminate Layout Shifts (CLS)**: Always design layouts to prevent unexpected shifts (e.g., content moving up/down or left/right when dynamic content, loading states, or error messages load). Use fixed aspect ratios, reserved placeholders, skeleton loaders, or inline indicators instead of disruptive structural insertions.
+- **Anti-Flicker & Loading States**: Do not insert block-level loaders that disrupt the visual layout. Place loading indicators (e.g., spinners) next to the trigger or category icons/labels horizontally to maintain stable visual heights and avoid content flickering.

@@ -24,18 +24,18 @@ export function StepPartySize({
   setCustomPartyValue,
 }: StepPartySizeProps) {
   return (
-    <div className="flex flex-col items-center gap-4 py-2 sm:gap-6 sm:py-4 text-center">
+    <div className="flex flex-col items-center gap-3 py-1 sm:gap-4 sm:py-2 text-center">
       <div className="flex flex-col items-center">
-        <Users className="size-6 text-primary mb-1.5 sm:size-8 sm:mb-2" />
-        <h4 className="font-serif text-lg sm:text-xl font-bold text-foreground">
+        <Users className="size-5 text-primary mb-1 sm:size-7 sm:mb-1.5" />
+        <h4 className="font-serif text-base sm:text-lg font-bold text-foreground">
           Số lượng khách là bao nhiêu?
         </h4>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
           Vui lòng chọn số lượng người tham gia dùng bữa cùng bạn
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 w-full max-w-sm mt-1 sm:mt-2">
+      <div className="grid grid-cols-3 gap-2.5 w-full max-w-sm mt-1">
         {PARTY_SIZES.map((size) => (
           <button
             key={size}
@@ -45,9 +45,9 @@ export function StepPartySize({
               setIsCustomParty(false)
             }}
             className={cn(
-              'flex h-12 items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-200',
+              'flex h-10 sm:h-11 items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-200',
               !isCustomParty && partySize === String(size)
-                ? 'border-primary bg-primary text-primary-foreground scale-105 shadow-md shadow-primary/10'
+                ? 'border-primary bg-primary text-primary-foreground scale-102 shadow-md shadow-primary/10'
                 : 'border-border bg-background hover:border-primary/50 hover:bg-secondary/40'
             )}
           >
@@ -61,9 +61,9 @@ export function StepPartySize({
             setPartySize(customPartyValue)
           }}
           className={cn(
-            'flex h-12 items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-200',
+            'flex h-10 sm:h-11 items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-200',
             isCustomParty
-              ? 'border-primary bg-primary text-primary-foreground scale-105 shadow-md shadow-primary/10'
+              ? 'border-primary bg-primary text-primary-foreground scale-102 shadow-md shadow-primary/10'
               : 'border-border bg-background hover:border-primary/50 hover:bg-secondary/40'
           )}
         >

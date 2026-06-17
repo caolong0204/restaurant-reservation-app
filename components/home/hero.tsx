@@ -3,12 +3,13 @@
 import Image from 'next/image'
 import { Star } from 'lucide-react'
 import { RESTAURANT } from '@/lib/restaurant'
+
 import { RestaurantInfo } from './restaurant-info'
 
 export function Hero() {
   return (
     <section className="relative">
-      <div className="relative h-[50vh] min-h-[390px] md:h-[78vh] md:min-h-[560px] w-full overflow-hidden">
+      <div className="relative h-[45vh] min-h-[360px] md:h-[62vh] md:min-h-[460px] w-full overflow-hidden">
         <Image
           src="/restaurant-hero.png"
           alt="Phòng ăn ấm áp dưới ánh nến tại Flambé"

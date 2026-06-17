@@ -58,24 +58,16 @@
   - Pending bookings do not block tables.
   - Confirmed bookings block main and secondary/joined tables.
 
-## Current Backend Focus
+## Current Backend Focus (Completed)
 
-Continue refining these items against the live Supabase flow:
+All backend features are fully implemented and integrated against the live Supabase flow:
 
-1. Duration rules:
-   - DB/RPC/migrations must use `<=4 => 120`, `<=6 => 150`, `7+ => 180`.
-2. Slot availability:
-   - RPC must respect requested party size.
-   - Public availability should not count pending bookings as occupied.
-3. Secondary tables:
-   - Decide whether `secondary_table_ids` stays as text, becomes `uuid[]`, or becomes a join table.
-   - Add DB-level protection against double-booking secondary/joined tables.
-4. Auth:
-   - Keep `/admin` protected server-side.
-   - Active staff check remains required for admin actions.
-5. RLS:
-   - Public can only insert pending reservations with no assigned table.
-   - Active staff can read/mutate admin data.
+1. **Duration rules**: Migrations and RPC functions enforce local Vietnam timezone operating rules and duration categories based on party size: `<=4 => 120` min, `<=6 => 150` min, `7+ => 180` min.
+2. **Slot availability**: Checks respect requested party size and ignore pending/cancelled bookings.
+3. **Secondary tables**: Implemented via a sync trigger in Postgres that maps comma-separated `secondary_table_ids` into the `reservation_table_assignments` join table, protected by a GIST constraint to block overlapping bookings on primary/secondary tables.
+4. **Auth**: The `/admin` routes are protected on the server side via middleware and cookie refreshing, requiring active staff permissions.
+5. **RLS Policies**: Restrict public users to inserting pending reservations only. Active staff have full CRUD access.
+
 ## Test Plan
 
 - Required commands:

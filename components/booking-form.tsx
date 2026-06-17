@@ -207,8 +207,8 @@ export function BookingForm({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg transition-all duration-300">
       {/* Header with App Theme Color */}
-      <div className="flex items-center justify-between bg-primary px-6 py-5 text-primary-foreground">
-        <h3 className="font-serif text-xl font-bold tracking-tight">Đặt bàn</h3>
+      <div className="flex items-center justify-between bg-primary px-5 py-3.5 text-primary-foreground">
+        <h3 className="font-serif text-lg font-bold tracking-tight">Đặt bàn</h3>
         {step !== 5 && (
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono font-bold tracking-wider opacity-90">
@@ -235,7 +235,7 @@ export function BookingForm({
       />
 
       {/* Main Step Content Container */}
-      <div className="p-4 pt-3 sm:p-6">
+      <div className="p-3.5 pt-2.5 sm:p-5">
         {/* Step rendering orchestrator */}
         {step === 1 && (
           <StepPartySize
@@ -309,23 +309,29 @@ export function BookingForm({
 
         {/* Navigation Buttons (Footer) */}
         {step !== 5 && (
-          <div className="mt-6 flex items-center justify-between pt-4 border-t border-border">
-            <button
-              type="button"
-              onClick={() => {
-                if (step > 1) {
-                  setStep((prev) => (prev - 1) as 1 | 2 | 3 | 4)
-                }
-              }}
-              disabled={step === 1}
-              className={cn(
-                'flex items-center gap-1 text-sm font-semibold transition-colors',
-                step === 1 ? 'opacity-40 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <ChevronLeft className="size-4" />
-              <span>Quay lại</span>
-            </button>
+          <div className="mt-4 border-t border-border pt-3">
+            {step === 4 && (
+              <p className="text-[11px] sm:text-xs text-rose-600 font-semibold text-left mb-3 select-none leading-relaxed">
+                * Vui lòng nhận bàn theo sự sắp xếp và tình trạng có sẵn tại thực tế.
+              </p>
+            )}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  if (step > 1) {
+                    setStep((prev) => (prev - 1) as 1 | 2 | 3 | 4)
+                  }
+                }}
+                disabled={step === 1}
+                className={cn(
+                  'flex items-center gap-1 text-sm font-semibold transition-colors',
+                  step === 1 ? 'opacity-40 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <ChevronLeft className="size-4" />
+                <span>Quay lại</span>
+              </button>
 
             {step < 4 ? (
               <button
@@ -367,6 +373,7 @@ export function BookingForm({
                 <span>{isSubmitting ? 'Đang gửi...' : 'Xác nhận đặt bàn'}</span>
               </button>
             )}
+            </div>
           </div>
         )}
       </div>

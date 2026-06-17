@@ -31,7 +31,7 @@ export function Reserve() {
   })
 
   return (
-    <section id="reserve" className="scroll-mt-20 bg-secondary/40 py-10 lg:py-20">
+    <section id="reserve" className="scroll-mt-20 bg-secondary/40 py-6 lg:py-10">
       <div className="mx-auto px-3 sm:px-4 max-w-6xl">
         {step === 5 ? (
           <div className="mx-auto max-w-2xl w-full">
@@ -64,7 +64,7 @@ export function Reserve() {
             />
           </div>
         ) : (
-          <div className="grid gap-12 lg:grid-cols-12 lg:items-start">
+          <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
             {/* Left Column: Interactive Booking Wizard */}
             <div className="lg:col-span-7 w-full">
               <BookingForm

@@ -18,7 +18,7 @@ function toISO(date: Date) {
 
 export function SummaryBar({ partySize, date, time }: SummaryBarProps) {
   return (
-    <div className="mt-6 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20 p-3 text-primary text-xs font-semibold shadow-inner">
+    <div className="mt-4 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20 p-3 text-primary text-xs font-semibold shadow-inner">
       <div className="flex items-center gap-1">
         <Users className="size-3.5" />
         <span>{partySize} khách</span>

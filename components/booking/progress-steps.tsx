@@ -23,13 +23,13 @@ export function ProgressSteps({
   if (step === 5) return null
 
   return (
-    <div className="grid grid-cols-4 gap-2 bg-secondary/35 p-4 border-b border-border">
+    <div className="grid grid-cols-4 gap-2 bg-secondary/35 p-2 sm:p-2.5 border-b border-border">
       {/* Step 1: Party Size */}
       <button
         type="button"
         onClick={() => handleStepClick(1)}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-3 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
           step === 1
             ? 'border-primary ring-2 ring-primary/20'
             : 'border-border opacity-70 hover:opacity-100'
@@ -50,7 +50,7 @@ export function ProgressSteps({
         onClick={() => handleStepClick(2)}
         disabled={!isPartySizeSelected}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-3 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
           step === 2
             ? 'border-primary ring-2 ring-primary/20'
             : 'border-border opacity-70 hover:opacity-100',
@@ -72,7 +72,7 @@ export function ProgressSteps({
         onClick={() => handleStepClick(3)}
         disabled={!isDateSelected}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-3 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
           step === 3
             ? 'border-primary ring-2 ring-primary/20'
             : 'border-border opacity-70 hover:opacity-100',
@@ -94,7 +94,7 @@ export function ProgressSteps({
         onClick={() => handleStepClick(4)}
         disabled={!isTimeSelected}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-3 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
           step === 4
             ? 'border-primary ring-2 ring-primary/20'
             : 'border-border opacity-70 hover:opacity-100',

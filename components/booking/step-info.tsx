@@ -12,7 +12,6 @@ import {
 import { OCCASIONS } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
 import {
-  Info,
   MessageSquare,
   PartyPopper,
   Phone,
@@ -46,8 +45,8 @@ export function StepInfo({
 
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5">
-      <div className="flex items-center gap-2 pb-1.5 sm:pb-2 border-b border-border">
+    <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="flex items-center gap-2">
         <User className="size-4 sm:size-5 text-primary" />
         <div>
           <h4 className="font-serif text-base sm:text-lg font-bold text-foreground">
@@ -59,7 +58,7 @@ export function StepInfo({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="name" className="flex items-center gap-1">
             <User className="size-3 text-muted-foreground" /> Họ và tên
@@ -121,20 +120,13 @@ export function StepInfo({
           id="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          rows={3}
+          rows={2}
           placeholder="Dị ứng thực phẩm, sở thích chỗ ngồi, chuẩn bị bánh kem chúc mừng..."
           className="resize-none rounded-lg border border-input bg-background px-3 py-2 text-[17px] md:text-[15px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 transition-all placeholder:text-muted-foreground/50"
         />
       </div>
 
-      <div className="flex flex-col gap-1.5 justify-center rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-xs text-primary font-medium mt-1">
-        <div className="flex gap-2">
-          <Info className="size-4 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            Vui lòng nhận bàn theo sự sắp xếp và tình trạng có sẵn tại thực tế.
-          </p>
-        </div>
-      </div>
+
     </div>
   )
 }

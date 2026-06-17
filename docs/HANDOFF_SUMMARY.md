@@ -59,14 +59,13 @@
 - Supabase migrations exist under `supabase/migrations`.
 - Public booking, admin booking actions, admin login, and route protection now work directly against Supabase.
 
-Keep syncing:
-
-- Duration rules in SQL/RPC.
-- Slot availability by party size.
-- Main + secondary table overlap protection.
-- DB-level constraints/indexes for double-book prevention.
-- RLS policies and staff authorization.
-- Public insert policy for pending/no-table reservations only.
+Fully synced and verified backend features:
+- Duration rules implemented in SQL/RPC.
+- Slot availability by party size fully functional.
+- Main + secondary table overlap protection handled via Postgres trigger and assignments table.
+- DB-level GIST exclusion constraints implemented to prevent double booking.
+- RLS policies and staff authorization rules deployed.
+- Public insert policies restrict anonymous inputs to pending reservations without direct table assignment.
 
 ## Key Files
 
