@@ -1,36 +1,33 @@
 'use client'
 
-import { memo, useMemo, useState, type CSSProperties } from 'react'
-import {
-  CalendarDays,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  X,
-} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
 
+import { CalendarReservationDetails } from '@/components/admin/calendar-reservation-details'
+import { TimelineRow } from '@/components/admin/timeline-row'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
+import { cn } from '@/lib/utils'
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
-import { formatDate, formatDateLong, formatTime, getLastBookingTime } from '@/lib/restaurant'
 import {
-  getBookingDurationMinutes,
-  type Reservation,
-  type RestaurantTable,
-} from '@/lib/reservation-types'
-import { cn } from '@/lib/utils'
-
-const HALF_SLOT_WIDTH = 52
+  addDaysToIso,
+  buildTimelineMetrics,
+  createHalfHourSlots,
+  formatTimelineHeader,
+  getHeaderCellStyle,
+  getSlotAvailability,
+  isoFromDate,
+} from '@/lib/admin-calendar'
+import { formatDate, formatDateLong } from '@/lib/restaurant'
+import type { Reservation, RestaurantTable } from '@/lib/reservation-types'
 
 interface DayCalendarViewProps {
   reservations: Reservation[]
@@ -41,216 +38,6 @@ interface DayCalendarViewProps {
   onCancel: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
 }
-
-function isoFromDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function addDays(iso: string, days: number): string {
-  const date = new Date(`${iso}T00:00:00`)
-  date.setDate(date.getDate() + days)
-  return isoFromDate(date)
-}
-
-function minutesFromTime(time: string): number {
-  const [hours = '0', minutes = '0'] = time.split(':')
-  return Number(hours) * 60 + Number(minutes)
-}
-
-function timeFromMinutes(totalMinutes: number): string {
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-}
-
-function createHalfHourSlots(selectedDate: string): string[] {
-  const slots: string[] = []
-  const start = minutesFromTime('10:00')
-  const end = minutesFromTime(getLastBookingTime(selectedDate))
-
-  for (let minutes = start; minutes <= end; minutes += 30) {
-    slots.push(timeFromMinutes(minutes))
-  }
-
-  return slots
-}
-
-function isFullHourSlot(slot: string): boolean {
-  return minutesFromTime(slot) % 60 === 0
-}
-
-function getHeaderCellStyle(slot: string, slots: string[]): CSSProperties {
-  const startIndex = slots.indexOf(slot)
-  return {
-    gridColumn: `${startIndex + 1} / span 1`,
-    position: 'relative',
-    overflow: 'visible',
-  }
-}
-
-function statusText(status: Reservation['status']): string {
-  if (status === 'confirmed') return 'Đã xác nhận'
-  if (status === 'cancelled') return 'Đã hủy'
-  return 'Chờ duyệt'
-}
-
-function durationLabel(minutes: number): string {
-  return `${minutes / 60}h`
-}
-
-function getBarClass(reservation: Reservation): string {
-  if (reservation.status === 'pending') {
-    return 'border-amber-700/30 bg-amber-500 text-amber-950'
-  }
-
-  return 'border-teal-700/30 bg-teal-600 text-white'
-}
-
-function getSlotAvailability(
-  slot: string,
-  tableIds: string[],
-  reservations: Reservation[],
-): number {
-  const slotStart = minutesFromTime(slot)
-  const occupiedTables = new Set<string>()
-
-  reservations.forEach((reservation) => {
-    if (!reservation.tableId || reservation.status === 'cancelled') return
-
-    const reservationStart = minutesFromTime(reservation.time)
-    const duration = getBookingDurationMinutes(reservation.partySize)
-    const isOccupied = slotStart >= reservationStart && slotStart < reservationStart + duration
-
-    if (isOccupied) {
-      occupiedTables.add(reservation.tableId)
-      if (reservation.secondaryTableIds) {
-        reservation.secondaryTableIds.forEach((id) => occupiedTables.add(id))
-      }
-    }
-  })
-
-  return tableIds.length - occupiedTables.size
-}
-
-function getReservationGridStyle(
-  reservation: Reservation,
-  slots: string[],
-): CSSProperties | null {
-  const startMinutes = minutesFromTime(reservation.time)
-  const duration = getBookingDurationMinutes(reservation.partySize)
-  const endMinutes = startMinutes + duration
-
-  // Round start DOWN to nearest 30 minutes
-  const roundedStart = Math.floor(startMinutes / 30) * 30
-  // Round end UP to nearest 30 minutes
-  const roundedEnd = Math.ceil(endMinutes / 30) * 30
-
-  const startSlotStr = timeFromMinutes(roundedStart)
-  const endSlotStr = timeFromMinutes(roundedEnd)
-
-  const startIndex = slots.indexOf(startSlotStr)
-  if (startIndex < 0) return null
-
-  const endIndex = slots.indexOf(endSlotStr)
-  const safeEndIndex = endIndex < 0 ? slots.length : endIndex
-
-  const leftOffsetMinutes = startMinutes - roundedStart
-  const marginLeft = (leftOffsetMinutes / 30) * 52
-
-  const rightOffsetMinutes = roundedEnd - endMinutes
-  const marginRight = (rightOffsetMinutes / 30) * 52
-
-  return {
-    gridColumn: `${startIndex + 1} / ${safeEndIndex + 1}`,
-    gridRow: '1',
-    marginLeft: `${marginLeft}px`,
-    marginRight: `${marginRight}px`,
-  }
-}
-
-const TimelineRow = memo(function TimelineRow({
-  table,
-  tableReservations,
-  slots,
-  gridTemplateColumns,
-  timelineWidth,
-  onSelectReservation
-}: {
-  table: RestaurantTable
-  tableReservations: Reservation[]
-  slots: string[]
-  gridTemplateColumns: string
-  timelineWidth: number
-  onSelectReservation: (reservation: Reservation) => void
-}) {
-  return (
-    <TableRow className="border-border hover:bg-transparent">
-      <TableCell className="sticky left-0 z-20 h-16 border-r border-border bg-card font-bold text-foreground">
-        <div className="leading-none">
-          {table.code}({table.floor === 'Tầng 1' ? 'T1' : 'T2'})
-        </div>
-        <div className="mt-1 text-xs font-medium leading-none text-muted-foreground">
-          {table.capacity} ghế
-        </div>
-      </TableCell>
-      <TableCell className="h-16 p-0">
-        <div
-          className="grid h-16 bg-background"
-          style={{ gridTemplateColumns, width: timelineWidth }}
-        >
-          {slots.map((slot, index) => (
-            <div
-              key={`${table.id}-${slot}`}
-              style={{ gridColumn: index + 1 }}
-              className={cn(
-                'row-start-1 border-r',
-                ((minutesFromTime(slot) + 30) % 60 === 0) ? 'border-border/75' : 'border-border/25',
-              )}
-            />
-          ))}
-          {tableReservations.map((reservation) => {
-            const style = getReservationGridStyle(reservation, slots)
-            if (!style) return null
-            const isSecondary = reservation.tableId !== table.id
-
-            return (
-              <button
-                key={reservation.id}
-                type="button"
-                onClick={() => onSelectReservation(reservation)}
-                style={style}
-                className={cn(
-                  'z-10 mx-0.5 my-3 flex h-10 items-center justify-between gap-2 rounded-sm border px-2 text-left text-xs font-bold shadow-sm ring-1 ring-black/5 transition-transform hover:-translate-y-0.5',
-                  getBarClass(reservation),
-                  isSecondary && 'opacity-65 border-dashed border-primary bg-teal-700/35 text-white/90',
-                )}
-                title={`${reservation.name} - ${statusText(reservation.status)}${isSecondary ? ' (Bàn phụ ghép thêm)' : ''}`}
-              >
-                <span className="min-w-0 truncate">
-                  {isSecondary ? `[Ghép] ${reservation.name}` : reservation.name}
-                  {reservation.phone && (
-                    <span className="opacity-75 ml-1 font-medium">({reservation.phone.slice(-3)})</span>
-                  )}
-                </span>
-                <span className="inline-flex shrink-0 items-center gap-1 rounded bg-black/10 px-1 py-0.5 text-[11px] leading-none">
-                  <span className="inline-flex items-center gap-0.5">
-                    <Users className="size-3" />
-                    {reservation.partySize}
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span>{durationLabel(getBookingDurationMinutes(reservation.partySize))}</span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </TableCell>
-    </TableRow>
-  )
-})
 
 export function DayCalendarView({
   reservations,
@@ -281,15 +68,20 @@ export function DayCalendarView({
     (reservation) => reservation.tableId && reservation.status !== 'cancelled',
   )
   const tableIds = activeTables.map((table) => table.id)
-  const occupiedSlots = slots.reduce((sum, slot) => {
-    return sum + activeTables.length - getSlotAvailability(slot, tableIds, assignedReservations)
-  }, 0)
+  const occupiedSlots = slots.reduce(
+    (sum, slot) => sum + activeTables.length - getSlotAvailability(slot, tableIds, assignedReservations),
+    0,
+  )
   const totalSlots = activeTables.length * slots.length
   const availableSlots = totalSlots - occupiedSlots
-  // Only full-hour slots get a time label; half-hour slots just show availability
-  const labelledSlots = useMemo(() => slots.filter(isFullHourSlot), [slots])
-  const gridTemplateColumns = `repeat(${slots.length}, ${HALF_SLOT_WIDTH}px)`
-  const timelineWidth = slots.length * HALF_SLOT_WIDTH
+  const unassignedCount = dayReservations.filter(
+    (reservation) => !reservation.tableId && reservation.status !== 'cancelled',
+  ).length
+  const { labelledSlots, gridTemplateColumns, timelineWidth } = buildTimelineMetrics(
+    selectedDate,
+    activeTables.length,
+    slots,
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -319,7 +111,7 @@ export function DayCalendarView({
               type="button"
               variant="outline"
               size="icon-lg"
-              onClick={() => onDateChange(addDays(selectedDate, -1))}
+              onClick={() => onDateChange(addDaysToIso(selectedDate, -1))}
             >
               <ChevronLeft className="size-4" />
             </Button>
@@ -328,14 +120,14 @@ export function DayCalendarView({
                 render={
                   <Button
                     variant="outline"
-                    className="h-10 w-48 rounded-lg bg-background text-sm font-semibold justify-start pl-3 text-left border shadow-xs"
+                    className="h-10 w-48 justify-start rounded-lg border bg-background pl-3 text-left text-sm font-semibold shadow-xs"
                   />
                 }
               >
-                <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
+                <CalendarDays className="mr-2 size-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">{formatDate(selectedDate)}</span>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="end">
+              <PopoverContent className="animate-in fade-in-50 slide-in-from-top-1 w-auto border-none p-0 duration-150" align="end">
                 <RestaurantCalendar
                   selected={new Date(`${selectedDate}T00:00:00`)}
                   onSelect={(date) => {
@@ -354,7 +146,7 @@ export function DayCalendarView({
               type="button"
               variant="outline"
               size="icon-lg"
-              onClick={() => onDateChange(addDays(selectedDate, 1))}
+              onClick={() => onDateChange(addDaysToIso(selectedDate, 1))}
             >
               <ChevronRight className="size-4" />
             </Button>
@@ -372,7 +164,7 @@ export function DayCalendarView({
             {formatDateLong(selectedDate)}
           </Badge>
           <Badge variant="outline" className="rounded-md bg-amber-100 text-amber-950">
-            Chưa gán bàn: {dayReservations.filter((reservation) => !reservation.tableId && reservation.status !== 'cancelled').length}
+            Chưa gán bàn: {unassignedCount}
           </Badge>
         </div>
       </div>
@@ -394,7 +186,7 @@ export function DayCalendarView({
               </TableHead>
             </TableRow>
             <TableRow className="border-border bg-card hover:bg-card">
-              <TableHead className="sticky left-0 z-30 w-28 min-w-28 border-r border-border bg-card font-bold text-foreground">
+              <TableHead className="sticky left-0 z-30 w-28 min-w-28 border-r border-border bg-card text-center font-bold text-foreground">
                 Bàn
               </TableHead>
               <TableHead className="h-10 p-0">
@@ -402,21 +194,23 @@ export function DayCalendarView({
                   className="grid h-10 bg-card"
                   style={{ gridTemplateColumns, width: timelineWidth }}
                 >
-                  {labelledSlots.map((slot) => (
+                  {labelledSlots.map((slot, index) => (
                     <div
                       key={slot}
                       style={getHeaderCellStyle(slot, slots)}
                       className="flex items-center"
                     >
-                      <span className="whitespace-nowrap font-mono text-[10px] font-bold text-foreground">
-                        {formatTime(slot)}
+                      <span className={cn(
+                        "whitespace-nowrap font-mono text-[10px] font-bold text-foreground",
+                        index > 0 && "-translate-x-1/2"
+                      )}>
+                        {formatTimelineHeader(slot)}
                       </span>
                     </div>
                   ))}
                 </div>
               </TableHead>
             </TableRow>
-
           </TableHeader>
           <TableBody>
             {activeTables.map((table) => {
@@ -443,158 +237,22 @@ export function DayCalendarView({
       </div>
 
       {selectedReservation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in scale-in duration-200">
-            <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
-            <div className="flex items-start justify-between border-b border-border p-5">
-              <div>
-                <h3 className="font-serif text-lg font-bold text-foreground">
-                  Chi tiết đặt bàn
-                </h3>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Mã đặt bàn: {selectedReservation.id}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedReservation(null)}
-                className="text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <div className="max-h-[58dvh] overflow-y-auto p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Tên khách hàng</span>
-                  <span className="font-serif text-base font-bold text-foreground">{selectedReservation.name}</span>
-                </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Trạng thái</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'mt-0.5 rounded-md font-semibold text-xs',
-                      selectedReservation.status === 'confirmed' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700' :
-                      selectedReservation.status === 'cancelled' ? 'border-rose-500/30 bg-rose-500/10 text-rose-700' :
-                      'border-amber-500/30 bg-amber-500/10 text-amber-700'
-                    )}
-                  >
-                    {statusText(selectedReservation.status)}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Số điện thoại</span>
-                  <span className="font-mono text-foreground">{selectedReservation.phone}</span>
-                </div>
-
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Ngày đặt bàn</span>
-                  <span className="text-foreground">{selectedReservation.date.split('-').reverse().join('/')}</span>
-                </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Giờ đặt bàn</span>
-                  <span className="text-foreground">{selectedReservation.time}</span>
-                </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Tạo lúc</span>
-                  <span className="text-foreground">{new Date(selectedReservation.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Số lượng khách</span>
-                  <span className="font-bold text-foreground">{selectedReservation.partySize} người</span>
-                </div>
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Bàn chỉ định</span>
-                  <span className="font-bold text-primary">
-                    {selectedReservation.table ? (
-                      <>
-                        {selectedReservation.table.code}
-                        {selectedReservation.secondaryTables && selectedReservation.secondaryTables.length > 0 && (
-                          <span className="text-xs font-normal text-muted-foreground ml-1">
-                            (ghép: {selectedReservation.secondaryTables.map((t) => t.code).join(', ')})
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      'Chưa gán bàn'
-                    )}
-                  </span>
-                </div>
-
-                <div>
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Dịp đặc biệt</span>
-                  <span className="text-foreground">{selectedReservation.occasion || '-'}</span>
-                </div>
-              </div>
-
-              {selectedReservation.notes && (
-                <div className="rounded-lg bg-secondary/35 p-3 border border-border/40">
-                  <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Ghi chú từ khách</span>
-                  <p className="text-sm italic text-muted-foreground/90 font-serif">“{selectedReservation.notes}”</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap justify-between items-center gap-2 border-t border-border p-4 bg-muted/20">
-              <div>
-                {selectedReservation.status !== 'cancelled' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      onCancel(selectedReservation)
-                      setSelectedReservation(null)
-                    }}
-                    className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
-                  >
-                    <X className="size-3.5" />
-                    Hủy bàn
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {selectedReservation.status !== 'confirmed' && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => {
-                      onConfirm(selectedReservation)
-                      setSelectedReservation(null)
-                    }}
-                    className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
-                  >
-                    <Check className="size-3.5" />
-                    Gán bàn
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    onEdit(selectedReservation)
-                    setSelectedReservation(null)
-                  }}
-                >
-                  Sửa
-                </Button>
-
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedReservation(null)}
-                >
-                  Đóng
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CalendarReservationDetails
+          reservation={selectedReservation}
+          onClose={() => setSelectedReservation(null)}
+          onConfirm={(reservation) => {
+            onConfirm(reservation)
+            setSelectedReservation(null)
+          }}
+          onCancel={(reservation) => {
+            onCancel(reservation)
+            setSelectedReservation(null)
+          }}
+          onEdit={(reservation) => {
+            onEdit(reservation)
+            setSelectedReservation(null)
+          }}
+        />
       )}
     </div>
   )

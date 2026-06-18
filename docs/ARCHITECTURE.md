@@ -23,6 +23,8 @@ The app currently has:
 | Icons | Lucide React |
 | Toasts | Sonner |
 | Date picker | React Day Picker |
+| Unit tests | Vitest |
+| Browser E2E / smoke tests | Playwright |
 | Backend target | Supabase Postgres + Supabase Auth |
 | Package manager | pnpm |
 
@@ -45,7 +47,7 @@ Public BookingForm
 
 AdminDashboard
   -> useReservations()
-  -> reservation Server Actions
+  -> reservation Server Actions (compat entrypoint)
   -> Supabase
   -> local provider state upsert
 ```
@@ -114,7 +116,15 @@ Operating cutoff:
 
 | File | Responsibility |
 | --- | --- |
-| `lib/reservation-actions.ts` | Server Actions for public/admin operations |
+| `lib/reservation-actions.ts` | Thin compatibility entrypoint for Server Actions used by current UI |
+| `lib/reservations/queries.ts` | Reservation reads, snapshot loading, RPC availability queries |
+| `lib/reservations/mutations.ts` | Reservation create/edit/confirm/cancel/delete mutations |
+| `lib/reservations/validators.ts` | Reservation input and table-capacity validation |
+| `lib/reservations/mappers.ts` | DB/RPC row to app model mapping |
+| `lib/auth/guards.ts` | Shared staff access guard for admin-facing Server Actions |
+| `lib/hooks/use-admin-reservation-filters.ts` | Admin filter state and derived reservation list |
+| `lib/hooks/use-admin-reservation-actions.ts` | Admin modal state and reservation action orchestration |
+| `lib/admin-calendar.ts` | Timeline/grid math for the admin day calendar |
 | `lib/restaurant.ts` | Restaurant constants, slots, date/time helpers |
 | `lib/supabase/server.ts` | Cookie-based Supabase SSR client |
 | `lib/supabase/client.ts` | Browser Supabase client |
@@ -123,24 +133,31 @@ Operating cutoff:
 
 ## Known Gaps
 
-- No automated unit/e2e tests yet.
+- Unit tests hiện đã có cho booking time rules và admin calendar timeline math, nhưng chưa có test cho server actions hoặc UI integration.
+- Playwright hiện cover smoke cho `/`, `/admin` redirect, `/admin/login`, và public booking happy path. Live admin login flow cũng đã có test nhưng chỉ chạy khi set `PLAYWRIGHT_ADMIN_EMAIL` và `PLAYWRIGHT_ADMIN_PASSWORD`.
+- Chưa có Playwright flow cho confirm/gán bàn, edit reservation, hoặc conflict handling trong admin.
 - No email or payment flow.
 - No report/export flow yet.
 - No persisted audit trail for manual capacity override.
+- Chưa có test riêng cho `ReservationProvider`, admin filter hooks, hoặc Supabase-backed server actions.
 
 ## Required Verification
 
 Before finishing changes:
 
 ```bash
+pnpm test
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm build
+pnpm test:e2e
 ```
 
 For rendered UI changes, smoke test:
 
 - `/` public booking form renders.
+- Public booking happy path đi đến success state.
 - `/admin` list renders.
 - `/admin` calendar renders.
+- `/admin/login` login form renders và live login flow pass khi có staff credentials.
 - Confirm/edit capacity guard works for short-capacity bookings.

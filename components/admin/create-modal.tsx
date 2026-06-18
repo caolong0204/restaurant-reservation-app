@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CalendarDays, Check, Clock, Info, Loader2, Sparkles, X } from 'lucide-react'
+import { CalendarDays, Check, Clock, Loader2, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -79,15 +79,18 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
   const totalCapacity =
     (mainTable?.capacity ?? 0) + secondaryTables.reduce((sum, table) => sum + table.capacity, 0)
   const isCapacityInsufficient = Boolean(cTableId && totalCapacity < partySize)
-  const selectedTables = [mainTable, ...secondaryTables].filter(Boolean)
+  const selectedTables = [mainTable, ...secondaryTables].filter(
+    (table): table is RestaurantTable => Boolean(table),
+  )
   const isCapacityExcessive = Boolean(
     cTableId &&
       selectedTables.length > 1 &&
       selectedTables.some((table) => totalCapacity - table.capacity >= partySize)
   )
   const hasUnresolvedCapacityWarning = Boolean(isCapacityInsufficient && !cIsManualArrangement)
-  const showLargePartyTip =
-    Boolean(cTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && cSecondaryTableIds.length === 0)
+  const showLargePartyTip = Boolean(
+    cTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && cSecondaryTableIds.length === 0,
+  )
 
   const isCreateValid = Boolean(
     cName.trim() &&
@@ -429,18 +432,17 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
               </div>
             )}
 
-            <CapacityWarningAlert
-              cTableId={cTableId}
-              totalCapacity={totalCapacity}
-              partySize={partySize}
-              isCapacityInsufficient={isCapacityInsufficient}
-              isCapacityExcessive={isCapacityExcessive}
-              cIsManualArrangement={cIsManualArrangement}
-              setCIsManualArrangement={setCIsManualArrangement}
-              cSecondaryTableIds={cSecondaryTableIds}
-              setCSecondaryTableIds={setCSecondaryTableIds}
-              showLargePartyTip={showLargePartyTip}
-            />
+              <CapacityWarningAlert
+                cTableId={cTableId}
+                totalCapacity={totalCapacity}
+                partySize={partySize}
+                isCapacityInsufficient={isCapacityInsufficient}
+                isCapacityExcessive={isCapacityExcessive}
+                cIsManualArrangement={cIsManualArrangement}
+                setCIsManualArrangement={setCIsManualArrangement}
+                setCSecondaryTableIds={setCSecondaryTableIds}
+                showLargePartyTip={showLargePartyTip}
+              />
           </div>
 
           <div className="flex flex-col gap-1">

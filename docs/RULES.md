@@ -24,6 +24,9 @@ This document defines the rules, styling guidelines, and architectural standards
 - Shared reusable components belong in `components/` or `components/ui/`.
 - Shared types, Server Actions, data adapters, schemas, and helper libraries belong in `lib/`.
 - Reused booking domain types must live in `lib/reservation-types.ts`.
+- Follow `docs/PROJECT_STRUCTURE.md` as the source of truth for file placement and architectural boundaries.
+- Use `docs/STRUCTURE_AUDIT.md` to understand which current files are transitional and which refactors should happen first.
+- Prefer structure decisions based on official Next.js App Router and Supabase SSR guidance over copying the current codebase mechanically.
 - Keep filenames consistent with the existing codebase:
   - Components: kebab-case or current local convention.
   - Helpers: kebab-case or current local convention.
@@ -33,11 +36,12 @@ This document defines the rules, styling guidelines, and architectural standards
 
 ## 3. State, Data Flow, And Mutability
 
-- Admin and public booking flows use Server Actions in `lib/reservation-actions.ts` backed by Supabase.
+- Admin and public booking flows use Server Actions backed by Supabase. The stable import surface is currently `lib/reservation-actions.ts`, while the implementation lives in `lib/reservations/*`.
 - `ReservationProvider` is the client UI state bridge. It should call Server Actions and then sync local UI state from their returned values.
 - Do not reintroduce localStorage or client-only persistence for core reservation data.
 - Do not mutate reservation arrays or table arrays directly. Use immutable updates and preserve IDs, timestamps, and status transitions.
 - Keep frontend booking rules aligned with the active Supabase schema and RPC behavior.
+- Shared staff access checks belong in `lib/auth/guards.ts`, not inside reservation mutations or UI components.
 
 ---
 
@@ -87,15 +91,19 @@ This document defines the rules, styling guidelines, and architectural standards
 For code changes, run these before handoff unless the user explicitly asks to skip:
 
 ```bash
+pnpm test
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm build
+pnpm test:e2e
 ```
 
 Notes:
 
 - `pnpm build` can skip some type validation depending on Next.js config, so `pnpm exec tsc --noEmit` is required.
-- There is currently no `pnpm test` script. Add focused tests for overlap, duration, and capacity rules where risk is highest.
+- `pnpm test` currently covers focused unit tests for restaurant time rules and admin calendar timeline math. Expand it next for overlap, provider state sync, and Supabase-backed action behavior.
+- `pnpm test:e2e` runs Playwright against a dedicated production-mode Next server on `http://127.0.0.1:3100`.
+- Current E2E coverage includes smoke checks for `/`, `/admin` redirect, `/admin/login`, plus the public booking happy path. Live admin login is gated by `PLAYWRIGHT_ADMIN_EMAIL` and `PLAYWRIGHT_ADMIN_PASSWORD`.
 - For frontend/admin UI changes, smoke test `/` and `/admin` in the browser.
 
 ---

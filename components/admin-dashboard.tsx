@@ -1,57 +1,23 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import Link from 'next/link'
-import {
-  Calendar,
-  CalendarClock,
-  CalendarDays,
-  Check,
-  Clock,
-  LogOut,
-  Plus,
-  RefreshCcw,
-  Search,
-  UtensilsCrossed,
-  Users,
-} from 'lucide-react'
-import { toast } from 'sonner'
+import { CalendarDays, CalendarClock, Plus, RefreshCcw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
+import { AdminDashboardHeader } from '@/components/admin/admin-dashboard-header'
+import { AdminReservationFilters } from '@/components/admin/admin-reservation-filters'
+import { AdminStatsBar } from '@/components/admin/admin-stats-bar'
 import { AssignTableModal } from '@/components/admin/assign-table-modal'
+import { ConfirmModal } from '@/components/admin/confirm-modal'
 import { CreateModal } from '@/components/admin/create-modal'
 import { DayCalendarView } from '@/components/admin/day-calendar-view'
 import { EditModal } from '@/components/admin/edit-modal'
 import { ReservationTable } from '@/components/admin/reservation-table'
-import { AdminStatsBar } from '@/components/admin/admin-stats-bar'
-import { ConfirmModal } from '@/components/admin/confirm-modal'
-import {
-  useReservations,
-  type Reservation,
-  type ReservationInput,
-  type ReservationStatus,
-  type RestaurantTable,
-} from '@/components/reservation-provider'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
-import { signOutAdmin } from '@/lib/auth-actions'
-import { RESTAURANT, formatDate } from '@/lib/restaurant'
-import { useDebounce } from '@/lib/hooks/use-debounce'
-import { cn } from '@/lib/utils'
+import { useReservations, type ReservationStatus } from '@/components/reservation-provider'
+import { useAdminReservationActions } from '@/lib/hooks/use-admin-reservation-actions'
+import { useAdminReservationFilters, type AdminFilter } from '@/lib/hooks/use-admin-reservation-filters'
 
-type Filter = 'all' | ReservationStatus
-type AdminView = 'reservations' | 'calendar'
-
-function todayISO(): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-const FILTERS: Array<{ value: Filter; label: string }> = [
+const FILTERS: Array<{ value: AdminFilter; label: string }> = [
   { value: 'all', label: 'Tất cả' },
   { value: 'pending', label: 'Chờ duyệt' },
   { value: 'confirmed', label: 'Đã xác nhận' },
@@ -72,206 +38,64 @@ export function AdminDashboard() {
     getAvailableTables,
   } = useReservations()
 
-  const [view, setView] = useState<AdminView>('reservations')
-  const [filter, setFilter] = useState<Filter>('all')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [dateFilter, setDateFilter] = useState('')
-  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
-  const [calendarDate, setCalendarDate] = useState(todayISO())
+  const {
+    view,
+    setView,
+    filter,
+    setFilter,
+    searchTerm,
+    setSearchTerm,
+    dateFilter,
+    setDateFilter,
+    isDateFilterOpen,
+    setIsDateFilterOpen,
+    calendarDate,
+    setCalendarDate,
+    counts,
+    filtered,
+  } = useAdminReservationFilters(reservations)
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
-
-  const [assigningReservation, setAssigningReservation] = useState<Reservation | null>(null)
-  const [availableTables, setAvailableTables] = useState<RestaurantTable[]>([])
-  const [isLoadingTables, setIsLoadingTables] = useState(false)
-  const [cancelingReservation, setCancelingReservation] = useState<Reservation | null>(null)
-
-  // Apply debounce to searchTerm (300ms delay) to prevent excessive filtering
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
-
-  const counts = useMemo(() => {
-    return {
-      all: reservations.length,
-      pending: reservations.filter((reservation) => reservation.status === 'pending').length,
-      confirmed: reservations.filter((reservation) => reservation.status === 'confirmed').length,
-      cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
-    }
-  }, [reservations])
-
-  const filtered = useMemo(() => {
-    const normalizedSearch = debouncedSearchTerm.trim().toLowerCase()
-
-    return reservations
-      .filter((reservation) => {
-        if (filter !== 'all' && reservation.status !== filter) return false
-        if (dateFilter && reservation.date !== dateFilter) return false
-        if (!normalizedSearch) return true
-
-        return (
-          reservation.name.toLowerCase().includes(normalizedSearch) ||
-          reservation.phone.toLowerCase().includes(normalizedSearch) ||
-          (reservation.table?.code.toLowerCase() ?? '').includes(normalizedSearch)
-        )
-      })
-      .sort((a, b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date)
-        if (a.time !== b.time) return a.time.localeCompare(b.time)
-        return a.createdAt - b.createdAt
-      })
-  }, [reservations, filter, debouncedSearchTerm, dateFilter])
-
-  async function openAssignModal(reservation: Reservation) {
-    setAssigningReservation(reservation)
-    setAvailableTables([])
-    setIsLoadingTables(true)
-
-    const result = await getAvailableTables(
-      reservation.date,
-      reservation.time,
-      reservation.partySize,
-      reservation.id,
-    )
-
-    if (result.ok) {
-      setAvailableTables(result.data)
-    } else {
-      toast.error('Không tải được bàn trống', {
-        description: result.error,
-      })
-    }
-
-    setIsLoadingTables(false)
-  }
-
-  async function handleAssignConfirm(
-    tableId: string,
-    secondaryTableIds: string[] = [],
-    manualArrangement = false,
-  ) {
-    if (!assigningReservation) return
-
-    const result = await confirmReservation(
-      assigningReservation.id,
-      tableId,
-      secondaryTableIds,
-      manualArrangement,
-    )
-    if (result.ok) {
-      const mainCode = result.data.table?.code ?? ''
-      const secCodes = result.data.secondaryTables && result.data.secondaryTables.length > 0
-        ? ` + ${result.data.secondaryTables.map((t) => t.code).join(' + ')}`
-        : ''
-      toast.success(`Đã xác nhận đặt bàn cho ${result.data.name}`, {
-        description: `Bàn ${mainCode}${secCodes} đã được gán.`,
-      })
-      setAssigningReservation(null)
-      setAvailableTables([])
-      return
-    }
-
-    toast.error('Không xác nhận được đặt bàn', {
-      description: result.error,
-    })
-  }
-
-  function handleCancel(reservation: Reservation) {
-    setCancelingReservation(reservation)
-  }
-
-  async function executeCancel() {
-    if (!cancelingReservation) return
-    const res = cancelingReservation
-    const result = await cancelReservation(res.id)
-    if (result.ok) {
-      toast(`Đã hủy đặt bàn của ${res.name}`)
-      setCancelingReservation(null)
-      return
-    }
-
-    toast.error('Không hủy được đặt bàn', {
-      description: result.error,
-    })
-    setCancelingReservation(null)
-  }
-
-
-  function openEdit(reservation: Reservation) {
-    setEditingReservation(reservation)
-    setIsEditOpen(true)
-  }
-
-  async function handleCreateSubmit(data: ReservationInput) {
-    const result = await createManualReservation(data)
-    if (result.ok) {
-      toast.success(`Đã thêm đặt bàn cho ${data.name}`, {
-        description:
-          result.data.status === 'confirmed'
-            ? `Booking đã được xác nhận với ${result.data.table?.code ?? 'bàn đã chọn'}.`
-            : 'Booking đang chờ gán bàn để xác nhận.',
-      })
-      setIsCreateOpen(false)
-      return true
-    }
-
-    toast.error('Không thêm được đặt bàn', {
-      description: result.error,
-    })
-    return false
-  }
-
-  async function handleEditSubmit(id: string, data: ReservationInput) {
-    const result = await editReservation(id, data)
-    if (result.ok) {
-      toast.success(`Đã cập nhật đặt bàn của ${data.name}`)
-      setIsEditOpen(false)
-      setEditingReservation(null)
-      return
-    }
-
-    toast.error('Không cập nhật được đặt bàn', {
-      description: result.error,
-    })
-  }
+  const {
+    isCreateOpen,
+    setIsCreateOpen,
+    isEditOpen,
+    editingReservation,
+    assigningReservation,
+    availableTables,
+    isLoadingTables,
+    cancelingReservation,
+    openAssignModal,
+    closeAssignModal,
+    handleAssignConfirm,
+    handleCancel,
+    closeCancelModal,
+    executeCancel,
+    openEdit,
+    closeEdit,
+    handleCreateSubmit,
+    handleEditSubmit,
+    handleEditCancelBooking,
+  } = useAdminReservationActions({
+    reservations,
+    createManualReservation,
+    confirmReservation,
+    cancelReservation,
+    editReservation,
+    getAvailableTables,
+  })
 
   return (
     <div className="min-h-dvh bg-secondary/15">
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-card/85 shadow-xs backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-4">
-          <div className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm shadow-primary/20">
-              <UtensilsCrossed className="size-4" />
-            </span>
-            <div className="leading-tight">
-              <p className="font-serif text-lg font-bold text-foreground">
-                {RESTAURANT.name}
-              </p>
-              <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">
-                Trang quản trị nhân viên · Supabase
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              render={<Link href="/">Trang chủ</Link>}
-              nativeButton={false}
-              variant="outline"
-              size="sm"
-              className="rounded-lg text-xs"
-            />
-            <form action={signOutAdmin}>
-              <Button type="submit" variant="ghost" size="sm" className="gap-1 rounded-lg text-xs">
-                <LogOut className="size-3.5" />
-                Đăng xuất
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
+      <AdminDashboardHeader />
 
       <main className="mx-auto max-w-7xl px-3 py-8 sm:px-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {actionError && (
+          <div className="mt-4 rounded-lg border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {actionError}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
           <div className="flex items-center gap-2">
             <span className="rounded-lg bg-primary/10 p-2 text-primary">
               <CalendarClock className="size-5" />
@@ -286,12 +110,6 @@ export function AdminDashboard() {
             </div>
           </div>
         </div>
-
-        {actionError && (
-          <div className="mt-4 rounded-lg border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {actionError}
-          </div>
-        )}
 
         <AdminStatsBar reservations={reservations} />
 
@@ -323,7 +141,7 @@ export function AdminDashboard() {
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 h-8.5 rounded-lg text-xs"
+              className="h-8.5 gap-1.5 rounded-lg text-xs"
               onClick={() => void refreshAdminData()}
               disabled={isLoading}
             >
@@ -332,7 +150,7 @@ export function AdminDashboard() {
             </Button>
             <Button
               size="sm"
-              className="gap-1.5 h-8.5 rounded-lg text-xs shadow-xs"
+              className="h-8.5 gap-1.5 rounded-lg text-xs shadow-xs"
               onClick={() => setIsCreateOpen(true)}
             >
               <Plus className="size-3.5" />
@@ -343,106 +161,18 @@ export function AdminDashboard() {
 
         {view === 'reservations' ? (
           <>
-            <div className="mt-6 rounded-xl border border-border bg-card p-4 shadow-xs">
-              <div className="grid items-center gap-4 sm:grid-cols-12">
-                <div className="relative sm:col-span-7 md:col-span-8">
-                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Tìm tên khách, số điện thoại, mã bàn..."
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    className="rounded-lg pl-9 text-sm placeholder:text-muted-foreground/50"
-                  />
-                  {searchTerm && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchTerm('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      Xóa
-                    </button>
-                  )}
-                </div>
-
-                <div className="relative sm:col-span-5 md:col-span-4">
-                  <Popover open={isDateFilterOpen} onOpenChange={setIsDateFilterOpen}>
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            'w-full justify-start text-left font-normal pl-9 text-sm h-9 rounded-lg relative bg-background border border-input shadow-xs',
-                            !dateFilter && 'text-muted-foreground',
-                          )}
-                        />
-                      }
-                    >
-                      <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                      {dateFilter ? formatDate(dateFilter) : 'Tất cả ngày'}
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="end">
-                      <RestaurantCalendar
-                        selected={dateFilter ? new Date(`${dateFilter}T00:00:00`) : undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            const year = date.getFullYear()
-                            const month = String(date.getMonth() + 1).padStart(2, '0')
-                            const day = String(date.getDate()).padStart(2, '0')
-                            setDateFilter(`${year}-${month}-${day}`)
-                          } else {
-                            setDateFilter('')
-                          }
-                          setIsDateFilterOpen(false)
-                        }}
-                      />
-                      {dateFilter && (
-                        <div className="p-2 bg-background border-t border-border flex justify-end">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg h-8 px-2"
-                            onClick={() => {
-                              setDateFilter('')
-                              setIsDateFilterOpen(false)
-                            }}
-                          >
-                            Xóa lọc ngày
-                          </Button>
-                        </div>
-                      )}
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-2">
-              <div className="flex flex-wrap gap-1">
-                {FILTERS.map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => setFilter(item.value)}
-                    className={cn(
-                      'rounded-none border-b-2 border-transparent px-3 py-2 text-xs font-semibold transition-colors',
-                      filter === item.value
-                        ? 'border-primary text-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
-                    )}
-                  >
-                    {item.label} ({counts[item.value]})
-                  </button>
-                ))}
-              </div>
-
-              {dateFilter && (
-                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                  Ngày lọc: {formatDate(dateFilter)}
-                </span>
-              )}
-            </div>
+            <AdminReservationFilters
+              searchTerm={searchTerm}
+              onSearchTermChange={setSearchTerm}
+              dateFilter={dateFilter}
+              onDateFilterChange={setDateFilter}
+              isDateFilterOpen={isDateFilterOpen}
+              onDateFilterOpenChange={setIsDateFilterOpen}
+              filter={filter}
+              onFilterChange={(value) => setFilter(value as 'all' | ReservationStatus)}
+              counts={counts}
+              filters={FILTERS}
+            />
 
             <div className="mt-6">
               {isLoading ? (
@@ -496,20 +226,10 @@ export function AdminDashboard() {
 
       <EditModal
         isOpen={isEditOpen}
-        onClose={() => {
-          setIsEditOpen(false)
-          setEditingReservation(null)
-        }}
+        onClose={closeEdit}
         reservation={editingReservation}
         onSubmit={handleEditSubmit}
-        onCancelBooking={async (id) => {
-          const res = editingReservation || reservations.find(r => r.id === id)
-          if (res) {
-            await handleCancel(res)
-            setIsEditOpen(false)
-            setEditingReservation(null)
-          }
-        }}
+        onCancelBooking={handleEditCancelBooking}
         tables={tables}
       />
 
@@ -518,10 +238,7 @@ export function AdminDashboard() {
         reservation={assigningReservation}
         availableTables={availableTables}
         isLoading={isLoadingTables}
-        onClose={() => {
-          setAssigningReservation(null)
-          setAvailableTables([])
-        }}
+        onClose={closeAssignModal}
         onConfirm={(tableId, secondaryTableIds, manualArrangement) =>
           void handleAssignConfirm(tableId, secondaryTableIds, manualArrangement)
         }
@@ -534,7 +251,7 @@ export function AdminDashboard() {
         confirmText="Hủy đặt bàn"
         cancelText="Quay lại"
         onConfirm={() => void executeCancel()}
-        onCancel={() => setCancelingReservation(null)}
+        onCancel={closeCancelModal}
       />
     </div>
   )

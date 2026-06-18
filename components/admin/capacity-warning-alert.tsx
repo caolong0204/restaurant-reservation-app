@@ -9,7 +9,6 @@ interface CapacityWarningAlertProps {
   isCapacityExcessive: boolean
   cIsManualArrangement: boolean
   setCIsManualArrangement: (val: boolean) => void
-  cSecondaryTableIds: string[]
   setCSecondaryTableIds: (val: string[]) => void
   showLargePartyTip: boolean
 }
@@ -22,7 +21,6 @@ export function CapacityWarningAlert({
   isCapacityExcessive,
   cIsManualArrangement,
   setCIsManualArrangement,
-  cSecondaryTableIds,
   setCSecondaryTableIds,
   showLargePartyTip
 }: CapacityWarningAlertProps) {

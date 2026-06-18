@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
-import { AlertTriangle, CalendarDays, Check, Clock, Edit3, Info, X, Loader2 } from 'lucide-react'
+import { CalendarDays, Check, Clock, Edit3, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -127,14 +127,18 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const partySize = Number(ePartySize) || 0
 
   const isCapacityInsufficient = Boolean(eTableId && totalCapacity < partySize)
-  const selectedTables = [mainTable, ...secondaryTables].filter(Boolean)
+  const selectedTables = [mainTable, ...secondaryTables].filter(
+    (table): table is RestaurantTable => Boolean(table),
+  )
   const isCapacityExcessive = Boolean(
     eTableId &&
       selectedTables.length > 1 &&
       selectedTables.some((table) => totalCapacity - table.capacity >= partySize)
   )
   const hasUnresolvedCapacityWarning = Boolean(isCapacityInsufficient && !eIsManualArrangement)
-  const showLargePartyTip = eTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && eSecondaryTableIds.length === 0
+  const showLargePartyTip = Boolean(
+    eTableId && partySize > 4 && mainTable && mainTable.capacity < partySize && eSecondaryTableIds.length === 0,
+  )
 
   const handleTableToggle = (tableId: string) => {
     setEIsManualArrangement(false)
@@ -347,7 +351,6 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
                 isCapacityExcessive={isCapacityExcessive}
                 cIsManualArrangement={eIsManualArrangement}
                 setCIsManualArrangement={setEIsManualArrangement}
-                cSecondaryTableIds={eSecondaryTableIds}
                 setCSecondaryTableIds={setESecondaryTableIds}
                 showLargePartyTip={showLargePartyTip}
               />
