@@ -15,7 +15,7 @@ interface AssignTableModalProps {
   availableTables: RestaurantTable[]
   isLoading: boolean
   onClose: () => void
-  onConfirm: (tableId: string, secondaryTableIds: string[], manualArrangement: boolean) => void
+  onConfirm: (tableId: string, secondaryTableIds: string[], manualArrangement: boolean) => void | Promise<void>
 }
 
 export function AssignTableModal({
@@ -28,6 +28,7 @@ export function AssignTableModal({
 }: AssignTableModalProps) {
   const [selectedTableIds, setSelectedTableIds] = useState<string[]>([])
   const [isManualArrangement, setIsManualArrangement] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Prevent background body scroll when modal is open
   useEffect(() => {
@@ -123,6 +124,11 @@ export function AssignTableModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="relative max-h-[92dvh] w-full max-w-2xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in scale-in duration-200 flex flex-col">
+        {isSubmitting && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/30 backdrop-blur-[1px]">
+            <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        )}
         <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
         
         {/* Header */}
@@ -321,12 +327,28 @@ export function AssignTableModal({
             <Button
               type="button"
               size="sm"
-              disabled={isConfirmDisabled}
-              onClick={() => onConfirm(selectedTableId, selectedSecondaryIds, isManualArrangement)}
+              disabled={isConfirmDisabled || isSubmitting}
+              onClick={async () => {
+                setIsSubmitting(true)
+                try {
+                  await onConfirm(selectedTableId, selectedSecondaryIds, isManualArrangement)
+                } finally {
+                  setIsSubmitting(false)
+                }
+              }}
               className="gap-1 shadow-xs"
             >
-              <Check className="size-3.5" />
-              Xác nhận bàn
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <Check className="size-3.5" />
+                  Xác nhận bàn
+                </>
+              )}
             </Button>
           </div>
         </div>

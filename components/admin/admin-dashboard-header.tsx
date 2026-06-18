@@ -1,27 +1,11 @@
-import { CalendarClock, LogOut, Plus, RefreshCcw, UtensilsCrossed } from 'lucide-react'
+import { LogOut, UtensilsCrossed } from 'lucide-react'
 import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { signOutAdmin } from '@/lib/auth-actions'
 import { RESTAURANT } from '@/lib/restaurant'
-import { cn } from '@/lib/utils'
-import type { AdminView } from '@/lib/hooks/use-admin-reservation-filters'
 
-type AdminDashboardHeaderProps = {
-  view: AdminView
-  onViewChange: (view: AdminView) => void
-  isLoading: boolean
-  onRefresh: () => void
-  onOpenCreate: () => void
-}
-
-export function AdminDashboardHeader({
-  view,
-  onViewChange,
-  isLoading,
-  onRefresh,
-  onOpenCreate,
-}: AdminDashboardHeaderProps) {
+export function AdminDashboardHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-card/85 shadow-xs backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-4">

@@ -218,8 +218,8 @@ export function ReservationTable({
   onCancel,
   onEdit,
 }: ReservationTableProps) {
-  const [sortField, setSortField] = useState<'date' | 'time' | 'createdAt' | null>(null)
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null)
+  const [sortField, setSortField] = useState<'date' | 'time' | 'createdAt' | null>('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc')
 
   const handleSort = (field: 'date' | 'time' | 'createdAt') => {
     if (sortField === field) {

@@ -52,9 +52,10 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
         )
       })
       .sort((a, b) => {
+        const createdAtCompare = b.createdAt - a.createdAt
+        if (createdAtCompare !== 0) return createdAtCompare
         if (a.date !== b.date) return a.date.localeCompare(b.date)
-        if (a.time !== b.time) return a.time.localeCompare(b.time)
-        return a.createdAt - b.createdAt
+        return a.time.localeCompare(b.time)
       })
   }, [reservations, filter, debouncedSearchTerm, dateFilter])
 

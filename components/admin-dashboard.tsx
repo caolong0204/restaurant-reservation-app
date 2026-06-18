@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarDays, CalendarClock, Plus, RefreshCcw } from 'lucide-react'
+import { CalendarDays, CalendarClock, Loader2, Plus, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -175,8 +175,11 @@ export function AdminDashboard() {
 
             <div className="mt-6">
               {isLoading ? (
-                <div className="rounded-xl border border-border bg-card py-16 text-center text-sm text-muted-foreground shadow-xs">
-                  Đang tải danh sách đặt bàn...
+                <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-border bg-card shadow-xs">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Loader2 className="size-6 animate-spin" />
+                    <span className="text-sm">Đang tải danh sách đặt bàn...</span>
+                  </div>
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/80 bg-card py-20 text-center shadow-xs">

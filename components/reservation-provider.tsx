@@ -75,7 +75,7 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [tables, setTables] = useState<RestaurantTable[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(() => pathname === '/admin')
   const [actionError, setActionError] = useState<string | null>(null)
 
   const refreshAdminData = useCallback(async () => {

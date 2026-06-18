@@ -199,6 +199,11 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl relative overflow-hidden animate-in scale-in duration-200 max-h-[95dvh] flex flex-col">
+        {isSubmitting && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/30 backdrop-blur-[1px]">
+            <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        )}
         {/* Top brand line */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-primary shrink-0" />
 
