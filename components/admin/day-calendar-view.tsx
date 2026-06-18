@@ -107,49 +107,51 @@ export function DayCalendarView({
               <CalendarDays className="size-4" />
               Hôm nay
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-lg"
-              onClick={() => onDateChange(addDaysToIso(selectedDate, -1))}
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    className="h-10 w-48 justify-start rounded-lg border bg-background pl-3 text-left text-sm font-semibold shadow-xs"
-                  />
-                }
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-lg"
+                onClick={() => onDateChange(addDaysToIso(selectedDate, -1))}
               >
-                <CalendarDays className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                <span className="truncate">{formatDate(selectedDate)}</span>
-              </PopoverTrigger>
-              <PopoverContent className="animate-in fade-in-50 slide-in-from-top-1 w-auto border-none p-0 duration-150" align="end">
-                <RestaurantCalendar
-                  selected={new Date(`${selectedDate}T00:00:00`)}
-                  onSelect={(date) => {
-                    if (date) {
-                      const year = date.getFullYear()
-                      const month = String(date.getMonth() + 1).padStart(2, '0')
-                      const day = String(date.getDate()).padStart(2, '0')
-                      onDateChange(`${year}-${month}-${day}`)
-                    }
-                    setIsCalendarOpen(false)
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-lg"
-              onClick={() => onDateChange(addDaysToIso(selectedDate, 1))}
-            >
-              <ChevronRight className="size-4" />
-            </Button>
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="h-10 w-48 justify-start rounded-lg border bg-background pl-3 text-left text-sm font-semibold shadow-xs"
+                    />
+                  }
+                >
+                  <CalendarDays className="mr-2 size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{formatDate(selectedDate)}</span>
+                </PopoverTrigger>
+                <PopoverContent className="animate-in fade-in-50 slide-in-from-top-1 w-auto border-none p-0 duration-150" align="end">
+                  <RestaurantCalendar
+                    selected={new Date(`${selectedDate}T00:00:00`)}
+                    onSelect={(date) => {
+                      if (date) {
+                        const year = date.getFullYear()
+                        const month = String(date.getMonth() + 1).padStart(2, '0')
+                        const day = String(date.getDate()).padStart(2, '0')
+                        onDateChange(`${year}-${month}-${day}`)
+                      }
+                      setIsCalendarOpen(false)
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-lg"
+                onClick={() => onDateChange(addDaysToIso(selectedDate, 1))}
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -36,7 +36,7 @@ export function AdminStatsBar({ reservations }: AdminStatsBarProps) {
   }, [counts.confirmed, counts.pending, reservations])
 
   return (
-    <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       <StatCard label="Đặt bàn hôm nay" value={stats.todayCount} icon={CalendarDays} colorClass="text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/30" />
       <StatCard label="Tổng khách hôm nay" value={stats.todayCovers} icon={Users} colorClass="text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-950/30" />
       <StatCard label="Đang chờ duyệt" value={stats.pending} icon={Clock} colorClass="text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30" />

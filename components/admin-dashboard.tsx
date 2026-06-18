@@ -113,7 +113,7 @@ export function AdminDashboard() {
 
         <AdminStatsBar reservations={reservations} />
 
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-border/80 pb-2">
+        <div className="mt-8 flex items-center justify-between gap-2 border-b border-border/80 pb-2 overflow-x-auto">
           <div className="flex gap-2">
             <button
               type="button"
@@ -139,22 +139,21 @@ export function AdminDashboard() {
 
           <div className="flex items-center gap-2">
             <Button
-              size="sm"
+              size="icon"
               variant="outline"
-              className="h-8.5 gap-1.5 rounded-lg text-xs"
+              className="size-8.5 shrink-0 rounded-lg"
               onClick={() => void refreshAdminData()}
               disabled={isLoading}
             >
-              <RefreshCcw className={cn('size-3.5', isLoading && 'animate-spin')} />
-              Làm mới
+              <RefreshCcw className={cn('size-4', isLoading && 'animate-spin')} />
             </Button>
             <Button
               size="sm"
-              className="h-8.5 gap-1.5 rounded-lg text-xs shadow-xs"
+              className="h-8.5 shrink-0 gap-1.5 rounded-lg text-xs shadow-xs"
               onClick={() => setIsCreateOpen(true)}
             >
               <Plus className="size-3.5" />
-              Thêm đặt bàn
+              Đặt bàn
             </Button>
           </div>
         </div>
