@@ -31,6 +31,10 @@ interface ReservationTableProps {
   onConfirm: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
+  className?: string
+  rowSlots?: number
+  currentPage?: number
+  pageSize?: number
 }
 
 const STATUS_LABELS: Record<ReservationStatus, string> = {
@@ -44,6 +48,8 @@ const STATUS_STYLES: Record<ReservationStatus, string> = {
   confirmed: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700',
   cancelled: 'border-rose-500/30 bg-rose-500/10 text-rose-700',
 }
+
+const TABLE_COLUMN_COUNT = 11
 
 function formatSheetDate(iso: string): string {
   const [year, month, day] = iso.split('-')
@@ -68,13 +74,13 @@ function formatTableDisplay(reservation: Reservation): string {
 
 const ReservationTableRow = memo(function ReservationTableRow({
   reservation,
-  index,
+  displayIndex,
   onConfirm,
   onEdit,
   onCancel,
 }: {
   reservation: Reservation
-  index: number
+  displayIndex: number
   onConfirm: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
@@ -87,14 +93,14 @@ const ReservationTableRow = memo(function ReservationTableRow({
   return (
     <TableRow
       className={cn(
-        'border-border/70 transition-colors group',
+        'h-[68px] border-border/70 transition-colors group',
         isCancelled
           ? 'bg-zinc-100/80 hover:bg-zinc-200/80 text-muted-foreground/85 dark:bg-zinc-900/35 dark:hover:bg-zinc-900/50'
           : 'hover:bg-muted/50 text-foreground'
       )}
     >
       <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>
-        {index + 1}
+        {displayIndex}
       </TableCell>
       <TableCell className={cn("text-center font-mono font-semibold", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
         {formatSheetDate(reservation.date)}
@@ -217,6 +223,10 @@ export function ReservationTable({
   onConfirm,
   onCancel,
   onEdit,
+  className,
+  rowSlots = 10,
+  currentPage = 1,
+  pageSize = rowSlots,
 }: ReservationTableProps) {
   const [sortField, setSortField] = useState<'date' | 'time' | 'createdAt' | null>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc')
@@ -260,76 +270,91 @@ export function ReservationTable({
       })
     : reservations
 
-  return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
-      <Table className="min-w-[1300px] text-[13px]">
-        <TableHeader className="sticky top-0 z-10 bg-card">
-          <TableRow className="border-border bg-emerald-500/15 hover:bg-emerald-500/15">
-            <TableHead className="w-14 text-center font-bold text-foreground">#</TableHead>
-            <TableHead 
-              className="w-28 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
-              onClick={() => handleSort('date')}
-            >
-              <div className="flex items-center justify-center gap-1">
-                <span>Ngày</span>
-                {sortField === 'date' ? (
-                  sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
-                ) : (
-                  <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
-                )}
-              </div>
-            </TableHead>
-            <TableHead 
-              className="w-20 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
-              onClick={() => handleSort('time')}
-            >
-              <div className="flex items-center justify-center gap-1">
-                <span>Giờ</span>
-                {sortField === 'time' ? (
-                  sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
-                ) : (
-                  <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
-                )}
-              </div>
-            </TableHead>
-            <TableHead 
-              className="w-24 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
-              onClick={() => handleSort('createdAt')}
-            >
-              <div className="flex items-center justify-center gap-1">
-                <span>Tạo lúc</span>
-                {sortField === 'createdAt' ? (
-                  sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
-                ) : (
-                  <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
-                )}
-              </div>
-            </TableHead>
-            <TableHead className="min-w-44 text-center font-bold text-foreground">Tên khách</TableHead>
-            <TableHead className="w-32 text-center font-bold text-foreground">SĐT</TableHead>
-            <TableHead className="w-24 text-center font-bold text-foreground">Số lượng</TableHead>
-            <TableHead className="w-36 text-center font-bold text-foreground">Dịp đặc biệt</TableHead>
+  const startIndex = (currentPage - 1) * pageSize
+  const visibleReservations = displayReservations.slice(startIndex, startIndex + pageSize)
+  const placeholderRows = Math.max(0, rowSlots - visibleReservations.length)
 
-            <TableHead className="w-32 text-center font-bold text-foreground">Bàn</TableHead>
-            <TableHead className="w-36 text-center font-bold text-foreground">Trạng thái</TableHead>
-            <TableHead className="w-36 text-center font-bold text-foreground sticky right-0 z-20 bg-[#dbf4ec] border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]">
-              Thao tác
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {displayReservations.map((reservation, index) => (
-            <ReservationTableRow
-              key={reservation.id}
-              reservation={reservation}
-              index={index}
-              onConfirm={onConfirm}
-              onCancel={onCancel}
-              onEdit={onEdit}
-            />
-          ))}
-        </TableBody>
-      </Table>
+  return (
+    <div className={cn("flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs", className)}>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <Table className="min-w-[1300px] text-[13px]">
+          <TableHeader className="sticky top-0 z-10 bg-card">
+            <TableRow className="border-border bg-emerald-500/15 hover:bg-emerald-500/15">
+              <TableHead className="w-14 text-center font-bold text-foreground">#</TableHead>
+              <TableHead 
+                className="w-28 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+                onClick={() => handleSort('date')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>Ngày</span>
+                  {sortField === 'date' ? (
+                    sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
+                  ) : (
+                    <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-20 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+                onClick={() => handleSort('time')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>Giờ</span>
+                  {sortField === 'time' ? (
+                    sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
+                  ) : (
+                    <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="w-24 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+                onClick={() => handleSort('createdAt')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>Tạo lúc</span>
+                  {sortField === 'createdAt' ? (
+                    sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
+                  ) : (
+                    <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="min-w-44 text-center font-bold text-foreground">Tên khách</TableHead>
+              <TableHead className="w-32 text-center font-bold text-foreground">SĐT</TableHead>
+              <TableHead className="w-24 text-center font-bold text-foreground">Số lượng</TableHead>
+              <TableHead className="w-36 text-center font-bold text-foreground">Dịp đặc biệt</TableHead>
+
+              <TableHead className="w-32 text-center font-bold text-foreground">Bàn</TableHead>
+              <TableHead className="w-36 text-center font-bold text-foreground">Trạng thái</TableHead>
+              <TableHead className="w-36 text-center font-bold text-foreground sticky right-0 z-20 bg-[#dbf4ec] border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]">
+                Thao tác
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibleReservations.map((reservation, index) => (
+              <ReservationTableRow
+                key={reservation.id}
+                reservation={reservation}
+                displayIndex={startIndex + index + 1}
+                onConfirm={onConfirm}
+                onCancel={onCancel}
+                onEdit={onEdit}
+              />
+            ))}
+            {Array.from({ length: placeholderRows }).map((_, index) => (
+              <TableRow
+                key={`placeholder-row-${index}`}
+                aria-hidden="true"
+                className="h-[68px] border-border/50 bg-muted/20 hover:bg-muted/20"
+              >
+                <TableCell colSpan={TABLE_COLUMN_COUNT} className="p-0" />
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

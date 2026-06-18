@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useDebounce } from '@/lib/hooks/use-debounce'
 import type { Reservation, ReservationStatus } from '@/lib/reservation-types'
 
 export type AdminFilter = 'all' | ReservationStatus
 export type AdminView = 'reservations' | 'calendar'
+const RESERVATIONS_PAGE_SIZE = 10
 
 function todayISO(): string {
   const now = new Date()
@@ -23,6 +24,7 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
   const [dateFilter, setDateFilter] = useState('')
   const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
   const [calendarDate, setCalendarDate] = useState(todayISO())
+  const [currentPage, setCurrentPage] = useState(1)
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
@@ -59,6 +61,19 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
       })
   }, [reservations, filter, debouncedSearchTerm, dateFilter])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / RESERVATIONS_PAGE_SIZE))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filter, debouncedSearchTerm, dateFilter])
+
+  useEffect(() => {
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage)
+    }
+  }, [currentPage, safeCurrentPage])
+
   return {
     view,
     setView,
@@ -72,6 +87,10 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
     setIsDateFilterOpen,
     calendarDate,
     setCalendarDate,
+    currentPage: safeCurrentPage,
+    setCurrentPage,
+    pageSize: RESERVATIONS_PAGE_SIZE,
+    totalPages,
     counts,
     filtered,
   }

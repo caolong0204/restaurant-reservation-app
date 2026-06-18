@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarDays, CalendarClock, Loader2, Plus, RefreshCcw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, CalendarClock, Loader2, Plus, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -51,6 +51,10 @@ export function AdminDashboard() {
     setIsDateFilterOpen,
     calendarDate,
     setCalendarDate,
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    totalPages,
     counts,
     filtered,
   } = useAdminReservationFilters(reservations)
@@ -175,14 +179,14 @@ export function AdminDashboard() {
 
             <div className="mt-6">
               {isLoading ? (
-                <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-border bg-card shadow-xs">
+                <div className="flex items-center justify-center rounded-xl border border-border bg-card py-24 shadow-xs">
                   <div className="flex flex-col items-center gap-3 text-muted-foreground">
                     <Loader2 className="size-6 animate-spin" />
                     <span className="text-sm">Đang tải danh sách đặt bàn...</span>
                   </div>
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/80 bg-card py-20 text-center shadow-xs">
+                <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-card py-20 text-center shadow-xs">
                   <CalendarDays className="size-9 text-muted-foreground/60" />
                   <div>
                     <p className="font-serif text-base font-bold text-foreground">
@@ -194,12 +198,55 @@ export function AdminDashboard() {
                   </div>
                 </div>
               ) : (
-                <ReservationTable
-                  reservations={filtered}
-                  onConfirm={(reservation) => void openAssignModal(reservation)}
-                  onCancel={(reservation) => void handleCancel(reservation)}
-                  onEdit={openEdit}
-                />
+                <div className="flex flex-col gap-4">
+                  <ReservationTable
+                    reservations={filtered}
+                    rowSlots={pageSize}
+                    currentPage={currentPage}
+                    pageSize={pageSize}
+                    onConfirm={(reservation) => void openAssignModal(reservation)}
+                    onCancel={(reservation) => void handleCancel(reservation)}
+                    onEdit={openEdit}
+                  />
+
+                  {filtered.length > pageSize ? (
+                    <div className="flex h-[58px] items-center justify-end px-1 py-2">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground/80">
+                        <span className="whitespace-nowrap">
+                          {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, filtered.length)}/{filtered.length} booking
+                        </span>
+                        <div className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background/70 p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground"
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                          >
+                            <ArrowLeft className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 min-w-[88px] rounded-md px-2 text-xs font-bold text-black hover:bg-transparent"
+                            disabled
+                          >
+                            Trang {currentPage}/{totalPages}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground"
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                          >
+                            <ArrowRight className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               )}
             </div>
           </>

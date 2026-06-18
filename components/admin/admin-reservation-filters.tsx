@@ -36,8 +36,8 @@ export function AdminReservationFilters({
   filters,
 }: AdminReservationFiltersProps) {
   return (
-    <>
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-2">
+    <div className="mt-8 rounded-xl border border-border bg-card p-4 shadow-xs">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap gap-1">
           {filters.map((item) => (
             <button
@@ -56,16 +56,14 @@ export function AdminReservationFilters({
           ))}
         </div>
 
-        {dateFilter && (
-          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-            Ngày lọc: {formatDate(dateFilter)}
-          </span>
-        )}
-      </div>
+        <div className="flex flex-col gap-3 xl:ml-auto xl:flex-row xl:items-center xl:justify-end">
+          {dateFilter && (
+            <span className="order-3 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary xl:order-none">
+              Ngày lọc: {formatDate(dateFilter)}
+            </span>
+          )}
 
-      <div className="mt-5 rounded-xl border border-border bg-card p-4 shadow-xs">
-        <div className="grid items-center gap-4 sm:grid-cols-12">
-          <div className="relative sm:col-span-7 md:col-span-8">
+          <div className="relative w-full xl:w-[420px]">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
@@ -85,7 +83,7 @@ export function AdminReservationFilters({
             )}
           </div>
 
-          <div className="relative sm:col-span-5 md:col-span-4">
+          <div className="relative w-full xl:w-[220px] xl:flex-none">
             <Popover open={isDateFilterOpen} onOpenChange={onDateFilterOpenChange}>
               <PopoverTrigger
                 render={
@@ -137,6 +135,6 @@ export function AdminReservationFilters({
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }
