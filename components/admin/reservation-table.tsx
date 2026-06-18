@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import {
   Armchair,
   Check,
@@ -11,6 +11,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  AlertTriangle,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -75,28 +76,53 @@ function formatTableDisplay(reservation: Reservation): string {
 const ReservationTableRow = memo(function ReservationTableRow({
   reservation,
   displayIndex,
+  nowMs,
+  todayStr,
   onConfirm,
   onEdit,
   onCancel,
 }: {
   reservation: Reservation
   displayIndex: number
+  nowMs: number
+  todayStr: string
   onConfirm: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
 }) {
   const isCancelled = reservation.status === 'cancelled'
+  const isPending = reservation.status === 'pending'
+  
+  // Logic: Mới tạo trong vòng 15 phút
+  const isNew = nowMs > 0 && (nowMs - reservation.createdAt) < 15 * 60 * 1000
+  
+  // Logic: Đã quá giờ đặt bàn 15 phút (chỉ tính những đơn đang chờ duyệt)
+  const [year, month, day] = reservation.date.split('-').map(Number)
+  const [hour, minute] = reservation.time.split(':').map(Number)
+  // Ensure valid date parsed before comparing
+  const resTimeMs = (year && month && day && !isNaN(hour) && !isNaN(minute)) 
+    ? new Date(year, month - 1, day, hour, minute).getTime() 
+    : Infinity
+  const isOverdue = isPending && (nowMs > resTimeMs + 15 * 60 * 1000)
+
+  // Check if date is in the past
+  const isPastDate = reservation.date < todayStr
+
   const stickyBgClass = isCancelled
     ? 'bg-[#f4f4f5] group-hover:bg-[#e4e4e7]'
-    : 'bg-card group-hover:bg-[#f4f4f5]'
+    : isNew 
+      ? 'bg-orange-50/50 group-hover:bg-orange-100/50'
+      : 'bg-card group-hover:bg-[#f4f4f5]'
 
   return (
     <TableRow
       className={cn(
-        'h-[68px] border-border/70 transition-colors group',
+        'h-[68px] border-b border-border/60 transition-colors group relative',
         isCancelled
-          ? 'bg-zinc-100/80 hover:bg-zinc-200/80 text-muted-foreground/85 dark:bg-zinc-900/35 dark:hover:bg-zinc-900/50'
-          : 'hover:bg-muted/50 text-foreground'
+          ? 'bg-zinc-50/50 hover:bg-zinc-100/80 text-muted-foreground/85'
+          : isNew 
+            ? 'bg-orange-50/30 hover:bg-orange-50/70 text-foreground'
+            : 'hover:bg-muted/50 text-foreground'
       )}
     >
       <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>
@@ -106,7 +132,14 @@ const ReservationTableRow = memo(function ReservationTableRow({
         {formatSheetDate(reservation.date)}
       </TableCell>
       <TableCell className={cn("text-center font-mono font-semibold", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
-        {reservation.time}
+        {isOverdue ? (
+          <div className="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2 py-1 text-red-600 border border-red-100">
+            <AlertTriangle className="size-3.5" />
+            <span className="animate-pulse">{reservation.time}</span>
+          </div>
+        ) : (
+          reservation.time
+        )}
       </TableCell>
       <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/40" : "text-muted-foreground/70")}>
         <div className="text-[10px] leading-tight whitespace-nowrap">
@@ -123,6 +156,11 @@ const ReservationTableRow = memo(function ReservationTableRow({
           )}
           title={reservation.name}
         >
+          {isNew && (
+            <span className="mr-1.5 inline-flex animate-pulse items-center rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white">
+              Mới
+            </span>
+          )}
           {reservation.name}
         </button>
         {reservation.notes && (
@@ -133,6 +171,8 @@ const ReservationTableRow = memo(function ReservationTableRow({
             {reservation.notes}
           </p>
         )}
+        {/* Glow border for new bookings */}
+        {isNew && <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-400 shadow-[2px_0_8px_rgba(251,146,60,0.5)]" />}
       </TableCell>
       <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
         <span className="inline-flex items-center justify-center gap-1">
@@ -180,39 +220,43 @@ const ReservationTableRow = memo(function ReservationTableRow({
           {STATUS_LABELS[reservation.status]}
         </Badge>
       </TableCell>
-      <TableCell className={cn("sticky right-0 z-10 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]", stickyBgClass)}>
-        <div className="flex justify-center gap-1">
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            title="Sửa thông tin"
-            onClick={() => onEdit(reservation)}
-          >
-            <Edit3 className="size-3.5" />
-          </Button>
-
-          {reservation.status === 'pending' && (
+      <TableCell className={cn("sticky right-0 z-10 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)] text-center", stickyBgClass)}>
+        {isPastDate ? (
+          <span className="text-xs text-muted-foreground/50 italic">-</span>
+        ) : (
+          <div className="flex justify-center gap-1">
             <Button
               size="icon-sm"
-              className="bg-red-600 text-white hover:bg-red-700"
-              title="Hủy booking"
-              onClick={() => onCancel(reservation)}
+              variant="ghost"
+              title="Sửa thông tin"
+              onClick={() => onEdit(reservation)}
             >
-              <X className="size-3.5" />
+              <Edit3 className="size-3.5" />
             </Button>
-          )}
 
-          {reservation.status !== 'confirmed' && (
-            <Button
-              size="icon-sm"
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
-              title="Gán bàn và xác nhận"
-              onClick={() => onConfirm(reservation)}
-            >
-              <Check className="size-3.5" />
-            </Button>
-          )}
-        </div>
+            {reservation.status === 'pending' && (
+              <Button
+                size="icon-sm"
+                className="bg-red-600 text-white hover:bg-red-700"
+                title="Hủy booking"
+                onClick={() => onCancel(reservation)}
+              >
+                <X className="size-3.5" />
+              </Button>
+            )}
+
+            {reservation.status !== 'confirmed' && (
+              <Button
+                size="icon-sm"
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                title="Gán bàn và xác nhận"
+                onClick={() => onConfirm(reservation)}
+              >
+                <Check className="size-3.5" />
+              </Button>
+            )}
+          </div>
+        )}
       </TableCell>
     </TableRow>
   )
@@ -230,6 +274,24 @@ export function ReservationTable({
 }: ReservationTableProps) {
   const [sortField, setSortField] = useState<'date' | 'time' | 'createdAt' | null>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc')
+
+  // Maintain stable time references to satisfy React's purity rules
+  const [nowMs, setNowMs] = useState<number | null>(null)
+  const [todayStr, setTodayStr] = useState<string>('')
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      setNowMs(now.getTime())
+      const y = now.getFullYear()
+      const m = String(now.getMonth() + 1).padStart(2, '0')
+      const d = String(now.getDate()).padStart(2, '0')
+      setTodayStr(`${y}-${m}-${d}`)
+    }
+    updateTime()
+    const interval = setInterval(updateTime, 60000) // Update every minute
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSort = (field: 'date' | 'time' | 'createdAt') => {
     if (sortField === field) {
@@ -333,11 +395,13 @@ export function ReservationTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {visibleReservations.map((reservation, index) => (
+            {visibleReservations.map((reservation, idx) => (
               <ReservationTableRow
                 key={reservation.id}
                 reservation={reservation}
-                displayIndex={startIndex + index + 1}
+                displayIndex={startIndex + idx + 1}
+                nowMs={nowMs ?? 0}
+                todayStr={todayStr || '2000-01-01'}
                 onConfirm={onConfirm}
                 onCancel={onCancel}
                 onEdit={onEdit}

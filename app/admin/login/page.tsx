@@ -3,11 +3,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ArrowLeft, LockKeyhole, ShieldCheck, Sparkles, Star, UtensilsCrossed } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { signInAdmin } from '@/lib/auth-actions'
 import { RESTAURANT } from '@/lib/restaurant'
 import { createClient } from '@/lib/supabase/server'
+import { ClientLoginForm } from './client-login-form'
 
 export default async function AdminLoginPage({
   searchParams,
@@ -122,7 +120,7 @@ export default async function AdminLoginPage({
                   </div>
 
                   <div className="p-5 sm:p-6">
-                    <form action={signInAdmin} className="space-y-4">
+                    <div className="mb-4">
                       {params.error === 'invalid' && (
                         <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
                           Email hoặc mật khẩu không hợp lệ.
@@ -138,34 +136,8 @@ export default async function AdminLoginPage({
                           Vui lòng nhập email và mật khẩu.
                         </div>
                       )}
-
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          required
-                          placeholder="admin@flambe.com"
-                          className="h-11 rounded-lg"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Mật khẩu</Label>
-                        <Input
-                          id="password"
-                          name="password"
-                          type="password"
-                          required
-                          className="h-11 rounded-lg"
-                        />
-                      </div>
-
-                      <Button type="submit" className="h-11 w-full rounded-lg text-sm font-semibold">
-                        Đăng nhập
-                      </Button>
-                    </form>
+                    </div>
+                    <ClientLoginForm />
                   </div>
                 </div>
               </div>

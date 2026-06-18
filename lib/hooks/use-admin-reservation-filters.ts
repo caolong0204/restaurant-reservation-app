@@ -28,15 +28,19 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
-  const counts = useMemo(
-    () => ({
-      all: reservations.length,
-      pending: reservations.filter((reservation) => reservation.status === 'pending').length,
-      confirmed: reservations.filter((reservation) => reservation.status === 'confirmed').length,
-      cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
-    }),
-    [reservations],
-  )
+  const counts = useMemo(() => {
+    const today = todayISO()
+    const relevantReservations = reservations.filter(r => {
+      if (dateFilter) return r.date === dateFilter
+      return r.date >= today
+    })
+    return {
+      all: relevantReservations.length,
+      pending: relevantReservations.filter((reservation) => reservation.status === 'pending').length,
+      confirmed: relevantReservations.filter((reservation) => reservation.status === 'confirmed').length,
+      cancelled: relevantReservations.filter((reservation) => reservation.status === 'cancelled').length,
+    }
+  }, [reservations, dateFilter])
 
   const filtered = useMemo(() => {
     const normalizedSearch = debouncedSearchTerm.trim().toLowerCase()
@@ -44,7 +48,13 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
     return reservations
       .filter((reservation) => {
         if (filter !== 'all' && reservation.status !== filter) return false
-        if (dateFilter && reservation.date !== dateFilter) return false
+        
+        const today = todayISO()
+        if (dateFilter) {
+          if (reservation.date !== dateFilter) return false
+        } else {
+          if (reservation.date < today) return false
+        }
         if (!normalizedSearch) return true
 
         return (

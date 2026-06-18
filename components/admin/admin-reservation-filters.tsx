@@ -57,12 +57,6 @@ export function AdminReservationFilters({
         </div>
 
         <div className="flex flex-col gap-3 xl:ml-auto xl:flex-row xl:items-center xl:justify-end">
-          {dateFilter && (
-            <span className="order-3 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary xl:order-none">
-              Ngày lọc: {formatDate(dateFilter)}
-            </span>
-          )}
-
           <div className="relative w-full xl:w-[420px]">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input

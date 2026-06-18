@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-import { formatTime, getLastBookingTime } from '@/lib/restaurant'
+import { formatTime } from '@/lib/restaurant'
 import { getBookingDurationMinutes, type Reservation } from '@/lib/reservation-types'
 
 export const HALF_SLOT_WIDTH = 52
@@ -29,7 +29,8 @@ export function timeFromMinutes(totalMinutes: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-export function createHalfHourSlots(selectedDate: string): string[] {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function createHalfHourSlots(_selectedDate: string): string[] {
   const slots: string[] = []
   const start = minutesFromTime('10:00')
   // Mở rộng lưới hiển thị đến 22:30 để hiển thị được khoảng thời gian ăn của các booking cuối ngày

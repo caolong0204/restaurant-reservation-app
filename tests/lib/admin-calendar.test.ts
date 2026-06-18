@@ -27,8 +27,8 @@ describe('admin calendar timeline math', () => {
     const weekendSlots = createHalfHourSlots('2026-06-21')
 
     expect(weekdaySlots[0]).toBe('10:00')
-    expect(weekdaySlots.at(-1)).toBe('21:30')
-    expect(weekendSlots.at(-1)).toBe('22:00')
+    expect(weekdaySlots.at(-1)).toBe('22:30')
+    expect(weekendSlots.at(-1)).toBe('22:30')
   })
 
   test('places 15-minute start times halfway inside the 30-minute cell', () => {

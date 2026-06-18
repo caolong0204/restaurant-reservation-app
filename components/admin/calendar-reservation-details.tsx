@@ -21,6 +21,13 @@ export function CalendarReservationDetails({
   onCancel,
   onEdit,
 }: CalendarReservationDetailsProps) {
+  const now = new Date()
+  const yearStr = now.getFullYear()
+  const monthStr = String(now.getMonth() + 1).padStart(2, '0')
+  const dayStr = String(now.getDate()).padStart(2, '0')
+  const todayStr = `${yearStr}-${monthStr}-${dayStr}`
+  const isPastDate = reservation.date < todayStr
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="relative max-h-[90dvh] w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in scale-in duration-200">
@@ -124,7 +131,7 @@ export function CalendarReservationDetails({
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/20 p-4">
           <div>
-            {reservation.status !== 'cancelled' && (
+            {!isPastDate && reservation.status !== 'cancelled' && (
               <Button
                 type="button"
                 size="sm"
@@ -138,8 +145,8 @@ export function CalendarReservationDetails({
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {reservation.status !== 'confirmed' && (
+          <div className="flex flex-wrap items-center gap-2">
+            {!isPastDate && reservation.status !== 'confirmed' && (
               <Button
                 type="button"
                 size="sm"
@@ -150,20 +157,19 @@ export function CalendarReservationDetails({
                 Gán bàn
               </Button>
             )}
+            
+            {!isPastDate && (
+              <Button type="button" size="sm" variant="outline" onClick={() => onEdit(reservation)} className="gap-1">
+                Chỉnh sửa
+              </Button>
+            )}
+            
             <Button
               type="button"
               size="sm"
-              variant="outline"
-              onClick={() => onEdit(reservation)}
-            >
-              Sửa
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
+              variant={isPastDate ? "default" : "secondary"}
               onClick={onClose}
+              className="px-6"
             >
               Đóng
             </Button>
