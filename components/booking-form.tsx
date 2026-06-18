@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { useReservations } from '@/components/reservation-provider'
 import { OCCASIONS, TABLE_LOCATIONS, isPastTimeSlot } from '@/lib/restaurant'
@@ -204,18 +204,18 @@ export function BookingForm({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg transition-all duration-300">
+    <div className="rounded-xl bg-card shadow-lg transition-all duration-300">
       {/* Header with App Theme Color */}
-      <div className="flex items-center justify-between bg-primary px-5 py-3.5 text-primary-foreground">
-        <h3 className="font-serif text-lg font-bold tracking-tight">Đặt bàn</h3>
+      <div className="flex items-center justify-between rounded-t-xl bg-flambe-rust px-4 py-3 text-white">
+        <h3 className="font-serif text-lg font-medium tracking-wide">Đặt bàn tại Flambé</h3>
         {step !== 5 && (
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono font-bold tracking-wider opacity-90">
               {step}/4
             </span>
-            <div className="h-1.5 w-20 sm:w-28 rounded-full bg-primary-foreground/25 overflow-hidden">
+            <div className="h-1.5 w-20 sm:w-28 rounded-full bg-white/25 overflow-hidden">
               <div
-                className="h-full bg-primary-foreground transition-all duration-300 ease-out"
+                className="h-full bg-white transition-all duration-300 ease-out"
                 style={{ width: `${step * 25}%` }}
               />
             </div>
@@ -234,7 +234,7 @@ export function BookingForm({
       />
 
       {/* Main Step Content Container */}
-      <div className="p-3.5 pt-2.5 sm:p-5">
+      <div className="p-3 sm:p-3.5">
         {/* Step rendering orchestrator */}
         {step === 1 && (
           <StepPartySize
@@ -309,7 +309,7 @@ export function BookingForm({
 
         {/* Navigation Buttons (Footer) */}
         {step !== 5 && (
-          <div className="mt-4 border-t border-border pt-3">
+          <div className="mt-3 border-t border-border pt-3">
             {step === 4 && (
               <p className="text-[11px] sm:text-xs text-rose-600 font-semibold text-left mb-3 select-none leading-relaxed">
                 * Vui lòng nhận bàn theo sự sắp xếp và tình trạng có sẵn tại thực tế.
@@ -353,10 +353,11 @@ export function BookingForm({
                     (step === 2 && !isStep2Valid) ||
                     (step === 3 && !isStep3Valid))
                     ? 'bg-secondary text-muted-foreground cursor-not-allowed opacity-50'
-                    : 'bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]'
+                    : 'bg-flambe-rust hover:bg-flambe-rust-hover text-white active:scale-[0.98]'
                 )}
               >
                 <span>Tiếp tục</span>
+                <ArrowRight className="size-4" />
               </button>
             ) : (
               <button
@@ -367,7 +368,7 @@ export function BookingForm({
                   'flex items-center gap-1 rounded-lg px-6 py-2 text-sm font-semibold transition-all shadow-md',
                   !isStep4Valid || isSubmitting
                     ? 'bg-secondary text-muted-foreground cursor-not-allowed opacity-50'
-                    : 'bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]'
+                    : 'bg-flambe-rust hover:bg-flambe-rust-hover text-white active:scale-[0.98]'
                 )}
               >
                 <span>{isSubmitting ? 'Đang gửi...' : 'Xác nhận đặt bàn'}</span>

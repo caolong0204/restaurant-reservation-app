@@ -74,7 +74,7 @@ export type Database = {
           reservation_time: string
           secondary_table_ids: string | null
           service_window: unknown
-          status: string
+          status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
           table_id: string | null
           updated_at: string
         }
@@ -92,7 +92,7 @@ export type Database = {
           reservation_time: string
           secondary_table_ids?: string | null
           service_window?: unknown
-          status?: string
+          status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
           table_id?: string | null
           updated_at?: string
         }
@@ -110,7 +110,7 @@ export type Database = {
           reservation_time?: string
           secondary_table_ids?: string | null
           service_window?: unknown
-          status?: string
+          status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
           table_id?: string | null
           updated_at?: string
         }

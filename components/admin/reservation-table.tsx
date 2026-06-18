@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useEffect, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import {
   Armchair,
   Check,
@@ -12,6 +12,7 @@ import {
   ArrowUp,
   ArrowDown,
   AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -24,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { STATUS_LABELS, STATUS_STYLES, ROW_BG_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
 import type { Reservation, ReservationStatus, RestaurantTable } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
 
@@ -32,23 +34,15 @@ interface ReservationTableProps {
   onConfirm: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
+  onUpdateStatus: (reservation: Reservation, newStatus: ReservationStatus) => void
   className?: string
   rowSlots?: number
   currentPage?: number
   pageSize?: number
+  updatingStatusId?: string | null
 }
 
-const STATUS_LABELS: Record<ReservationStatus, string> = {
-  pending: 'Chờ duyệt',
-  confirmed: 'Đã xác nhận',
-  cancelled: 'Đã hủy',
-}
 
-const STATUS_STYLES: Record<ReservationStatus, string> = {
-  pending: 'border-amber-500/30 bg-amber-500/10 text-amber-700',
-  confirmed: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700',
-  cancelled: 'border-rose-500/30 bg-rose-500/10 text-rose-700',
-}
 
 const TABLE_COLUMN_COUNT = 11
 
@@ -81,6 +75,8 @@ const ReservationTableRow = memo(function ReservationTableRow({
   onConfirm,
   onEdit,
   onCancel,
+  onUpdateStatus,
+  isUpdatingStatus,
 }: {
   reservation: Reservation
   displayIndex: number
@@ -89,6 +85,8 @@ const ReservationTableRow = memo(function ReservationTableRow({
   onConfirm: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
+  onUpdateStatus: (reservation: Reservation, newStatus: ReservationStatus) => void
+  isUpdatingStatus?: boolean
 }) {
   const isCancelled = reservation.status === 'cancelled'
   const isPending = reservation.status === 'pending'
@@ -106,23 +104,20 @@ const ReservationTableRow = memo(function ReservationTableRow({
   const isOverdue = isPending && (nowMs > resTimeMs + 15 * 60 * 1000)
 
   // Check if date is in the past
-  const isPastDate = reservation.date < todayStr
+  const isPastDate = isPastReservation(reservation.date, todayStr)
 
-  const stickyBgClass = isCancelled
-    ? 'bg-[#f4f4f5] group-hover:bg-[#e4e4e7]'
-    : isNew 
-      ? 'bg-orange-50/50 group-hover:bg-orange-100/50'
-      : 'bg-card group-hover:bg-[#f4f4f5]'
+  const bgClass = isNew && isPending
+    ? 'bg-orange-50/50 hover:bg-orange-100/60 dark:bg-orange-950/20 dark:hover:bg-orange-950/30'
+    : ROW_BG_STYLES[reservation.status] || 'hover:bg-muted/50 text-foreground'
+
+  // If there are specific text overrides in ROW_BG_STYLES, we use them. Otherwise, default text colors apply.
+  const stickyBgClass = bgClass // re-use the same background class for sticky columns
 
   return (
     <TableRow
       className={cn(
         'h-[68px] border-b border-border/60 transition-colors group relative',
-        isCancelled
-          ? 'bg-zinc-50/50 hover:bg-zinc-100/80 text-muted-foreground/85'
-          : isNew 
-            ? 'bg-orange-50/30 hover:bg-orange-50/70 text-foreground'
-            : 'hover:bg-muted/50 text-foreground'
+        bgClass
       )}
     >
       <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>
@@ -208,17 +203,29 @@ const ReservationTableRow = memo(function ReservationTableRow({
         )}
       </TableCell>
       <TableCell className="text-center">
-        <Badge
-          variant="outline"
-          className={cn(
-            'mx-auto rounded-md font-semibold',
-            isCancelled
-              ? 'border-rose-500/20 bg-rose-500/5 text-rose-600/70'
-              : STATUS_STYLES[reservation.status]
-          )}
-        >
-          {STATUS_LABELS[reservation.status]}
-        </Badge>
+        <div className="relative inline-flex group/status">
+          <select
+            aria-label="Cập nhật trạng thái"
+            value={reservation.status}
+            disabled={isUpdatingStatus || (isPastDate && reservation.status === 'pending')}
+            onChange={(e) => onUpdateStatus(reservation, e.target.value as ReservationStatus)}
+            className={cn(
+              'appearance-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden cursor-pointer rounded-full border pl-3 pr-7 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+              STATUS_STYLES[reservation.status]
+            )}
+          >
+            {getSelectableStatuses(reservation.status, isPastDate).map(([value, label]) => (
+              <option key={value} value={value} className="text-foreground bg-background">{label}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+            {isUpdatingStatus ? (
+              <Loader2 className="size-3.5 animate-spin opacity-70" />
+            ) : (
+              <svg className="size-3.5 opacity-70 transition-opacity group-hover/status:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            )}
+          </div>
+        </div>
       </TableCell>
       <TableCell className={cn("sticky right-0 z-10 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)] text-center", stickyBgClass)}>
         {isPastDate ? (
@@ -228,6 +235,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
             <Button
               size="icon-sm"
               variant="ghost"
+              aria-label="Sửa thông tin"
               title="Sửa thông tin"
               onClick={() => onEdit(reservation)}
             >
@@ -238,6 +246,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
               <Button
                 size="icon-sm"
                 className="bg-red-600 text-white hover:bg-red-700"
+                aria-label="Hủy booking"
                 title="Hủy booking"
                 onClick={() => onCancel(reservation)}
               >
@@ -267,26 +276,24 @@ export function ReservationTable({
   onConfirm,
   onCancel,
   onEdit,
+  onUpdateStatus,
   className,
   rowSlots = 10,
   currentPage = 1,
   pageSize = rowSlots,
+  updatingStatusId,
 }: ReservationTableProps) {
   const [sortField, setSortField] = useState<'date' | 'time' | 'createdAt' | null>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc')
 
   // Maintain stable time references to satisfy React's purity rules
   const [nowMs, setNowMs] = useState<number | null>(null)
-  const [todayStr, setTodayStr] = useState<string>('')
+  const todayStr = useMemo(() => getTodayIso(), [])
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date()
       setNowMs(now.getTime())
-      const y = now.getFullYear()
-      const m = String(now.getMonth() + 1).padStart(2, '0')
-      const d = String(now.getDate()).padStart(2, '0')
-      setTodayStr(`${y}-${m}-${d}`)
     }
     updateTime()
     const interval = setInterval(updateTime, 60000) // Update every minute
@@ -405,6 +412,8 @@ export function ReservationTable({
                 onConfirm={onConfirm}
                 onCancel={onCancel}
                 onEdit={onEdit}
+                onUpdateStatus={onUpdateStatus}
+                isUpdatingStatus={updatingStatusId === reservation.id}
               />
             ))}
             {Array.from({ length: placeholderRows }).map((_, index) => (

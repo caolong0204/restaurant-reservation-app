@@ -1,6 +1,5 @@
 'use client'
 
-import { Users } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { PARTY_SIZES } from '@/lib/restaurant'
@@ -24,18 +23,17 @@ export function StepPartySize({
   setCustomPartyValue,
 }: StepPartySizeProps) {
   return (
-    <div className="flex flex-col items-center gap-3 py-1 sm:gap-4 sm:py-2 text-center">
+    <div className="flex flex-col items-center gap-3 py-0.5 text-center">
       <div className="flex flex-col items-center">
-        <Users className="size-5 text-primary mb-1 sm:size-7 sm:mb-1.5" />
-        <h4 className="font-serif text-base sm:text-lg font-bold text-foreground">
-          Số lượng khách là bao nhiêu?
+        <h4 className="font-serif text-xl sm:text-2xl font-medium tracking-wide text-flambe-text-dark uppercase mt-2 mb-4">
+          CHỌN SỐ LƯỢNG KHÁCH
         </h4>
-        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 hidden">
           Vui lòng chọn số lượng người tham gia dùng bữa cùng bạn
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5 w-full max-w-sm mt-1">
+      <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-1">
         {PARTY_SIZES.map((size) => (
           <button
             key={size}
@@ -45,10 +43,10 @@ export function StepPartySize({
               setIsCustomParty(false)
             }}
             className={cn(
-              'flex h-10 sm:h-11 items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-200',
+              'flex h-[52px] items-center justify-center rounded-[10px] border text-lg font-medium transition-all duration-200',
               !isCustomParty && partySize === String(size)
-                ? 'border-primary bg-primary text-primary-foreground scale-102 shadow-md shadow-primary/10'
-                : 'border-border bg-background hover:border-primary/50 hover:bg-secondary/40'
+                ? 'border-flambe-rust bg-flambe-rust text-white shadow-md'
+                : 'border-flambe-border-cream bg-flambe-cream-light hover:border-flambe-rust/50 text-flambe-text-dark'
             )}
           >
             {size}
@@ -61,10 +59,10 @@ export function StepPartySize({
             setPartySize(customPartyValue)
           }}
           className={cn(
-            'flex h-10 sm:h-11 items-center justify-center rounded-lg border text-sm font-semibold transition-all duration-200',
+            'flex h-[52px] items-center justify-center rounded-[10px] border text-lg font-medium transition-all duration-200',
             isCustomParty
-              ? 'border-primary bg-primary text-primary-foreground scale-102 shadow-md shadow-primary/10'
-              : 'border-border bg-background hover:border-primary/50 hover:bg-secondary/40'
+              ? 'border-flambe-rust bg-flambe-rust text-white shadow-md'
+              : 'border-flambe-border-cream bg-flambe-cream-light hover:border-flambe-rust/50 text-flambe-text-dark'
           )}
         >
           Khác...

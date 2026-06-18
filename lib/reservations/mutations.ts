@@ -199,11 +199,13 @@ export async function editReservation(id: string, input: ReservationInput): Prom
   const targetManualArrangement = targetTableId === null ? false : Boolean(input.manualArrangement)
   let newStatus = current.status
   if (targetTableId === null) {
-    if (current.status === 'confirmed') {
+    if (current.status !== 'pending') {
       newStatus = 'pending'
     }
   } else {
-    newStatus = 'confirmed'
+    if (current.status === 'pending') {
+      newStatus = 'confirmed'
+    }
   }
 
   if (targetTableId) {
@@ -390,6 +392,54 @@ export async function confirmReservation(
     table,
     secondaryTableIds,
     secondaryTables,
+    updatedAt: dateFromTimestamp(timestamp),
+  })
+}
+
+export async function updateReservationStatus(
+  id: string,
+  status: ReservationStatus,
+): Promise<ActionResult<Reservation>> {
+  const staff = await requireStaff()
+  if (!staff.ok) return fail(staff.error)
+
+  const snapshot = await getAdminSnapshot()
+  if (!snapshot.ok) return fail(snapshot.error)
+
+  const current = snapshot.data.reservations.find((reservation) => reservation.id === id)
+  if (!current) return fail('Không tìm thấy lượt đặt bàn.')
+
+  // If status requires a table, but we don't have one, we can't change to it
+  const requiresTable = ['confirmed', 'arrived', 'seated', 'completed'].includes(status)
+  if (requiresTable && !current.tableId) {
+    return fail('Vui lòng gán bàn trước khi chuyển sang trạng thái này.')
+  }
+
+  // If status is completed, cancelled or no_show, we might want to free the table 
+  // but keeping it assigned in the DB is fine as the sync function handles it,
+  // or we could explicitly set table_id = null if you wanted, but usually we just keep it
+  // for historical record. The sync_reservation_table_assignments trigger only creates 
+  // assignments for active statuses.
+
+  const supabase = await createClient()
+  const timestamp = new Date().toISOString()
+
+  const { error } = await supabase
+    .from('reservations')
+    .update({
+      status,
+      updated_at: timestamp,
+    })
+    .eq('id', id)
+
+  if (error) {
+    return fail(`Không thể cập nhật trạng thái. ${error.message}`)
+  }
+
+  revalidatePath('/admin')
+  return ok({
+    ...current,
+    status,
     updatedAt: dateFromTimestamp(timestamp),
   })
 }

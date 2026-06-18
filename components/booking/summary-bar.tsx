@@ -1,7 +1,6 @@
 'use client'
 
-import { CalendarIcon, Clock, Users } from 'lucide-react'
-import { formatDate, formatTime } from '@/lib/restaurant'
+import { CalendarIcon, Clock, User } from 'lucide-react'
 
 interface SummaryBarProps {
   partySize: string
@@ -9,29 +8,33 @@ interface SummaryBarProps {
   time: string
 }
 
-function toISO(date: Date) {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
+function formatShortDate(date: Date) {
   const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  return `${day}/${month}/${year}`
 }
 
 export function SummaryBar({ partySize, date, time }: SummaryBarProps) {
   return (
-    <div className="mt-4 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20 p-3 text-primary text-xs font-semibold shadow-inner">
-      <div className="flex items-center gap-1">
-        <Users className="size-3.5" />
-        <span>{partySize} khách</span>
+    <div className="mt-3 flex flex-wrap items-center justify-between rounded-xl bg-flambe-summary-bg p-3 px-4 sm:px-5">
+      <div className="flex items-center gap-2">
+        <User className="size-5 text-flambe-rust stroke-[1.5]" />
+        <span className="text-[14px] font-medium text-flambe-text-dark">
+          SỐ KHÁCH: {partySize}
+        </span>
       </div>
-      <span className="opacity-40 text-primary/30">|</span>
-      <div className="flex items-center gap-1">
-        <CalendarIcon className="size-3.5" />
-        <span>{date ? formatDate(toISO(date)) : 'Chưa chọn ngày'}</span>
+      <div className="flex items-center gap-2">
+        <CalendarIcon className="size-5 text-flambe-rust stroke-[1.5]" />
+        <span className="text-[14px] font-medium text-flambe-text-dark">
+          NGÀY: {date ? formatShortDate(date) : '--/--/----'}
+        </span>
       </div>
-      <span className="opacity-40 text-primary/30">|</span>
-      <div className="flex items-center gap-1">
-        <Clock className="size-3.5" />
-        <span>{time ? formatTime(time) : 'Chưa chọn giờ'}</span>
+      <div className="flex items-center gap-2">
+        <Clock className="size-5 text-flambe-rust stroke-[1.5]" />
+        <span className="text-[14px] font-medium text-flambe-text-dark">
+          GIỜ: {time || '--:--'}
+        </span>
       </div>
     </div>
   )

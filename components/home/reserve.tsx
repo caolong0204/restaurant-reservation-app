@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { BookingForm } from '@/components/booking-form'
 import { OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
-import { BookingSummary } from './booking-summary'
 
 export function Reserve() {
   // Wizard state lifted up from BookingForm
@@ -31,10 +30,15 @@ export function Reserve() {
   })
 
   return (
-    <section id="reserve" className="scroll-mt-20 bg-secondary/40 py-6 lg:py-10">
-      <div className="mx-auto px-3 sm:px-4 max-w-6xl">
+    <section
+      id="reserve"
+      className="relative isolate scroll-mt-20 overflow-hidden bg-background px-4 py-5 sm:py-6"
+    >
+      <div className="absolute inset-0 -z-20 bg-[url('/flambe-background.jpg')] bg-cover bg-center" />
+      <div className="absolute inset-0 -z-10 bg-flambe-brown/50" />
+      <div className="mx-auto max-w-6xl">
         {step === 5 ? (
-          <div className="mx-auto max-w-2xl w-full">
+          <div className="mx-auto w-full max-w-2xl pt-4 sm:pt-8">
             <BookingForm
               step={step}
               setStep={setStep}
@@ -64,9 +68,7 @@ export function Reserve() {
             />
           </div>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
-            {/* Left Column: Interactive Booking Wizard */}
-            <div className="lg:col-span-7 w-full">
+          <div className="mx-auto w-full max-w-2xl pt-4 sm:pt-8">
               <BookingForm
                 step={step}
                 setStep={setStep}
@@ -95,20 +97,6 @@ export function Reserve() {
                 setCurrentMonth={setCurrentMonth}
               />
             </div>
-
-            {/* Right Column: Live Booking Selection Summary */}
-            <BookingSummary
-              date={date}
-              partySize={partySize}
-              time={time}
-              name={name}
-
-              phone={phone}
-              occasion={occasion}
-              tableLocation={tableLocation}
-              notes={notes}
-            />
-          </div>
         )}
       </div>
     </section>

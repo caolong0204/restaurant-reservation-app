@@ -10,12 +10,14 @@ import {
   UserRound,
   Users,
   X,
+  Loader2,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { type Reservation, type ReservationStatus } from '@/components/reservation-provider'
 import { formatDate, formatTime } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
+import { STATUS_LABELS, STATUS_STYLES, ROW_BG_STYLES } from '@/lib/admin-calendar'
 
 interface ReservationRowProps {
   reservation: Reservation
@@ -23,13 +25,11 @@ interface ReservationRowProps {
   onCancel: () => void
   onEdit: () => void
   onDelete: () => void
+  onUpdateStatus: (newStatus: ReservationStatus) => void
+  isUpdatingStatus?: boolean
 }
 
-const STATUS_STYLES: Record<ReservationStatus, string> = {
-  pending: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
-  confirmed: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
-  cancelled: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30',
-}
+
 
 export function ReservationRow({
   reservation,
@@ -37,14 +37,25 @@ export function ReservationRow({
   onCancel,
   onEdit,
   onDelete,
+  onUpdateStatus,
+  isUpdatingStatus,
 }: ReservationRowProps) {
   const r = reservation
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20 sm:flex-row sm:items-center sm:justify-between relative overflow-hidden group">
+    <div className={cn(
+      "flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20 sm:flex-row sm:items-center sm:justify-between relative overflow-hidden group",
+      ROW_BG_STYLES[r.status]
+    )}>
       {/* Visual Indicator of Status */}
       <div className={cn(
         "absolute left-0 top-0 bottom-0 w-1",
-        r.status === 'confirmed' ? 'bg-emerald-500' : r.status === 'cancelled' ? 'bg-rose-500' : 'bg-amber-500'
+        r.status === 'confirmed' ? 'bg-blue-500' :
+        r.status === 'arrived' ? 'bg-emerald-500' :
+        r.status === 'seated' ? 'bg-purple-500' :
+        r.status === 'completed' ? 'bg-gray-500' :
+        r.status === 'cancelled' ? 'bg-rose-500' :
+        r.status === 'no_show' ? 'bg-red-500' :
+        'bg-amber-500'
       )} />
 
       <div className="flex flex-col gap-2.5 pl-1.5">
@@ -53,12 +64,28 @@ export function ReservationRow({
             <UserRound className="size-4 text-muted-foreground" />
             {r.name}
           </span>
-          <Badge
-            variant="outline"
-            className={cn('capitalize text-xs font-semibold px-2 py-0.5 rounded-full', STATUS_STYLES[r.status])}
-          >
-            {r.status === 'pending' ? 'chờ duyệt' : r.status === 'confirmed' ? 'đã xác nhận' : 'đã hủy'}
-          </Badge>
+          <div className="relative inline-flex group/status">
+            <select
+              value={r.status}
+              disabled={isUpdatingStatus}
+              onChange={(e) => onUpdateStatus(e.target.value as ReservationStatus)}
+              className={cn(
+                'appearance-none outline-none cursor-pointer rounded-full border pl-2 pr-5 py-0.5 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                STATUS_STYLES[r.status]
+              )}
+            >
+              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value} className="text-foreground bg-background">{label}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5">
+              {isUpdatingStatus ? (
+                <Loader2 className="size-3 animate-spin opacity-70" />
+              ) : (
+                <svg className="size-3 opacity-50 transition-opacity group-hover/status:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+              )}
+            </div>
+          </div>
           {r.occasion && (
             <Badge variant="outline" className="text-xs text-muted-foreground border-border/80">
               {r.occasion}

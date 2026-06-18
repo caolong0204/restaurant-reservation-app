@@ -18,6 +18,7 @@ import {
   createReservation as createReservationAction,
   deleteReservation as deleteReservationAction,
   editReservation as editReservationAction,
+  updateReservationStatus as updateReservationStatusAction,
   getAdminSnapshot,
   getAvailableTables as getAvailableTablesAction,
 } from '@/lib/reservation-actions'
@@ -25,6 +26,7 @@ import type {
   ActionResult,
   Reservation,
   ReservationInput,
+  ReservationStatus,
   RestaurantTable,
 } from '@/lib/reservation-types'
 
@@ -53,6 +55,7 @@ type ReservationContextValue = {
   ) => Promise<ActionResult<Reservation>>
   cancelReservation: (id: string) => Promise<ActionResult<Reservation>>
   editReservation: (id: string, data: ReservationInput) => Promise<ActionResult<Reservation>>
+  updateReservationStatus: (id: string, status: ReservationStatus) => Promise<ActionResult<Reservation>>
   deleteReservation: (id: string) => Promise<ActionResult<string>>
   getAvailableTables: (
     date: string,
@@ -153,6 +156,16 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     return result
   }, [])
 
+  const updateReservationStatus = useCallback(async (id: string, status: ReservationStatus) => {
+    const result = await updateReservationStatusAction(id, status)
+    if (result.ok) {
+      setReservations((prev) => upsertReservation(prev, result.data))
+    } else {
+      setActionError(result.error)
+    }
+    return result
+  }, [])
+
   const deleteReservation = useCallback(async (id: string) => {
     const result = await deleteReservationAction(id)
     if (result.ok) {
@@ -185,6 +198,7 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       confirmReservation,
       cancelReservation,
       editReservation,
+      updateReservationStatus,
       deleteReservation,
       getAvailableTables,
     }),
@@ -199,6 +213,7 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       confirmReservation,
       cancelReservation,
       editReservation,
+      updateReservationStatus,
       deleteReservation,
       getAvailableTables,
     ],

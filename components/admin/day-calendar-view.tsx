@@ -39,6 +39,7 @@ interface DayCalendarViewProps {
   onConfirm: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
+  onUpdateStatus: (reservation: Reservation, status: import('@/lib/reservation-types').ReservationStatus) => void
 }
 
 export function DayCalendarView({
@@ -49,6 +50,7 @@ export function DayCalendarView({
   onConfirm,
   onCancel,
   onEdit,
+  onUpdateStatus,
 }: DayCalendarViewProps) {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -77,16 +79,7 @@ export function DayCalendarView({
   const assignedReservations = dayReservations.filter(
     (reservation) => reservation.tableId && reservation.status !== 'cancelled',
   )
-  const tableIds = activeTables.map((table) => table.id)
-  const occupiedSlots = slots.reduce(
-    (sum, slot) => sum + activeTables.length - getSlotAvailability(slot, tableIds, assignedReservations),
-    0,
-  )
-  const totalSlots = activeTables.length * slots.length
-  const availableSlots = totalSlots - occupiedSlots
-  const unassignedCount = dayReservations.filter(
-    (reservation) => !reservation.tableId && reservation.status !== 'cancelled',
-  ).length
+
   const { labelledSlots, gridTemplateColumns, timelineWidth } = buildTimelineMetrics(
     selectedDate,
     activeTables.length,
@@ -193,21 +186,6 @@ export function DayCalendarView({
             </div>
           </div>
         </div>
-
-        <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-          <Badge variant="outline" className="rounded-md bg-emerald-100/70 text-emerald-900">
-            Trống: {availableSlots}
-          </Badge>
-          <Badge variant="outline" className="rounded-md bg-rose-100 text-rose-950">
-            Đã giữ bàn: {occupiedSlots}
-          </Badge>
-          <Badge variant="outline" className="rounded-md bg-background text-foreground">
-            {formatDateLong(selectedDate)}
-          </Badge>
-          <Badge variant="outline" className="rounded-md bg-amber-100 text-amber-950">
-            Chưa gán bàn: {unassignedCount}
-          </Badge>
-        </div>
       </div>
 
       <div className="overflow-auto rounded-lg border border-border bg-card shadow-sm">
@@ -297,6 +275,7 @@ export function DayCalendarView({
             onEdit(reservation)
             setSelectedReservation(null)
           }}
+          onUpdateStatus={onUpdateStatus}
         />
       )}
     </div>

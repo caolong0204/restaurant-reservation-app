@@ -1,6 +1,6 @@
 'use client'
 
-import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { formatDate } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
 
@@ -98,10 +98,10 @@ export function StepDate({
             isPast && 'text-muted-foreground/30 cursor-not-allowed',
             !isPast &&
               !isSelected &&
-              'hover:bg-primary/10 hover:text-primary text-foreground',
-            isToday && !isSelected && 'border-2 border-primary text-primary',
+              'hover:bg-flambe-rust/10 hover:text-flambe-rust text-foreground',
+            isToday && !isSelected && 'border-2 border-flambe-rust text-flambe-rust',
             isSelected &&
-              'bg-primary text-primary-foreground shadow-md scale-102'
+              'bg-[#a1472a] text-white shadow-md scale-102'
           )}
         >
           {dayNum}
@@ -113,21 +113,10 @@ export function StepDate({
   }
 
   return (
-    <div className="flex flex-col items-center gap-2.5 py-0.5 sm:gap-3 sm:py-1 text-center">
-      <div className="flex flex-col items-center">
-        <CalendarIcon className="size-5 text-primary mb-1 sm:size-7 sm:mb-1.5" />
-        <h4 className="font-serif text-base sm:text-lg font-bold text-foreground">
-          Chọn ngày đặt bàn
-        </h4>
-        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
-          Vui lòng chọn ngày bạn muốn dùng bữa tại nhà hàng
-        </p>
-      </div>
-
-      {/* Calendar Widget Container */}
-      <div className="w-full max-w-[320px] flex flex-col mt-1.5 p-2.5 sm:p-3.5 bg-background border rounded-2xl shadow-xs">
+    <div className="flex flex-col items-center py-0.5 text-center">
+      <div className="w-full max-w-[300px] flex flex-col p-2.5 bg-background border rounded-xl shadow-xs">
         {/* Header Navigation */}
-        <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <div className="flex items-center justify-between mb-2">
           <button
             type="button"
             onClick={prevMonth}
@@ -139,7 +128,7 @@ export function StepDate({
           >
             <ChevronLeft className="size-4" />
           </button>
-          <span className="font-serif text-xs sm:text-sm font-bold text-foreground">
+          <span className="font-serif text-sm font-bold text-foreground">
             {calendarMonthLabel()}
           </span>
           <button
@@ -152,7 +141,7 @@ export function StepDate({
         </div>
 
         {/* Weekday Headers starting on Monday */}
-        <div className="grid grid-cols-7 gap-x-2 text-center mb-1.5 sm:mb-2.5">
+        <div className="grid grid-cols-7 gap-x-1.5 text-center mb-1.5">
           {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => (
             <span
               key={day}
@@ -164,14 +153,14 @@ export function StepDate({
         </div>
 
         {/* Days Grid */}
-        <div className="grid grid-cols-7 gap-y-1 sm:gap-y-1.5 gap-x-2 text-center">
+        <div className="grid grid-cols-7 gap-y-1 gap-x-1.5 text-center">
           {renderCalendarCells()}
         </div>
 
         {/* Selected date preview footer inside card */}
-        <div className="mt-2.5 pt-2 sm:mt-3 sm:pt-2.5 border-t border-border/60 text-xs font-semibold text-muted-foreground text-left">
+        <div className="mt-2 pt-2 border-t border-border/60 text-xs font-semibold text-muted-foreground text-left">
           Đã chọn:{' '}
-          <span className="text-primary">
+          <span className="text-[#a1472a]">
             {date ? formatDate(toISO(date)) : 'Chưa chọn'}
           </span>
         </div>

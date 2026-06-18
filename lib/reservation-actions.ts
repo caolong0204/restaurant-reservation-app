@@ -1,6 +1,6 @@
 'use server'
 
-import type { ActionResult, Reservation, ReservationInput, RestaurantTable, SlotAvailability } from '@/lib/reservation-types'
+import type { ActionResult, Reservation, ReservationInput, ReservationStatus, RestaurantTable, SlotAvailability } from '@/lib/reservation-types'
 import type { AdminSnapshot } from '@/lib/reservations/types'
 import {
   getAdminSnapshot as getAdminSnapshotImpl,
@@ -8,12 +8,13 @@ import {
   getPublicSlotAvailability as getPublicSlotAvailabilityImpl,
 } from '@/lib/reservations/queries'
 import {
-  cancelReservation as cancelReservationImpl,
-  confirmReservation as confirmReservationImpl,
-  createManualReservation as createManualReservationImpl,
-  createReservation as createReservationImpl,
-  deleteReservation as deleteReservationImpl,
-  editReservation as editReservationImpl,
+  cancelReservation as cancelReservationMutation,
+  confirmReservation as confirmReservationMutation,
+  createManualReservation as createManualReservationMutation,
+  createReservation as createReservationMutation,
+  deleteReservation as deleteReservationMutation,
+  editReservation as editReservationMutation,
+  updateReservationStatus as updateReservationStatusMutation,
 } from '@/lib/reservations/mutations'
 
 export async function getAdminSnapshot(): Promise<ActionResult<AdminSnapshot>> {
@@ -37,23 +38,27 @@ export async function getPublicSlotAvailability(
 }
 
 export async function createReservation(input: ReservationInput): Promise<ActionResult<Reservation>> {
-  return createReservationImpl(input)
+  return createReservationMutation(input)
 }
 
 export async function createManualReservation(input: ReservationInput): Promise<ActionResult<Reservation>> {
-  return createManualReservationImpl(input)
+  return createManualReservationMutation(input)
 }
 
 export async function editReservation(id: string, input: ReservationInput): Promise<ActionResult<Reservation>> {
-  return editReservationImpl(id, input)
+  return editReservationMutation(id, input)
+}
+
+export async function updateReservationStatus(id: string, status: ReservationStatus): Promise<ActionResult<Reservation>> {
+  return updateReservationStatusMutation(id, status)
 }
 
 export async function cancelReservation(id: string): Promise<ActionResult<Reservation>> {
-  return cancelReservationImpl(id)
+  return cancelReservationMutation(id)
 }
 
 export async function deleteReservation(id: string): Promise<ActionResult<string>> {
-  return deleteReservationImpl(id)
+  return deleteReservationMutation(id)
 }
 
 export async function confirmReservation(
@@ -62,5 +67,5 @@ export async function confirmReservation(
   secondaryTableIds: string[] = [],
   manualArrangement = false,
 ): Promise<ActionResult<Reservation>> {
-  return confirmReservationImpl(id, tableId, secondaryTableIds, manualArrangement)
+  return confirmReservationMutation(id, tableId, secondaryTableIds, manualArrangement)
 }

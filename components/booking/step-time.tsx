@@ -3,7 +3,7 @@
 import type { SlotAvailability } from '@/lib/reservation-types'
 import { formatTime, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
-import { Clock, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface StepTimeProps {
   time: string
@@ -47,19 +47,13 @@ export function StepTime({
   })).filter((g) => g.slots.length > 0)
 
   return (
-    <div className="flex flex-col items-center gap-3 py-1 sm:gap-4 sm:py-2 text-center">
-      <div className="flex flex-col items-center">
-        <div className="flex items-center justify-center gap-2 mb-1 sm:mb-1.5">
-          <Clock className="size-5 text-primary sm:size-7" />
-          {isLoading && <Loader2 className="size-4 sm:size-5 text-primary animate-spin" />}
+    <div className="flex flex-col gap-3 py-0.5 text-center">
+      {isLoading && (
+        <div className="flex items-center justify-center gap-2 text-xs font-medium text-flambe-rust">
+          <Loader2 className="size-4 animate-spin" />
+          Đang kiểm tra bàn trống
         </div>
-        <h4 className="font-serif text-base sm:text-lg font-bold text-foreground">
-          Chọn giờ dùng bữa
-        </h4>
-        <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
-          Các khung giờ hết bàn sẽ tự động khóa theo lịch xác nhận của nhà hàng
-        </p>
-      </div>
+      )}
 
       {error && (
         <div className="rounded-lg border border-destructive/25 bg-destructive/10 px-3 py-2 text-[11px] font-medium text-destructive">
@@ -67,43 +61,51 @@ export function StepTime({
         </div>
       )}
 
-      <div className="flex flex-col gap-4 w-full text-left">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 pl-0.5">
-              {group.label}
+      <div className="flex flex-col gap-3 w-full text-left">
+        {groups.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center text-flambe-rust gap-2">
+            <p className="text-[13px] font-medium px-4">
+              Không thể đặt bàn cho hôm nay nữa, vui lòng chọn ngày khác để dùng bữa!
             </p>
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-              {group.slots.map((slot) => {
-                const availableCount = availabilityByTime.get(slot)
-                const isUnavailable = availableCount === 0
-                return (
-                  <button
-                    key={slot}
-                    type="button"
-                    onClick={() => setTime(slot)}
-                    disabled={isLoading}
-                    className={cn(
-                      'flex min-h-[38px] sm:min-h-[42px] flex-col items-center justify-center rounded-lg border px-1.5 py-1 text-xs sm:text-sm font-semibold transition-all duration-200',
-                      time === slot
-                        ? 'border-primary bg-primary text-primary-foreground scale-102 shadow-md shadow-primary/10'
-                        : 'border-border bg-background text-foreground hover:border-primary/50 hover:bg-secondary/40',
-                      isUnavailable && time !== slot && 'border-amber-200 bg-amber-50/50 text-amber-700/80 hover:bg-amber-100 hover:border-amber-300',
-                      isLoading && 'cursor-wait opacity-70',
-                    )}
-                  >
-                    <span>{formatTime(slot)}</span>
-                    {isUnavailable && (
-                      <span className="mt-0.5 text-[9px] font-bold opacity-85">
-                        Đợi duyệt
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
           </div>
-        ))}
+        ) : (
+          groups.map((group) => (
+            <div key={group.label}>
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 pl-0.5">
+                {group.label}
+              </p>
+              <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+                {group.slots.map((slot) => {
+                  const availableCount = availabilityByTime.get(slot)
+                  const isUnavailable = availableCount === 0
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setTime(slot)}
+                      disabled={isLoading}
+                      className={cn(
+                        'flex min-h-9 flex-col items-center justify-center rounded-lg border px-1.5 py-1 text-xs sm:text-sm font-semibold transition-all duration-200',
+                        time === slot
+                          ? 'border-flambe-rust bg-flambe-rust text-white shadow-md shadow-flambe-rust/20'
+                          : 'border-border bg-background text-foreground hover:border-flambe-rust/50 hover:bg-flambe-rust/5',
+                        isUnavailable && time !== slot && 'border-amber-200 bg-amber-50/50 text-amber-700/80 hover:bg-amber-100 hover:border-amber-300',
+                        isLoading && 'cursor-wait opacity-70',
+                      )}
+                    >
+                      <span>{formatTime(slot)}</span>
+                      {isUnavailable && (
+                        <span className="mt-0.5 text-[9px] font-bold opacity-85">
+                          Đợi duyệt
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   )

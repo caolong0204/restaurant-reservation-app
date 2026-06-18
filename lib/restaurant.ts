@@ -2,10 +2,16 @@ import { formatInTimeZone } from 'date-fns-tz'
 
 export const RESTAURANT = {
   name: 'Flambé',
-  tagline: 'Ẩm thực Pháp theo mùa',
-  address: '23 Gia Ngư, Hà Nội',
-  phone: '0927355656',
-  hours: 'Thứ 2 – Thứ 5: 10:00 – 22:00 · Thứ 6 – Chủ Nhật: 10:00 – 22:30',
+  tagline: 'Flammkuchen và những người bạn',
+  description: 'Nơi lửa, thủ công và tình bạn hòa quyện trong từng món ăn.',
+  address: '23 Gia Ngư, Hoàn Kiếm, Hà Nội',
+  phone: '+84 927 355 656',
+  phoneRaw: '0927355656',
+  email: 'Flambe.vn@gmail.com',
+  hours: [
+    'Thứ Ba - Thứ Sáu: 10:30 - 22:00',
+    'Thứ Bảy - Chủ Nhật: 10:30 - 23:00',
+  ],
 }
 
 export const TIME_SLOTS: string[] = (() => {

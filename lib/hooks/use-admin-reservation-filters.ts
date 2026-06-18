@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { useDebounce } from '@/lib/hooks/use-debounce'
-import type { Reservation, ReservationStatus } from '@/lib/reservation-types'
+import type { Reservation } from '@/lib/reservation-types'
 
-export type AdminFilter = 'all' | ReservationStatus
+export type AdminFilter = 'all' | 'pending' | 'confirmed' | 'serving' | 'completed' | 'cancelled'
 export type AdminView = 'reservations' | 'calendar'
 const RESERVATIONS_PAGE_SIZE = 10
 
@@ -38,7 +38,9 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
       all: relevantReservations.length,
       pending: relevantReservations.filter((reservation) => reservation.status === 'pending').length,
       confirmed: relevantReservations.filter((reservation) => reservation.status === 'confirmed').length,
-      cancelled: relevantReservations.filter((reservation) => reservation.status === 'cancelled').length,
+      serving: relevantReservations.filter((reservation) => reservation.status === 'arrived' || reservation.status === 'seated').length,
+      completed: relevantReservations.filter((reservation) => reservation.status === 'completed').length,
+      cancelled: relevantReservations.filter((reservation) => reservation.status === 'cancelled' || reservation.status === 'no_show').length,
     }
   }, [reservations, dateFilter])
 
@@ -47,7 +49,11 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
 
     return reservations
       .filter((reservation) => {
-        if (filter !== 'all' && reservation.status !== filter) return false
+        if (filter !== 'all') {
+          if (filter === 'serving' && !['arrived', 'seated'].includes(reservation.status)) return false
+          if (filter === 'cancelled' && !['cancelled', 'no_show'].includes(reservation.status)) return false
+          if (filter !== 'serving' && filter !== 'cancelled' && reservation.status !== filter) return false
+        }
         
         const today = todayISO()
         if (dateFilter) {

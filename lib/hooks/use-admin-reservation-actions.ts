@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import type { Reservation, ReservationInput, RestaurantTable, ActionResult } from '@/lib/reservation-types'
+import type { Reservation, ReservationInput, ReservationStatus, RestaurantTable, ActionResult } from '@/lib/reservation-types'
 
 type CreateManualReservationFn = (data: ReservationInput) => Promise<ActionResult<Reservation>>
 type ConfirmReservationFn = (
@@ -14,6 +14,7 @@ type ConfirmReservationFn = (
 ) => Promise<ActionResult<Reservation>>
 type CancelReservationFn = (id: string) => Promise<ActionResult<Reservation>>
 type EditReservationFn = (id: string, data: ReservationInput) => Promise<ActionResult<Reservation>>
+type UpdateReservationStatusFn = (id: string, status: ReservationStatus) => Promise<ActionResult<Reservation>>
 type GetAvailableTablesFn = (
   date: string,
   time: string,
@@ -27,6 +28,7 @@ type UseAdminReservationActionsArgs = {
   confirmReservation: ConfirmReservationFn
   cancelReservation: CancelReservationFn
   editReservation: EditReservationFn
+  updateReservationStatus: UpdateReservationStatusFn
   getAvailableTables: GetAvailableTablesFn
 }
 
@@ -36,6 +38,7 @@ export function useAdminReservationActions({
   confirmReservation,
   cancelReservation,
   editReservation,
+  updateReservationStatus,
   getAvailableTables,
 }: UseAdminReservationActionsArgs) {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -45,6 +48,7 @@ export function useAdminReservationActions({
   const [availableTables, setAvailableTables] = useState<RestaurantTable[]>([])
   const [isLoadingTables, setIsLoadingTables] = useState(false)
   const [cancelingReservation, setCancelingReservation] = useState<Reservation | null>(null)
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
 
   const openAssignModal = useCallback(
     async (reservation: Reservation) => {
@@ -191,6 +195,25 @@ export function useAdminReservationActions({
     [closeEdit, editingReservation, handleCancel, reservations],
   )
 
+  const handleUpdateStatus = useCallback(
+    async (reservation: Reservation, status: ReservationStatus) => {
+      setUpdatingStatusId(reservation.id)
+      const result = await updateReservationStatus(reservation.id, status)
+      setUpdatingStatusId(null)
+      
+      if (result.ok) {
+        toast.success(`Đã cập nhật trạng thái của ${reservation.name}`)
+        return true
+      }
+
+      toast.error('Không cập nhật được trạng thái', {
+        description: result.error,
+      })
+      return false
+    },
+    [updateReservationStatus],
+  )
+
   return {
     isCreateOpen,
     setIsCreateOpen,
@@ -211,5 +234,7 @@ export function useAdminReservationActions({
     handleCreateSubmit,
     handleEditSubmit,
     handleEditCancelBooking,
+    handleUpdateStatus,
+    updatingStatusId,
   }
 }

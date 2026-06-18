@@ -38,17 +38,17 @@ export function AdminReservationFilters({
   return (
     <div className="mt-8 rounded-xl border border-border bg-card p-4 shadow-xs">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-nowrap overflow-x-auto no-scrollbar gap-1.5 pb-2 -mb-2 w-full xl:w-auto xl:max-w-[600px] 2xl:max-w-none">
           {filters.map((item) => (
             <button
               key={item.value}
               type="button"
               onClick={() => onFilterChange(item.value)}
               className={cn(
-                'rounded-none border-b-2 border-transparent px-3 py-2 text-xs font-semibold transition-colors',
+                'whitespace-nowrap shrink-0 rounded-lg px-3.5 py-2 text-sm font-semibold transition-all',
                 filter === item.value
-                  ? 'border-primary text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
               {item.label} ({counts[item.value]})

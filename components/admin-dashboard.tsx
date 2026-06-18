@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, ArrowRight, CalendarDays, CalendarClock, Loader2, Plus, RefreshCcw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CalendarDays, CalendarClock, Loader2, Plus, RefreshCcw, AlertCircle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -13,7 +13,7 @@ import { CreateModal } from '@/components/admin/create-modal'
 import { DayCalendarView } from '@/components/admin/day-calendar-view'
 import { EditModal } from '@/components/admin/edit-modal'
 import { ReservationTable } from '@/components/admin/reservation-table'
-import { useReservations, type ReservationStatus } from '@/components/reservation-provider'
+import { useReservations } from '@/components/reservation-provider'
 import { useAdminReservationActions } from '@/lib/hooks/use-admin-reservation-actions'
 import { useAdminReservationFilters, type AdminFilter } from '@/lib/hooks/use-admin-reservation-filters'
 
@@ -21,6 +21,8 @@ const FILTERS: Array<{ value: AdminFilter; label: string }> = [
   { value: 'all', label: 'Tất cả' },
   { value: 'pending', label: 'Chờ duyệt' },
   { value: 'confirmed', label: 'Đã xác nhận' },
+  { value: 'serving', label: 'Đang phục vụ' },
+  { value: 'completed', label: 'Hoàn thành' },
   { value: 'cancelled', label: 'Đã hủy' },
 ]
 
@@ -35,6 +37,7 @@ export function AdminDashboard() {
     confirmReservation,
     cancelReservation,
     editReservation,
+    updateReservationStatus,
     getAvailableTables,
   } = useReservations()
 
@@ -79,12 +82,15 @@ export function AdminDashboard() {
     handleCreateSubmit,
     handleEditSubmit,
     handleEditCancelBooking,
+    handleUpdateStatus,
+    updatingStatusId,
   } = useAdminReservationActions({
     reservations,
     createManualReservation,
     confirmReservation,
     cancelReservation,
     editReservation,
+    updateReservationStatus,
     getAvailableTables,
   })
 
@@ -93,11 +99,7 @@ export function AdminDashboard() {
       <AdminDashboardHeader />
 
       <main className="mx-auto max-w-7xl px-3 py-8 sm:px-4">
-        {actionError && (
-          <div className="mt-4 rounded-lg border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {actionError}
-          </div>
-        )}
+
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
           <div className="flex items-center gap-2">
@@ -172,7 +174,7 @@ export function AdminDashboard() {
               isDateFilterOpen={isDateFilterOpen}
               onDateFilterOpenChange={setIsDateFilterOpen}
               filter={filter}
-              onFilterChange={(value) => setFilter(value as 'all' | ReservationStatus)}
+              onFilterChange={(value) => setFilter(value as AdminFilter)}
               counts={counts}
               filters={FILTERS}
             />
@@ -207,6 +209,8 @@ export function AdminDashboard() {
                     onConfirm={(reservation) => void openAssignModal(reservation)}
                     onCancel={(reservation) => void handleCancel(reservation)}
                     onEdit={openEdit}
+                    onUpdateStatus={handleUpdateStatus}
+                    updatingStatusId={updatingStatusId}
                   />
 
                   {filtered.length > pageSize ? (
@@ -260,6 +264,8 @@ export function AdminDashboard() {
               onConfirm={(reservation) => void openAssignModal(reservation)}
               onCancel={(reservation) => void handleCancel(reservation)}
               onEdit={openEdit}
+              onUpdateStatus={handleUpdateStatus}
+              updatingStatusId={updatingStatusId}
             />
           </div>
         )}

@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ArrowLeft, LockKeyhole, ShieldCheck, Sparkles, Star, UtensilsCrossed } from 'lucide-react'
+import { ArrowLeft, LockKeyhole, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RESTAURANT } from '@/lib/restaurant'
 import { createClient } from '@/lib/supabase/server'
@@ -34,13 +34,15 @@ export default async function AdminLoginPage({
     <main className="min-h-dvh bg-background">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-3 sm:px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              <UtensilsCrossed className="size-4" />
-            </span>
-            <span className="font-serif text-xl font-semibold tracking-tight text-foreground">
-              {RESTAURANT.name}
-            </span>
+          <Link href="/" className="flex items-center gap-3" aria-label={RESTAURANT.name}>
+            <Image
+              src="/flambe-logo.png"
+              alt={`${RESTAURANT.name} Logo`}
+              width={120}
+              height={40}
+              priority
+              className="h-8 sm:h-10 w-auto"
+            />
           </Link>
 
           <Button
@@ -76,33 +78,14 @@ export default async function AdminLoginPage({
                   <Star className="size-3.5 fill-accent text-accent" />
                   Khu vực vận hành nội bộ
                 </span>
-                <h1 className="mt-5 text-balance font-serif text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
+                <h1 className="mt-5 text-balance font-serif text-3xl font-semibold leading-tight sm:text-4xl lg:text-5xl">
                   Đăng nhập để quản lý lịch đặt bàn và phân bổ bàn phục vụ
                 </h1>
                 <p className="mt-4 max-w-lg text-pretty text-base leading-relaxed text-background/80 sm:text-lg">
                   Cùng một hệ giao diện với trang booking, nhưng tối ưu cho đội ngũ vận hành theo dõi booking pending, booking confirmed và tình trạng bàn theo từng khung giờ.
                 </p>
 
-                <div className="mt-7 grid gap-3 sm:max-w-md">
-                  <div className="flex items-start gap-3 rounded-xl border border-background/15 bg-background/10 p-4 backdrop-blur-sm">
-                    <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" />
-                    <div>
-                      <p className="text-sm font-semibold">Phân quyền nhân sự</p>
-                      <p className="mt-1 text-sm leading-relaxed text-background/75">
-                        Chỉ tài khoản staff đang active mới vào được khu vực quản trị.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-xl border border-background/15 bg-background/10 p-4 backdrop-blur-sm">
-                    <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" />
-                    <div>
-                      <p className="text-sm font-semibold">Cùng ngữ cảnh vận hành</p>
-                      <p className="mt-1 text-sm leading-relaxed text-background/75">
-                        Kiểm tra booking mới, confirm bàn và xử lý lịch phục vụ ngay trong cùng một dashboard.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+
               </div>
 
               <div className="lg:col-span-5">

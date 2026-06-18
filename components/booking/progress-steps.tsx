@@ -23,15 +23,15 @@ export function ProgressSteps({
   if (step === 5) return null
 
   return (
-    <div className="grid grid-cols-4 gap-2 bg-secondary/35 p-2 sm:p-2.5 border-b border-border">
+    <div className="grid grid-cols-4 gap-1.5 bg-secondary/35 p-1.5 sm:gap-2 sm:p-2 border-b border-border">
       {/* Step 1: Party Size */}
       <button
         type="button"
         onClick={() => handleStepClick(1)}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 transition-all',
           step === 1
-            ? 'border-primary ring-2 ring-primary/20'
+            ? 'border-flambe-rust ring-2 ring-flambe-rust/20'
             : 'border-border opacity-70 hover:opacity-100'
         )}
       >
@@ -40,7 +40,7 @@ export function ProgressSteps({
             <Check className="size-2.5 stroke-[3]" />
           </span>
         )}
-        <Users className={cn('size-5', step === 1 ? 'text-primary' : 'text-muted-foreground')} />
+        <Users className={cn('size-4.5', step === 1 ? 'text-flambe-rust' : 'text-muted-foreground')} />
         <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Số khách</span>
       </button>
 
@@ -50,9 +50,9 @@ export function ProgressSteps({
         onClick={() => handleStepClick(2)}
         disabled={!isPartySizeSelected}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 transition-all',
           step === 2
-            ? 'border-primary ring-2 ring-primary/20'
+            ? 'border-flambe-rust ring-2 ring-flambe-rust/20'
             : 'border-border opacity-70 hover:opacity-100',
           !isPartySizeSelected && 'cursor-not-allowed opacity-40'
         )}
@@ -62,7 +62,7 @@ export function ProgressSteps({
             <Check className="size-2.5 stroke-[3]" />
           </span>
         )}
-        <CalendarIcon className={cn('size-5', step === 2 ? 'text-primary' : 'text-muted-foreground')} />
+        <CalendarIcon className={cn('size-4.5', step === 2 ? 'text-flambe-rust' : 'text-muted-foreground')} />
         <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Chọn ngày</span>
       </button>
 
@@ -72,9 +72,9 @@ export function ProgressSteps({
         onClick={() => handleStepClick(3)}
         disabled={!isDateSelected}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 transition-all',
           step === 3
-            ? 'border-primary ring-2 ring-primary/20'
+            ? 'border-flambe-rust ring-2 ring-flambe-rust/20'
             : 'border-border opacity-70 hover:opacity-100',
           !isDateSelected && 'cursor-not-allowed opacity-40'
         )}
@@ -84,7 +84,7 @@ export function ProgressSteps({
             <Check className="size-2.5 stroke-[3]" />
           </span>
         )}
-        <Clock className={cn('size-5', step === 3 ? 'text-primary' : 'text-muted-foreground')} />
+        <Clock className={cn('size-4.5', step === 3 ? 'text-flambe-rust' : 'text-muted-foreground')} />
         <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Giờ đặt</span>
       </button>
 
@@ -94,9 +94,9 @@ export function ProgressSteps({
         onClick={() => handleStepClick(4)}
         disabled={!isTimeSelected}
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 sm:py-2 transition-all',
+          'relative flex flex-col items-center justify-center rounded-lg border bg-background py-1.5 transition-all',
           step === 4
-            ? 'border-primary ring-2 ring-primary/20'
+            ? 'border-flambe-rust ring-2 ring-flambe-rust/20'
             : 'border-border opacity-70 hover:opacity-100',
           !isTimeSelected && 'cursor-not-allowed opacity-40'
         )}
@@ -106,7 +106,7 @@ export function ProgressSteps({
             <Check className="size-2.5 stroke-[3]" />
           </span>
         )}
-        <User className={cn('size-5', step === 4 ? 'text-primary' : 'text-muted-foreground')} />
+        <User className={cn('size-4.5', step === 4 ? 'text-flambe-rust' : 'text-muted-foreground')} />
         <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Thông tin</span>
       </button>
     </div>

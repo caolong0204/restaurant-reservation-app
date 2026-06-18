@@ -1,10 +1,11 @@
-import { Check, X } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Check, X, Loader2 } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
+
 import { Button } from '@/components/ui/button'
-import type { Reservation } from '@/lib/reservation-types'
+import type { Reservation, ReservationStatus } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
-import { statusText } from '@/lib/admin-calendar'
+import { STATUS_LABELS, STATUS_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
 
 type CalendarReservationDetailsProps = {
   reservation: Reservation
@@ -12,6 +13,8 @@ type CalendarReservationDetailsProps = {
   onConfirm: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
+  onUpdateStatus: (reservation: Reservation, status: ReservationStatus) => void | Promise<boolean | void>
+  isUpdatingStatus?: boolean
 }
 
 export function CalendarReservationDetails({
@@ -20,13 +23,20 @@ export function CalendarReservationDetails({
   onConfirm,
   onCancel,
   onEdit,
+  onUpdateStatus,
+  isUpdatingStatus,
 }: CalendarReservationDetailsProps) {
-  const now = new Date()
-  const yearStr = now.getFullYear()
-  const monthStr = String(now.getMonth() + 1).padStart(2, '0')
-  const dayStr = String(now.getDate()).padStart(2, '0')
-  const todayStr = `${yearStr}-${monthStr}-${dayStr}`
-  const isPastDate = reservation.date < todayStr
+  const todayStr = useMemo(() => getTodayIso(), [])
+  const isPastDate = isPastReservation(reservation.date, todayStr)
+
+  const [localStatus, setLocalStatus] = useState<ReservationStatus>(reservation.status)
+  const [isSaving, setIsSaving] = useState(false)
+  const isCurrentlySaving = isSaving || isUpdatingStatus
+  
+  // Sync local state if parent prop changes
+  useEffect(() => {
+    setLocalStatus(reservation.status)
+  }, [reservation.status])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
@@ -43,6 +53,7 @@ export function CalendarReservationDetails({
           </div>
           <button
             type="button"
+            aria-label="Đóng"
             onClick={onClose}
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
@@ -58,19 +69,25 @@ export function CalendarReservationDetails({
             </div>
             <div>
               <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Trạng thái</span>
-              <Badge
-                variant="outline"
-                className={cn(
-                  'mt-0.5 rounded-md text-xs font-semibold',
-                  reservation.status === 'confirmed'
-                    ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
-                    : reservation.status === 'cancelled'
-                      ? 'border-rose-500/30 bg-rose-500/10 text-rose-700'
-                      : 'border-amber-500/30 bg-amber-500/10 text-amber-700',
-                )}
-              >
-                {statusText(reservation.status)}
-              </Badge>
+                <div className="relative inline-flex mt-0.5 group/status">
+                  <select
+                    aria-label="Cập nhật trạng thái"
+                    value={localStatus}
+                    disabled={isCurrentlySaving || (isPastDate && reservation.status === 'pending')}
+                    onChange={(e) => setLocalStatus(e.target.value as ReservationStatus)}
+                    className={cn(
+                      'appearance-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden cursor-pointer rounded-full border pl-3 pr-7 py-1 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                      STATUS_STYLES[localStatus]
+                    )}
+                  >
+                    {getSelectableStatuses(reservation.status, isPastDate).map(([value, label]) => (
+                      <option key={value} value={value} className="text-foreground bg-background">{label}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                    <svg className="size-3.5 opacity-70 transition-opacity group-hover/status:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
             </div>
             <div>
               <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Số điện thoại</span>
@@ -136,6 +153,7 @@ export function CalendarReservationDetails({
                 type="button"
                 size="sm"
                 variant="outline"
+                aria-label="Hủy đặt bàn"
                 onClick={() => onCancel(reservation)}
                 className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
               >
@@ -146,15 +164,21 @@ export function CalendarReservationDetails({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!isPastDate && reservation.status !== 'confirmed' && (
+            {localStatus !== reservation.status && (
               <Button
                 type="button"
                 size="sm"
-                onClick={() => onConfirm(reservation)}
-                className="gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={async () => {
+                  setIsSaving(true)
+                  const result = await onUpdateStatus(reservation, localStatus)
+                  setIsSaving(false)
+                  if (result !== false) onClose()
+                }}
+                disabled={isCurrentlySaving}
+                className="gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <Check className="size-3.5" />
-                Gán bàn
+                {isCurrentlySaving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                Lưu
               </Button>
             )}
             

@@ -45,7 +45,7 @@ export function RestaurantInfo({ className, glassTheme = false }: RestaurantInfo
           <div>
             <p className="font-semibold text-sm">Giờ hoạt động</p>
             <p className={cn('text-xs mt-0.5', glassTheme ? 'text-white/80' : 'text-muted-foreground')}>
-              {RESTAURANT.hours}
+              {RESTAURANT.hours.join(' · ')}
             </p>
           </div>
         </div>

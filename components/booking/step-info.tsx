@@ -72,7 +72,7 @@ export function StepInfo({
       )}
 
       <div className="flex items-center gap-2 pb-2 sm:pb-3">
-        <User className="size-4 sm:size-5 text-primary" />
+        <User className="size-4 sm:size-5 text-flambe-rust" />
         <div>
           <h4 className="font-serif text-base sm:text-lg font-bold text-foreground">
             Thông tin đặt bàn & Yêu cầu
@@ -86,7 +86,8 @@ export function StepInfo({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="name" className="flex items-center gap-1">
-            <User className="size-3 text-muted-foreground" /> Họ và tên
+            <User className="size-3 text-muted-foreground" />
+            <span>Họ và tên <span className="text-red-500">*</span></span>
           </Label>
           <Input
             id="name"
@@ -98,7 +99,8 @@ export function StepInfo({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="phone" className="flex items-center gap-1">
-            <Phone className={cn("size-3 text-muted-foreground", isPhoneInvalid && "text-destructive")} /> Số điện thoại
+            <Phone className={cn("size-3 text-muted-foreground", isPhoneInvalid && "text-destructive")} />
+            <span>Số điện thoại <span className="text-red-500">*</span></span>
           </Label>
           <Input
             id="phone"
