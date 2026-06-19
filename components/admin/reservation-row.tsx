@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { type Reservation, type ReservationStatus } from '@/components/reservation-provider'
 import { formatDate, formatTime } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
-import { STATUS_LABELS, STATUS_STYLES, ROW_BG_STYLES } from '@/lib/admin-calendar'
+import { STATUS_LABELS, STATUS_STYLES, ROW_BG_STYLES, hasReservationServiceEnded } from '@/lib/admin-calendar'
 
 interface ReservationRowProps {
   reservation: Reservation
@@ -41,6 +41,7 @@ export function ReservationRow({
   isUpdatingStatus,
 }: ReservationRowProps) {
   const r = reservation
+  const isServiceEnded = hasReservationServiceEnded(r)
   return (
     <div className={cn(
       "flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20 sm:flex-row sm:items-center sm:justify-between relative overflow-hidden group",
@@ -136,6 +137,8 @@ export function ReservationRow({
           <Button 
             size="sm" 
             className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs" 
+            disabled={isServiceEnded}
+            title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Gán bàn'}
             onClick={onConfirm}
           >
             <Check className="size-3.5" />
@@ -147,6 +150,8 @@ export function ReservationRow({
             size="sm"
             variant="outline"
             className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50/50 hover:text-rose-700 dark:border-rose-900/30 dark:hover:bg-rose-950/20"
+            disabled={isServiceEnded}
+            title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Hủy bàn'}
             onClick={onCancel}
           >
             <X className="size-3.5" />
@@ -161,7 +166,8 @@ export function ReservationRow({
           size="sm"
           variant="ghost"
           className="size-8 p-0 text-muted-foreground hover:text-foreground"
-          title="Chỉnh sửa"
+          title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Chỉnh sửa'}
+          disabled={isServiceEnded}
           onClick={onEdit}
         >
           <Edit3 className="size-3.5" />
@@ -171,7 +177,8 @@ export function ReservationRow({
           size="sm"
           variant="ghost"
           className="size-8 p-0 text-muted-foreground hover:text-rose-600 hover:bg-rose-50/50 dark:hover:bg-rose-950/20"
-          title="Xóa vĩnh viễn"
+          title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Xóa vĩnh viễn'}
+          disabled={isServiceEnded}
           onClick={onDelete}
         >
           <Trash2 className="size-3.5" />

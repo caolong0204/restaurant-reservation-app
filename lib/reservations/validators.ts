@@ -51,12 +51,19 @@ export function validateAssignmentCapacity(
   return null
 }
 
-export function validateReservationInput(input: ReservationInput): string | null {
+interface ReservationValidationOptions {
+  allowPastTime?: boolean
+}
+
+export function validateReservationInput(
+  input: ReservationInput,
+  options: ReservationValidationOptions = {},
+): string | null {
   if (!input.name.trim()) return 'Vui lòng nhập tên khách.'
   if (!validateVNPhone(input.phone)) return 'Số điện thoại không hợp lệ.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return 'Ngày đặt bàn không hợp lệ.'
   if (!TIME_SLOTS.includes(normalizeTime(input.time))) return 'Khung giờ đặt bàn không hợp lệ.'
-  if (isPastTimeSlot(normalizeTime(input.time), input.date)) {
+  if (!options.allowPastTime && isPastTimeSlot(normalizeTime(input.time), input.date)) {
     return 'Không thể đặt bàn vào khung giờ đã trôi qua.'
   }
   if (!Number.isInteger(input.partySize) || input.partySize < 1 || input.partySize > 24) {

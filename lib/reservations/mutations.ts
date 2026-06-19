@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { requireStaff } from '@/lib/auth/guards'
+import { isReservationInServiceWindow } from '@/lib/admin-calendar'
 import { createClient } from '@/lib/supabase/server'
 import type {
   ActionResult,
@@ -182,8 +183,6 @@ export async function editReservation(id: string, input: ReservationInput): Prom
   if (!staff.ok) return fail(staff.error)
 
   const normalized = normalizeInput(input)
-  const validationError = validateReservationInput(normalized)
-  if (validationError) return fail(validationError)
 
   const snapshot = await getAdminSnapshot()
   if (!snapshot.ok) return fail(snapshot.error)
@@ -196,7 +195,13 @@ export async function editReservation(id: string, input: ReservationInput): Prom
   const targetTableId = input.tableId === '' ? null : (input.tableId ?? current.tableId ?? null)
   const targetSecondaryTableIds =
     targetTableId === null ? [] : (input.secondaryTableIds ?? current.secondaryTableIds ?? [])
-  const targetManualArrangement = targetTableId === null ? false : Boolean(input.manualArrangement)
+  const targetManualArrangement =
+    targetTableId === null ? false : Boolean(input.manualArrangement ?? current.manualArrangement)
+  const isWithinServiceWindow = isReservationInServiceWindow(current)
+
+  const validationError = validateReservationInput(normalized, { allowPastTime: isWithinServiceWindow })
+  if (validationError) return fail(validationError)
+
   let newStatus = current.status
   if (targetTableId === null) {
     if (current.status !== 'pending') {
@@ -281,6 +286,12 @@ export async function cancelReservation(id: string): Promise<ActionResult<Reserv
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
 
+  const snapshot = await getAdminSnapshot()
+  if (!snapshot.ok) return fail(snapshot.error)
+
+  const current = snapshot.data.reservations.find((item) => item.id === id)
+  if (!current) return fail('Không tìm thấy lượt đặt bàn.')
+
   const supabase = await createClient()
   const timestamp = new Date().toISOString()
   const { error } = await supabase
@@ -298,19 +309,28 @@ export async function cancelReservation(id: string): Promise<ActionResult<Reserv
     return fail('Không hủy được lượt đặt bàn.')
   }
 
-  const snapshot = await getAdminSnapshot()
-  if (!snapshot.ok) return fail(snapshot.error)
-
-  const reservation = snapshot.data.reservations.find((item) => item.id === id)
-  if (!reservation) return fail('Không tìm thấy lượt đặt bàn.')
-
   revalidatePath('/admin')
-  return ok(reservation)
+  return ok({
+    ...current,
+    status: 'cancelled',
+    manualArrangement: false,
+    tableId: undefined,
+    table: undefined,
+    secondaryTableIds: [],
+    secondaryTables: [],
+    updatedAt: dateFromTimestamp(timestamp),
+  })
 }
 
 export async function deleteReservation(id: string): Promise<ActionResult<string>> {
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
+
+  const snapshot = await getAdminSnapshot()
+  if (!snapshot.ok) return fail(snapshot.error)
+
+  const current = snapshot.data.reservations.find((reservation) => reservation.id === id)
+  if (!current) return fail('Không tìm thấy lượt đặt bàn.')
 
   const supabase = await createClient()
   const { error } = await supabase.from('reservations').delete().eq('id', id)

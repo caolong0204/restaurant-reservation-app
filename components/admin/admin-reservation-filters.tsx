@@ -184,10 +184,10 @@ export function AdminReservationFilters({
             type="button"
             onClick={onCreateReservation}
             aria-label="Tạo đặt bàn"
-            className="flex size-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-flambe-rust p-0 text-sm font-bold text-white shadow-xs hover:bg-flambe-rust-hover sm:h-11 sm:w-auto sm:px-6"
+            className="flex size-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-flambe-rust p-0 text-sm font-bold text-white shadow-xs hover:bg-flambe-rust-hover lg:h-11 lg:w-auto lg:px-6"
           >
             <Plus className="size-5" />
-            <span className="hidden sm:inline">Tạo đặt bàn</span>
+            <span className="hidden lg:inline">Tạo đặt bàn</span>
           </Button>
         </div>
       </div>

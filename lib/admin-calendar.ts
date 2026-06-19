@@ -10,6 +10,39 @@ export function getTodayIso(): string {
   return formatInTimeZone(new Date(), 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd')
 }
 
+export function isReservationInServiceWindow(
+  reservation: Pick<Reservation, 'date' | 'time' | 'partySize' | 'status'>,
+  now = new Date(),
+): boolean {
+  if (reservation.status === 'pending' || TERMINAL_STATUSES.includes(reservation.status)) return false
+
+  const todayIso = formatInTimeZone(now, 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd')
+  if (reservation.date !== todayIso) return false
+
+  const nowMinutes = minutesFromTime(formatInTimeZone(now, 'Asia/Ho_Chi_Minh', 'HH:mm'))
+  const startMinutes = minutesFromTime(reservation.time)
+  const endMinutes = startMinutes + getBookingDurationMinutes(reservation.partySize)
+
+  return nowMinutes >= startMinutes && nowMinutes < endMinutes
+}
+
+export function hasReservationServiceEnded(
+  reservation: Pick<Reservation, 'date' | 'time' | 'partySize' | 'status'>,
+  now = new Date(),
+): boolean {
+  if (reservation.status === 'pending') return false
+
+  const todayIso = formatInTimeZone(now, 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd')
+  if (reservation.date < todayIso) return true
+  if (reservation.date > todayIso) return false
+
+  const nowMinutes = minutesFromTime(formatInTimeZone(now, 'Asia/Ho_Chi_Minh', 'HH:mm'))
+  const startMinutes = minutesFromTime(reservation.time)
+  const endMinutes = startMinutes + getBookingDurationMinutes(reservation.partySize)
+
+  return nowMinutes >= endMinutes
+}
+
 export function isPastReservation(reservationDate: string, todayIso: string): boolean {
   return reservationDate < todayIso
 }

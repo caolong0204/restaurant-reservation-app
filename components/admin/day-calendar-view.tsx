@@ -150,30 +150,30 @@ export function DayCalendarView({
   return (
     <div className={cn("grid gap-4", !isPastDate ? "xl:grid-cols-[minmax(0,1fr)_300px]" : "xl:grid-cols-1")}>
       <div className="min-w-0 space-y-4">
-        <div className="rounded-lg border border-border/80 bg-card p-3 shadow-xs">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-1.5">
+        <div className="rounded-xl border border-border/80 bg-card p-3 shadow-xs">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
+              <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] gap-2 lg:flex lg:items-center lg:gap-1.5">
                 <Button
                   type="button"
                   variant="outline"
                   size="icon-lg"
                   aria-label="Ngày trước"
-                  className="bg-background"
+                  className="size-11 rounded-lg bg-background lg:size-9"
                   onClick={() => onDateChange(addDaysToIso(selectedDate, -1))}
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft className="size-5 lg:size-4" />
                 </Button>
                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                   <PopoverTrigger
                     render={
                       <Button
                         variant="outline"
-                        className="h-9 w-40 sm:w-44 justify-start rounded-lg border bg-background pl-3 text-left text-sm font-semibold shadow-xs"
+                        className="h-11 w-full justify-center rounded-lg border bg-background px-3 text-center text-base font-bold shadow-xs lg:h-9 lg:w-44 lg:justify-start lg:text-left lg:text-sm"
                       />
                     }
                   >
-                    <CalendarDays className="mr-2 size-4 shrink-0 text-muted-foreground" />
+                    <CalendarDays className="mr-2 size-5 shrink-0 text-foreground lg:size-4 lg:text-muted-foreground" />
                     <span className="truncate">{formatDate(selectedDate)}</span>
                   </PopoverTrigger>
                   <PopoverContent className="animate-in fade-in-50 slide-in-from-top-1 w-auto border-none p-0 duration-150" align="start">
@@ -196,24 +196,58 @@ export function DayCalendarView({
                   variant="outline"
                   size="icon-lg"
                   aria-label="Ngày sau"
-                  className="bg-background"
+                  className="size-11 rounded-lg bg-background lg:size-9"
                   onClick={() => onDateChange(addDaysToIso(selectedDate, 1))}
                 >
-                  <ChevronRight className="size-4" />
+                  <ChevronRight className="size-5 lg:size-4" />
                 </Button>
+              </div>
+              <div className="grid grid-cols-[minmax(0,1fr)_44px_minmax(0,1.35fr)] gap-2 lg:hidden">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-11 justify-center gap-2 rounded-lg bg-background px-3 text-sm font-bold"
+                  onClick={() => onDateChange(isoFromDate(new Date()))}
+                >
+                  <CalendarDays className="size-5" />
+                  Hôm nay
+                </Button>
+                {onRefresh && (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    aria-label="Làm mới dữ liệu"
+                    className="size-11 rounded-lg bg-background"
+                    onClick={onRefresh}
+                    disabled={isLoading}
+                  >
+                    <RefreshCcw className={cn('size-5', isLoading && 'animate-spin')} />
+                  </Button>
+                )}
+                {onCreateReservation && (
+                  <Button
+                    aria-label="Tạo đặt bàn"
+                    className="flex h-11 min-w-0 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold shadow-xs"
+                    onClick={onCreateReservation}
+                  >
+                    <Plus className="size-5" />
+                    <span className="truncate">Tạo đặt bàn</span>
+                  </Button>
+                )}
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 gap-2 bg-background"
+                className="hidden h-9 gap-2 bg-background lg:inline-flex"
                 onClick={() => onDateChange(isoFromDate(new Date()))}
               >
                 <CalendarDays className="size-4" />
                 Hôm nay
               </Button>
             </div>
-            <div className="flex items-center justify-end gap-2">
+            <div className="hidden items-center justify-end gap-2 lg:flex">
               {onRefresh && (
                 <Button
                   size="icon"
@@ -229,16 +263,20 @@ export function DayCalendarView({
               {onCreateReservation && (
                 <Button
                   aria-label="Tạo đặt bàn"
-                  className="flex size-9 shrink-0 items-center justify-center gap-1.5 rounded-lg text-xs font-bold shadow-xs p-0 sm:h-9 sm:w-auto sm:px-3"
+                  className="flex h-9 w-auto shrink-0 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-bold shadow-xs"
                   onClick={onCreateReservation}
                 >
                   <Plus className="size-3.5" />
-                  <span className="hidden sm:inline">Tạo đặt bàn</span>
+                  <span>Tạo đặt bàn</span>
                 </Button>
               )}
             </div>
           </div>
         </div>
+
+        <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
+          Booking đã hết thời lượng phục vụ chỉ được cập nhật trạng thái. Các thao tác chỉnh sửa, gán bàn, hủy hoặc xóa sẽ bị khóa.
+        </p>
 
         <div className="overflow-auto rounded-lg border border-border/80 bg-card shadow-xs">
           <div className="relative w-max">

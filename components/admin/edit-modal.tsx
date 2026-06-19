@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { type Reservation } from '@/components/reservation-provider'
 import type { ActionResult, ReservationInput, RestaurantTable } from '@/lib/reservation-types'
 import { OCCASIONS, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
+import { isReservationInServiceWindow } from '@/lib/admin-calendar'
 import { cn, validateVNPhone } from '@/lib/utils'
 import { AdminCustomerInfoFields } from '@/components/admin/admin-customer-info-fields'
 import { AdminSchedulingFields } from '@/components/admin/admin-scheduling-fields'
@@ -63,13 +64,14 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const [isLoadingTables, setIsLoadingTables] = useState(false)
   const [tableError, setTableError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const isWithinServiceWindow = Boolean(reservation && isReservationInServiceWindow(reservation))
 
   useEffect(() => {
     const isOriginalDateTime = reservation && eTime === reservation.time && eDate === reservation.date;
-    if (eTime && isPastTimeSlot(eTime, eDate) && !isOriginalDateTime) {
+    if (eTime && isPastTimeSlot(eTime, eDate) && !isOriginalDateTime && !isWithinServiceWindow) {
       setETime('')
     }
-  }, [eDate, eTime, reservation])
+  }, [eDate, eTime, isWithinServiceWindow, reservation])
 
 
   useEffect(() => {
@@ -168,7 +170,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const secondaryTables = tables.filter((t) => eSecondaryTableIds.includes(t.id))
   const activeTables = tables.filter((t) => t.active)
   // Only tables returned by getAvailableTables are selectable
-  const availableTableIds = new Set(availableTables.map(t => t.id))
+  const availableTableIds = new Set(availableTables.map((t) => t.id))
   const groupedTables = activeTables.reduce<Record<string, RestaurantTable[]>>((acc, table) => {
     acc[table.floor] = [...(acc[table.floor] ?? []), table]
     return acc
@@ -276,8 +278,6 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
             isPhoneValid={isEPhoneValid}
           />
 
-
-
           <AdminSchedulingFields
             date={eDate}
             onDateChange={setEDate}
@@ -291,7 +291,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
               const slots = getAvailableTimeSlots(Number(ePartySize) || 1, eDate).filter(
                 (t) => {
                   const isOriginalDateTime = reservation && t === reservation.time && eDate === reservation.date;
-                  return !isPastTimeSlot(t, eDate) || isOriginalDateTime;
+                  return isWithinServiceWindow || !isPastTimeSlot(t, eDate) || isOriginalDateTime;
                 }
               )
               // Always include reservation.time if pre-selected to avoid state loss
@@ -341,6 +341,9 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
                 setCSecondaryTableIds={setESecondaryTableIds}
                 showLargePartyTip={showLargePartyTip}
               />
+              {tableError && (
+                <p className="text-xs font-medium text-destructive">{tableError}</p>
+              )}
             </div>
           </div>
 

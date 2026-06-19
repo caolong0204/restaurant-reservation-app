@@ -5,7 +5,13 @@ import { Check, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Reservation, ReservationStatus } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
-import { STATUS_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
+import {
+  STATUS_STYLES,
+  getSelectableStatuses,
+  getTodayIso,
+  hasReservationServiceEnded,
+  isPastReservation,
+} from '@/lib/admin-calendar'
 
 type CalendarReservationDetailsProps = {
   reservation: Reservation
@@ -26,6 +32,7 @@ export function CalendarReservationDetails({
 }: CalendarReservationDetailsProps) {
   const todayStr = useMemo(() => getTodayIso(), [])
   const isPastDate = isPastReservation(reservation.date, todayStr)
+  const isServiceEnded = hasReservationServiceEnded(reservation)
 
   const [localStatus, setLocalStatus] = useState<ReservationStatus>(reservation.status)
   const [isSaving, setIsSaving] = useState(false)
@@ -58,6 +65,12 @@ export function CalendarReservationDetails({
             <X className="size-5" />
           </button>
         </div>
+
+        {isServiceEnded && (
+          <div className="mx-5 mt-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
+            Booking đã hết thời lượng phục vụ. Chỉ có thể cập nhật trạng thái.
+          </div>
+        )}
 
         <div className="max-h-[58dvh] space-y-4 overflow-y-auto p-5">
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -152,6 +165,8 @@ export function CalendarReservationDetails({
                 size="sm"
                 variant="outline"
                 aria-label="Hủy đặt bàn"
+                disabled={isServiceEnded}
+                title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Hủy đặt bàn'}
                 onClick={() => onCancel(reservation)}
                 className="gap-1 border-rose-200 text-rose-600 hover:bg-rose-50"
               >
@@ -181,7 +196,15 @@ export function CalendarReservationDetails({
             )}
             
             {!isPastDate && (
-              <Button type="button" size="sm" variant="outline" onClick={() => onEdit(reservation)} className="gap-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => onEdit(reservation)}
+                disabled={isServiceEnded}
+                title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Chỉnh sửa'}
+                className="gap-1"
+              >
                 Chỉnh sửa
               </Button>
             )}

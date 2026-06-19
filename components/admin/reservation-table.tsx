@@ -25,7 +25,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { STATUS_STYLES, ROW_BG_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
+import {
+  STATUS_STYLES,
+  ROW_BG_STYLES,
+  getSelectableStatuses,
+  getTodayIso,
+  hasReservationServiceEnded,
+  isPastReservation,
+} from '@/lib/admin-calendar'
 import type { Reservation, ReservationStatus, RestaurantTable } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
 
@@ -100,6 +107,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
 }) {
   const isCancelled = reservation.status === 'cancelled'
   const isPending = reservation.status === 'pending'
+  const isServiceEnded = hasReservationServiceEnded(reservation)
   
   // Logic: Mới tạo trong vòng 15 phút
   const isNew = nowMs > 0 && (nowMs - reservation.createdAt) < 15 * 60 * 1000
@@ -205,7 +213,9 @@ const ReservationTableRow = memo(function ReservationTableRow({
           <button
             type="button"
             onClick={() => onConfirm(reservation)}
-            className="mx-auto inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-500/20"
+            disabled={isServiceEnded}
+            title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Gán bàn'}
+            className="mx-auto inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-45"
           >
             <Armchair className="size-3" />
             Gán bàn
@@ -246,7 +256,8 @@ const ReservationTableRow = memo(function ReservationTableRow({
               size="icon-sm"
               variant="ghost"
               aria-label="Sửa thông tin"
-              title="Sửa thông tin"
+              title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Sửa thông tin'}
+              disabled={isServiceEnded}
               onClick={() => onEdit(reservation)}
             >
               <Edit3 className="size-3.5" />
@@ -258,6 +269,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
                 className="bg-red-600 text-white hover:bg-red-700"
                 aria-label="Hủy booking"
                 title="Hủy booking"
+                disabled={isServiceEnded}
                 onClick={() => onCancel(reservation)}
               >
                 <X className="size-3.5" />
@@ -268,7 +280,8 @@ const ReservationTableRow = memo(function ReservationTableRow({
               <Button
                 size="icon-sm"
                 className="bg-emerald-600 text-white hover:bg-emerald-700"
-                title="Gán bàn và xác nhận"
+                title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Gán bàn và xác nhận'}
+                disabled={isServiceEnded}
                 onClick={() => onConfirm(reservation)}
               >
                 <Check className="size-3.5" />
