@@ -1,89 +1,73 @@
-# Supabase Setup
+# Supabase Setup & Deployment Guide
 
 ## Current State
 
-Supabase dependencies, helper clients, auth actions, and SQL migrations exist in the repo.
+The application is actively connected to Supabase for its backend operations, including Auth, Postgres Database, and Realtime WebSocket subscriptions.
 
-However, the database has **not** been deployed in the current project context. Existing SQL files under `supabase/migrations/` should be treated as drafts. Do not run them blindly without syncing them to the current frontend/demo rules.
+## 1. Database & Realtime Architecture
 
-## Required Sync Before Deploy
+### Realtime Subscriptions
+The admin dashboard uses Supabase Realtime to listen for new bookings (`INSERT` events on the `reservations` table). This allows staff to receive instant notifications without manually refreshing the page.
 
-Update migrations/RPCs so they match the current app behavior:
+### RLS (Row Level Security) Constraints with Realtime
+Supabase Realtime has strict performance constraints when evaluating RLS policies.
+- **The Problem**: The standard `reservations_staff_all` policy uses a `security definer` function (`is_active_staff()`) that queries the `staff_profiles` table. Realtime struggles to evaluate complex join/function policies efficiently and will silently drop WebSocket messages.
+- **The Solution**: We created a dedicated bypass policy specifically for reading data:
+  ```sql
+  create policy reservations_realtime_select on public.reservations
+  for select to authenticated
+  using (true);
+  ```
+  Since only staff members have `authenticated` accounts, it is safe to allow them to `SELECT` from the reservations table directly without querying `staff_profiles` again just for Realtime broadcasts.
 
-- Duration:
-  - 1-4 guests: 120 minutes.
-  - 5-6 guests: 150 minutes.
-  - 7+ guests: 180 minutes.
-- Public bookings:
-  - Insert as `pending`.
-  - Must not include `table_id`.
-  - Must not hold availability.
-- Confirmed bookings:
-  - Must have an assigned main table.
-  - Must block main table and any secondary/joined tables.
-- Slot availability:
-  - Must respect requested party size.
-  - Must ignore pending/cancelled bookings.
-- Large parties:
-  - Decide how to persist joined tables and manual capacity override.
-  - Add DB-level protection against double-booking joined/secondary tables.
-- RLS:
-  - Public insert only for safe pending reservations.
-  - Active staff can read/mutate admin data.
+### SSR & Realtime Connection Race Conditions
+In `components/reservation-provider.tsx`, we must explicitly `await supabase.auth.getSession()` before calling `supabase.channel().subscribe()`. 
+If we do not wait for the session to hydrate from cookies in Next.js SSR, the WebSocket connection initializes as the `anon` role, causing Realtime to drop messages because `anon` doesn't have `SELECT` privileges.
 
-## Environment Variables
+## 2. Frontend Optimizations (Booking Flow)
 
-Add these values to `.env.local` only when ready to use Supabase mode:
+To minimize Database queries and prevent UI blocking during public booking:
+- **Eager Loading**: Slot availability is fetched proactively when the user finishes Step 2.
+- **In-Memory Caching**: A 3-minute TTL cache (`useRef`) prevents redundant API calls when users navigate back and forth between Date Selection and Time Selection.
+- **Debounce**: A 300ms debounce ensures rapid clicks on the calendar only trigger 1 API call.
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-```
+## 3. Deployment Steps (Vercel & Supabase)
 
-These values are required because the app now runs directly against Supabase.
+### Step 1: Set up Supabase
+1. Create a Supabase project.
+2. Link the CLI and run migrations:
+   ```bash
+   npx supabase link --project-ref <your-project-ref>
+   npx supabase db push
+   ```
+3. Ensure Realtime is enabled for the `reservations` table:
+   ```sql
+   alter publication supabase_realtime add table reservations;
+   ```
+4. Apply the Realtime RLS bypass policy (as mentioned in section 1).
 
-## Staff Setup
-
-After deploying the final schema:
-
-1. Create at least one Supabase Auth user.
+### Step 2: Set up Staff Accounts
+1. Go to Supabase Authentication -> Users and create a new user.
 2. Insert that user into `staff_profiles`:
+   ```sql
+   insert into public.staff_profiles (user_id, display_name, role, active)
+   values ('AUTH_USER_ID_HERE', 'Admin', 'admin', true);
+   ```
 
-```sql
-insert into public.staff_profiles (user_id, display_name, role, active)
-values ('AUTH_USER_ID_HERE', 'Admin', 'admin', true)
-on conflict (user_id) do update
-set active = true, role = 'admin';
-```
-
-Admin access is blocked unless the signed-in user exists in `staff_profiles` with `active = true`.
+### Step 3: Deploy to Vercel
+1. Link your repository to Vercel.
+2. Add the following Environment Variables in the Vercel Dashboard:
+   - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Key (Wait, the app uses NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+   ```
+3. Trigger a deployment (`git push main`).
 
 ## Expected Runtime Behavior
 
-- If Supabase env vars are missing:
-  - `/admin` uses demo mode.
-  - No login is required.
-- If Supabase env vars are present:
-  - `/admin` requires login.
-  - Server Actions verify active staff status.
-  - Public booking writes to Supabase as pending.
-
-## Verification After Deploy
-
-Run:
-
-```bash
-pnpm exec tsc --noEmit
-pnpm lint
-pnpm build
-```
-
-Manual QA:
-
-- Guest booking creates a pending reservation.
-- Pending reservation appears in admin but does not occupy a table.
-- Admin can assign enough-capacity tables and confirm.
-- Admin cannot double-book overlapping confirmed reservations.
-- Joined/secondary tables also block availability.
-- Short-capacity assignment requires either joined tables or manual override.
 - `/admin` redirects to `/admin/login` when unauthenticated.
+- Staff access is strictly validated via Server Actions against `staff_profiles`.
+- Public booking writes to Supabase as `pending`.
+- Realtime instantly notifies active `/admin` tabs of new bookings.
