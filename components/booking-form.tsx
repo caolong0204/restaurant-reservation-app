@@ -36,7 +36,8 @@ interface BookingFormProps {
   setTime: React.Dispatch<React.SetStateAction<string>>
   name: string
   setName: (val: string) => void
-
+  email: string
+  setEmail: (val: string) => void
   phone: string
   setPhone: (val: string) => void
   occasion: string
@@ -64,7 +65,8 @@ export function BookingForm({
   setTime,
   name,
   setName,
-
+  email = '',
+  setEmail,
   phone,
   setPhone,
   occasion,
@@ -102,8 +104,16 @@ export function BookingForm({
     ? (Number(customPartyValue) >= 9 && Number(customPartyValue) <= 24 && !isNaN(Number(customPartyValue)))
     : Boolean(partySize)
   const isStep2Valid = Boolean(date)
-  const isStep3Valid = Boolean(time)
-  const isStep4Valid = Boolean(name.trim() && phone.trim() && validateVNPhone(phone))
+  const selectedSlotCount = slotAvailability.find((s) => s.time === time)?.availableCount ?? 0
+  const isStep3Valid = Boolean(time && selectedSlotCount > 0)
+
+  // Step 4 is valid if name, phone, optional email are valid, and table is available
+  const isStep4Valid = Boolean(
+    name.trim() &&
+      validateVNPhone(phone) &&
+      (!email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) &&
+      selectedSlotCount > 0,
+  )
 
   useEffect(() => {
     if (!date || !isStep1Valid) return
@@ -223,7 +233,7 @@ export function BookingForm({
 
     const result = await addReservation({
       name: name.trim(),
-
+      email: email?.trim() || undefined,
       phone: phone.trim(),
       date: toISO(date),
       time,
@@ -340,13 +350,15 @@ export function BookingForm({
           <StepInfo
             name={name}
             setName={setName}
+            email={email}
+            setEmail={setEmail}
             phone={phone}
             setPhone={setPhone}
             occasion={occasion}
             setOccasion={setOccasion}
             notes={notes}
             setNotes={setNotes}
-            availableCount={slotAvailability.find((s) => s.time === time)?.availableCount ?? 0}
+            availableCount={selectedSlotCount}
           />
         )}
 
@@ -379,7 +391,7 @@ export function BookingForm({
           <div className="mt-3 border-t border-border pt-3">
             {step === 4 && (
               <p className="text-[11px] sm:text-xs text-rose-600 font-semibold text-left mb-3 select-none leading-relaxed">
-                * nhà hàng không nhận đặt vị trí bàn cụ thể, bàn sẽ được xếp theo tình hình thực tế tại thời điểm khách hàng tới dùng bữa.
+                *Nhà hàng không nhận đặt vị trí bàn cụ thể, bàn sẽ được xếp theo tình hình thực tế tại thời điểm khách hàng tới dùng bữa.
               </p>
             )}
             <div className="flex items-center justify-between">

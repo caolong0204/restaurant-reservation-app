@@ -26,6 +26,7 @@ interface CreateModalProps {
 export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTables }: CreateModalProps) {
   const [cName, setCName] = useState('')
   const [cPhone, setCPhone] = useState('')
+  const [cEmail, setCEmail] = useState('')
 
   // Prevent background body scroll when modal is open
   useEffect(() => {
@@ -63,6 +64,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
   // Form validations
   const isCPartyValid = Number(cPartySize) > 0 && Number(cPartySize) <= 24 && !isNaN(Number(cPartySize))
   const isCPhoneValid = cPhone.trim() === '' || validateVNPhone(cPhone)
+  const isCEmailValid = cEmail.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cEmail)
   const hasSchedulingFields = Boolean(cDate && cTime && isCPartyValid)
   const partySize = Number(cPartySize) || 0
   const activeTables = tables.filter((table) => table.active)
@@ -94,6 +96,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
     cName.trim() &&
     cPhone.trim() &&
     validateVNPhone(cPhone) &&
+    isCEmailValid &&
     cDate &&
     cTime &&
     isCPartyValid &&
@@ -221,6 +224,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
       const didCreate = await onSubmit({
         name: cName.trim(),
         phone: cPhone.trim(),
+        email: cEmail.trim() || undefined,
         date: cDate,
         time: cTime,
         partySize: Number(cPartySize),
@@ -236,7 +240,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
       // Reset fields
       setCName('')
       setCPhone('')
-
+      setCEmail('')
       setCDate('')
       setCTime('')
       setCPartySize('4')
@@ -298,6 +302,9 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
             phone={cPhone}
             onPhoneChange={setCPhone}
             isPhoneValid={isCPhoneValid}
+            email={cEmail}
+            onEmailChange={setCEmail}
+            isEmailValid={isCEmailValid}
           />
 
           <AdminSchedulingFields

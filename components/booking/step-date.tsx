@@ -73,6 +73,8 @@ export function StepDate({
     for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
       const cellDate = new Date(year, month, dayNum)
       const isPast = cellDate < today
+      const isMonday = cellDate.getDay() === 1
+      const isDisabled = isPast || isMonday
 
       const isToday =
         cellDate.getDate() === today.getDate() &&
@@ -89,17 +91,17 @@ export function StepDate({
         <button
           key={`day-${dayNum}`}
           type="button"
-          disabled={isPast}
+          disabled={isDisabled}
           onClick={() => {
             setDate(cellDate)
           }}
           className={cn(
             'size-7 sm:size-8 mx-auto flex items-center justify-center text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl transition-all duration-200',
-            isPast && 'text-muted-foreground/30 cursor-not-allowed',
-            !isPast &&
+            isDisabled && 'text-muted-foreground/30 cursor-not-allowed',
+            !isDisabled &&
               !isSelected &&
               'hover:bg-flambe-rust/10 hover:text-flambe-rust text-foreground',
-            isToday && !isSelected && 'border-2 border-flambe-rust text-flambe-rust',
+            isToday && !isSelected && !isDisabled && 'border-2 border-flambe-rust text-flambe-rust',
             isSelected &&
               'bg-[#a1472a] text-white shadow-md scale-102'
           )}

@@ -1,5 +1,6 @@
 import { addDays, subDays } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
+import { unstable_noStore } from 'next/cache'
 
 import { requireStaff } from '@/lib/auth/guards'
 import { createClient } from '@/lib/supabase/server'
@@ -84,6 +85,7 @@ export async function getPublicSlotAvailability(
   date: string,
   partySize: number,
 ): Promise<ActionResult<SlotAvailability[]>> {
+  unstable_noStore()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(partySize) || partySize < 1) {
     return fail('Thông tin ngày hoặc số khách không hợp lệ.')
   }

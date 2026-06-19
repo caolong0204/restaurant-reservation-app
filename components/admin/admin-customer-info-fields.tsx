@@ -7,6 +7,9 @@ interface AdminCustomerInfoFieldsProps {
   phone: string
   onPhoneChange: (value: string) => void
   isPhoneValid: boolean
+  email: string
+  onEmailChange: (value: string) => void
+  isEmailValid: boolean
 }
 
 export function AdminCustomerInfoFields({
@@ -15,6 +18,9 @@ export function AdminCustomerInfoFields({
   phone,
   onPhoneChange,
   isPhoneValid,
+  email,
+  onEmailChange,
+  isEmailValid,
 }: AdminCustomerInfoFieldsProps) {
   return (
     <div className="grid gap-2.5 sm:grid-cols-2">
@@ -56,6 +62,30 @@ export function AdminCustomerInfoFields({
             className="text-[10px] text-destructive font-medium"
           >
             SĐT không hợp lệ (VN format)
+          </span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1 sm:col-span-2">
+        <Label htmlFor="cEmail" className="text-[11px] font-bold">
+          Email (Không bắt buộc)
+        </Label>
+        <Input
+          id="cEmail"
+          name="customer-email"
+          autoComplete="email"
+          type="email"
+          value={email}
+          onChange={(e) => onEmailChange(e.target.value)}
+          placeholder="ví dụ: khach@email.com"
+          className="h-8 rounded-lg bg-background/70 text-sm"
+          aria-invalid={!isEmailValid || undefined}
+        />
+        {!isEmailValid && (
+          <span
+            aria-live="polite"
+            className="text-[10px] text-destructive font-medium"
+          >
+            Email không hợp lệ
           </span>
         )}
       </div>

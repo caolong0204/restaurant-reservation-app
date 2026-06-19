@@ -17,6 +17,7 @@ export type Reservation = {
   id: string
   name: string
   phone: string
+  email?: string
   date: string
   time: string
   partySize: number
@@ -36,6 +37,7 @@ export type Reservation = {
 export type ReservationInput = {
   name: string
   phone: string
+  email?: string
   date: string
   time: string
   partySize: number

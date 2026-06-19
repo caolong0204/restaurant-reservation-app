@@ -15,21 +15,23 @@ describe('restaurant booking rules', () => {
 
   test('uses 22:00 closing time on weekdays', () => {
     expect(getClosingTime('2026-06-18')).toBe('22:00')
-    expect(getLastBookingTime('2026-06-18')).toBe('21:30')
+    expect(getLastBookingTime('2026-06-18')).toBe('21:00')
   })
 
   test('uses 22:30 closing time on Friday and weekend', () => {
     expect(getClosingTime('2026-06-19')).toBe('22:30')
     expect(getClosingTime('2026-06-20')).toBe('22:30')
     expect(getClosingTime('2026-06-21')).toBe('22:30')
-    expect(getLastBookingTime('2026-06-21')).toBe('22:00')
+    expect(getLastBookingTime('2026-06-21')).toBe('21:30')
   })
 
   test('returns only slots that fit before weekday cutoff', () => {
     const slots = getAvailableTimeSlots(4, '2026-06-18')
 
     expect(slots[0]).toBe('10:30')
-    expect(slots.at(-1)).toBe('21:30')
+    expect(slots.at(-1)).toBe('21:00')
+    expect(slots).not.toContain('21:15')
+    expect(slots).not.toContain('21:30')
     expect(slots).not.toContain('21:45')
     expect(slots).not.toContain('22:00')
   })
@@ -37,7 +39,9 @@ describe('restaurant booking rules', () => {
   test('returns only slots that fit before weekend cutoff', () => {
     const slots = getAvailableTimeSlots(4, '2026-06-21')
 
-    expect(slots.at(-1)).toBe('22:00')
+    expect(slots.at(-1)).toBe('21:30')
+    expect(slots).not.toContain('21:45')
+    expect(slots).not.toContain('22:00')
     expect(slots).not.toContain('22:15')
     expect(slots).not.toContain('22:30')
   })
@@ -57,5 +61,11 @@ describe('restaurant booking rules', () => {
     expect(isPastTimeSlot('18:15', '2026-06-18')).toBe(true)
     expect(isPastTimeSlot('18:30', '2026-06-18')).toBe(false)
     expect(isPastTimeSlot('18:15', '2026-06-19')).toBe(false)
+  })
+
+  test('returns empty array for Monday', () => {
+    // 2026-06-15 is a Monday
+    const slots = getAvailableTimeSlots(4, '2026-06-15')
+    expect(slots).toEqual([])
   })
 })

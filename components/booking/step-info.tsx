@@ -13,16 +13,18 @@ import { OCCASIONS } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
 import {
   AlertCircle,
-  Clock,
   MessageSquare,
   PartyPopper,
   Phone,
   User,
+  Mail,
 } from 'lucide-react'
 
 interface StepInfoProps {
   name: string
   setName: (val: string) => void
+  email: string
+  setEmail: (val: string) => void
   phone: string
   setPhone: (val: string) => void
 
@@ -36,6 +38,8 @@ interface StepInfoProps {
 export function StepInfo({
   name,
   setName,
+  email = '',
+  setEmail,
   phone,
   setPhone,
 
@@ -46,17 +50,18 @@ export function StepInfo({
   availableCount = 10,
 }: StepInfoProps) {
   const isPhoneInvalid = phone.trim().length > 0 && !validateVNPhone(phone)
+  const isEmailInvalid = email.trim().length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const isWaitlist = availableCount === 0
   const isScarcity = availableCount > 0 && availableCount < 2
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
       {isWaitlist && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 flex items-start gap-2.5 shadow-sm">
-          <Clock className="size-4.5 shrink-0 mt-0.5" />
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-destructive flex items-start gap-2.5 shadow-sm">
+          <AlertCircle className="size-4.5 shrink-0 mt-0.5" />
           <div className="text-[13px] leading-relaxed">
-            <strong className="block text-sm font-bold mb-0.5">Danh sách chờ (Waitlist)</strong>
-            Khung giờ này hiện đang kín lịch. Yêu cầu của bạn sẽ được lưu vào danh sách chờ và nhà hàng sẽ chủ động liên hệ nếu có khách hủy bàn.
+            <strong className="block text-sm font-bold mb-0.5">Đã hết bàn!</strong>
+            Khung giờ này vừa mới kín chỗ. Vui lòng quay lại bước trước để chọn một khung giờ khác.
           </div>
         </div>
       )}
@@ -117,6 +122,27 @@ export function StepInfo({
             </span>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="email" className="flex items-center gap-1">
+          <Mail className={cn("size-3 text-muted-foreground", isEmailInvalid && "text-destructive")} />
+          <span>Email</span>
+        </Label>
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="ví dụ: khach@email.com"
+          className="rounded-lg"
+          aria-invalid={isEmailInvalid || undefined}
+        />
+        {isEmailInvalid && (
+          <span className="text-xs text-destructive font-medium mt-0.5">
+            Email không hợp lệ (ví dụ: khach@email.com)
+          </span>
+        )}
       </div>
 
 

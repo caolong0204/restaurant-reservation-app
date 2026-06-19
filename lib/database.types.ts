@@ -64,6 +64,7 @@ export type Database = {
           created_at: string
           guest_name: string
           guest_phone: string
+          guest_email: string | null
           id: string
           manual_arrangement: boolean
           notes: string | null
@@ -82,6 +83,7 @@ export type Database = {
           created_at?: string
           guest_name: string
           guest_phone: string
+          guest_email?: string | null
           id?: string
           manual_arrangement?: boolean
           notes?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           created_at?: string
           guest_name?: string
           guest_phone?: string
+          guest_email?: string | null
           id?: string
           manual_arrangement?: boolean
           notes?: string | null

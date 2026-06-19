@@ -7,6 +7,7 @@ export function normalizeInput(input: ReservationInput): ReservationInput {
   return {
     name: input.name.trim(),
     phone: input.phone.trim(),
+    email: input.email?.trim() || undefined,
     date: input.date,
     time: normalizeTime(input.time),
     partySize: input.partySize,
@@ -55,12 +56,15 @@ interface ReservationValidationOptions {
   allowPastTime?: boolean
 }
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export function validateReservationInput(
   input: ReservationInput,
   options: ReservationValidationOptions = {},
 ): string | null {
   if (!input.name.trim()) return 'Vui lòng nhập tên khách.'
   if (!validateVNPhone(input.phone)) return 'Số điện thoại không hợp lệ.'
+  if (input.email && !EMAIL_REGEX.test(input.email)) return 'Email không hợp lệ.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return 'Ngày đặt bàn không hợp lệ.'
   if (!TIME_SLOTS.includes(normalizeTime(input.time))) return 'Khung giờ đặt bàn không hợp lệ.'
   if (!options.allowPastTime && isPastTimeSlot(normalizeTime(input.time), input.date)) {

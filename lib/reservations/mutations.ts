@@ -37,6 +37,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
     id,
     guest_name: normalized.name,
     guest_phone: normalized.phone,
+    guest_email: normalized.email ?? null,
     reservation_date: normalized.date,
     reservation_time: normalized.time,
     party_size: normalized.partySize,
@@ -52,6 +53,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
   })
 
   if (error) {
+    console.error('Failed to create reservation:', error)
     return fail('Chưa gửi được yêu cầu đặt bàn. Vui lòng thử lại.')
   }
 
@@ -128,6 +130,7 @@ export async function createManualReservation(input: ReservationInput): Promise<
     id,
     guest_name: normalized.name,
     guest_phone: normalized.phone,
+    guest_email: normalized.email ?? null,
     reservation_date: normalized.date,
     reservation_time: normalized.time,
     party_size: normalized.partySize,
@@ -245,6 +248,7 @@ export async function editReservation(id: string, input: ReservationInput): Prom
     .update({
       guest_name: normalized.name,
       guest_phone: normalized.phone,
+      guest_email: normalized.email ?? null,
       reservation_date: normalized.date,
       reservation_time: normalized.time,
       party_size: normalized.partySize,

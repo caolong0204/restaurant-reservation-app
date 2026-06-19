@@ -76,7 +76,7 @@ export function StepTime({
               </p>
               <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
                 {group.slots.map((slot) => {
-                  const availableCount = availabilityByTime.get(slot)
+                  const availableCount = availabilityByTime.get(slot) ?? 0
                   const isUnavailable = availableCount === 0
                   return (
                     <button

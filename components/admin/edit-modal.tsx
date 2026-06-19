@@ -31,6 +31,7 @@ interface EditModalProps {
 export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBooking, tables, getAvailableTables }: EditModalProps) {
   const [eName, setEName] = useState('')
   const [ePhone, setEPhone] = useState('')
+  const [eEmail, setEEmail] = useState('')
 
   // Prevent background body scroll when modal is open
   useEffect(() => {
@@ -78,6 +79,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
     if (reservation) {
       setEName(reservation.name)
       setEPhone(reservation.phone)
+      setEEmail(reservation.email || '')
 
       setEDate(reservation.date)
       setETime(reservation.time)
@@ -156,11 +158,13 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
 
   // Form validations
   const isEPhoneValid = ePhone.trim() === '' || validateVNPhone(ePhone)
+  const isEEmailValid = eEmail.trim() === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(eEmail)
 
   const isEditValid = Boolean(
     eName.trim() &&
     ePhone.trim() &&
     validateVNPhone(ePhone) &&
+    isEEmailValid &&
     eDate &&
     eTime &&
     isEPartyValid
@@ -234,6 +238,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
       await onSubmit(reservation.id, {
         name: eName.trim(),
         phone: ePhone.trim(),
+        email: eEmail.trim() || undefined,
         date: eDate,
         time: eTime,
         partySize: Number(ePartySize),
@@ -276,6 +281,9 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
             phone={ePhone}
             onPhoneChange={setEPhone}
             isPhoneValid={isEPhoneValid}
+            email={eEmail}
+            onEmailChange={setEEmail}
+            isEmailValid={isEEmailValid}
           />
 
           <AdminSchedulingFields

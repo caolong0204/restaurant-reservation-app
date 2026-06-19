@@ -12,7 +12,7 @@ export function Reserve() {
   const [time, setTime] = useState<string>('')
 
   const [name, setName] = useState('')
-
+  const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [occasion, setOccasion] = useState(OCCASIONS[0])
   const [tableLocation, setTableLocation] = useState(TABLE_LOCATIONS[0])
@@ -50,7 +50,8 @@ export function Reserve() {
               setTime={setTime}
               name={name}
               setName={setName}
-
+              email={email}
+              setEmail={setEmail}
               phone={phone}
               setPhone={setPhone}
               occasion={occasion}
@@ -80,7 +81,8 @@ export function Reserve() {
                 setTime={setTime}
                 name={name}
                 setName={setName}
-
+                email={email}
+                setEmail={setEmail}
                 phone={phone}
                 setPhone={setPhone}
                 occasion={occasion}

@@ -32,6 +32,7 @@ export function mapReservation(row: ReservationRow, tables: RestaurantTable[]): 
     id: row.id,
     name: row.guest_name,
     phone: row.guest_phone,
+    email: row.guest_email ?? undefined,
     date: row.reservation_date,
     time: normalizeTime(row.reservation_time),
     partySize: row.party_size,

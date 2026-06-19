@@ -64,13 +64,9 @@ export function getClosingTime(dateIso?: string): string {
  * Pass the selected date ISO string (YYYY-MM-DD) to get the correct cutoff.
  */
 export function getLastBookingTime(dateIso?: string): string {
-  const closingTime = getClosingTime(dateIso)
-  const [h, m] = closingTime.split(':').map(Number)
-  const closeMinutes = (h ?? 22) * 60 + (m ?? 0)
-  const lastBookingMinutes = closeMinutes - 30
-  const lastH = Math.floor(lastBookingMinutes / 60)
-  const lastM = lastBookingMinutes % 60
-  return `${String(lastH).padStart(2, '0')}:${String(lastM).padStart(2, '0')}`
+  if (!dateIso) return '21:00'
+  const day = new Date(`${dateIso}T00:00:00`).getDay() // 0=Sun,5=Fri,6=Sat
+  return day === 0 || day === 5 || day === 6 ? '21:30' : '21:00'
 }
 
 /**
@@ -87,9 +83,15 @@ export function getBookingDuration(partySize: number): number {
  * Returns the subset of TIME_SLOTS that fit within operating hours for the given date and party size.
  */
 export function getAvailableTimeSlots(partySize: number, dateIso?: string): string[] {
+  if (dateIso) {
+    const day = new Date(`${dateIso}T00:00:00`).getDay()
+    if (day === 1) return [] // 1 is Monday
+  }
+
   const lastBooking = getLastBookingTime(dateIso)
   const [lastH, lastM] = lastBooking.split(':').map(Number)
   const lastBookingMinutes = (lastH ?? 21) * 60 + (lastM ?? 0)
+
   return TIME_SLOTS.filter((slot) => {
     const slotMinutes = minutesFromTimeString(slot)
     return slotMinutes <= lastBookingMinutes
