@@ -44,14 +44,18 @@ Tối ưu hóa trải nghiệm tải dữ liệu của bước chọn giờ (Ste
        }
      }
      
-     // Ngược lại, gọi API tải dữ liệu
-     // ...
-     getPublicSlotAvailability(dateStr, size).then(result => {
-        if (result.ok) {
-           slotCache.current = { date: dateStr, partySize: size, data: result.data, fetchedAt: Date.now() };
-           setSlotAvailability(result.data);
-        }
-     });
+     // Ngược lại, áp dụng Debounce để gọi API (chờ 300ms sau lần click cuối)
+     const timeoutId = setTimeout(() => {
+       getPublicSlotAvailability(dateStr, size).then(result => {
+          if (result.ok) {
+             slotCache.current = { date: dateStr, partySize: size, data: result.data, fetchedAt: Date.now() };
+             setSlotAvailability(result.data);
+          }
+       });
+     }, 300);
+
+     // Cleanup function sẽ huỷ gọi API nếu user bấm chọn ngày khác trước khi hết 300ms
+     return () => clearTimeout(timeoutId);
    }, [date, isStep1Valid, partySize]); // Đã loại bỏ biến `step`
    ```
 
@@ -72,7 +76,7 @@ Tối ưu hóa trải nghiệm tải dữ liệu của bước chọn giờ (Ste
    ```
 
 ## Đánh đổi (Trade-offs)
-- Cơ chế tải trước (eager loading) sẽ gọi API mỗi khi người dùng bấm chọn một ngày mới trên lịch. Nếu user bấm liên tục 5 ngày khác nhau cực nhanh, hệ thống sẽ gọi API 5 lần. Ta có thể thêm `debounce`, tuy nhiên vì việc click chọn ngày bằng thư viện `react-day-picker` là các thao tác rời rạc (chọn xong mới click tiếp), cách tiếp cận hiện tại vẫn ổn trừ khi phát hiện vấn đề giật lag thực sự.
+- Bằng cách sử dụng **Debounce (300ms)** kết hợp với Eager Loading, chúng ta giải quyết được bài toán gọi API thừa: nếu user bấm liên tiếp nhiều ngày khác nhau trong tích tắc, hệ thống chỉ gọi API đúng 1 lần cho ngày cuối cùng được chọn. Việc này loại bỏ hoàn toàn nhược điểm "gọi API nhiều lần" đã đề cập trước đó. Đổi lại, việc tải ngầm (eager load) sẽ chậm đi `300ms` so với bấm phát tải luôn, nhưng độ trễ này là hoàn toàn vô hình với trải nghiệm người dùng vì họ vẫn đang ở Step 2.
 
 ## Câu hỏi mở / Các điểm cần làm rõ
 - Nếu bộ nhớ đệm hết hạn (qua 2 phút) *ngay trong lúc* người dùng đang đứng ở Step 3 và lựa giờ, ta có nên tự động tải lại (auto-refresh) không, hay chỉ tải khi họ có hành động chuyển bước?
