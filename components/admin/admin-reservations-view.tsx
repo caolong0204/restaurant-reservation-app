@@ -75,10 +75,6 @@ export function AdminReservationsView({
         isRefreshing={isLoading}
       />
 
-      <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
-        Booking đã hết thời lượng phục vụ chỉ được cập nhật trạng thái. Các thao tác chỉnh sửa, gán bàn, hủy hoặc xóa sẽ bị khóa.
-      </p>
-
       {isLoading ? (
         <div className="flex items-center justify-center rounded-lg border border-border bg-card py-24 shadow-xs">
           <div className="flex flex-col items-center gap-3 text-muted-foreground">

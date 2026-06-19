@@ -274,10 +274,6 @@ export function DayCalendarView({
           </div>
         </div>
 
-        <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-800">
-          Booking đã hết thời lượng phục vụ chỉ được cập nhật trạng thái. Các thao tác chỉnh sửa, gán bàn, hủy hoặc xóa sẽ bị khóa.
-        </p>
-
         <div className="overflow-auto rounded-lg border border-border/80 bg-card shadow-xs">
           <div className="relative w-max">
             <table className="w-max caption-bottom border-separate border-spacing-0 text-sm">
