@@ -17,6 +17,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
+import { AdminNotifications } from '@/components/admin/admin-notifications'
+
 import { AdminReservationsView } from '@/components/admin/admin-reservations-view'
 import { AssignTableModal } from '@/components/admin/assign-table-modal'
 import { ConfirmModal } from '@/components/admin/confirm-modal'
@@ -219,6 +221,8 @@ export function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            <AdminNotifications reservations={reservations} />
+
             {view === 'calendar' ? (
               <Button
                 size="icon"

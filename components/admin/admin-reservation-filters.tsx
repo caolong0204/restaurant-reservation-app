@@ -11,6 +11,24 @@ import type { AdminFilter } from '@/lib/hooks/use-admin-reservation-filters'
 
 type FilterOption = { value: AdminFilter; label: string }
 
+const ACTIVE_TAB_STYLES: Record<string, string> = {
+  all: 'border-primary text-primary bg-primary/20 dark:bg-primary/30',
+  pending: 'border-amber-500 text-amber-700 bg-amber-500/20 dark:text-amber-400',
+  confirmed: 'border-emerald-500 text-emerald-700 bg-emerald-500/20 dark:text-emerald-400',
+  serving: 'border-blue-500 text-blue-700 bg-blue-500/20 dark:text-blue-400',
+  completed: 'border-gray-500 text-gray-700 bg-gray-500/20 dark:text-gray-400',
+  cancelled: 'border-rose-500 text-rose-700 bg-rose-500/20 dark:text-rose-400',
+}
+
+const TAB_STYLES: Record<string, string> = {
+  all: 'border-primary/40 text-primary bg-primary/5 hover:bg-primary/10 dark:bg-primary/10 hover:border-primary/60',
+  pending: 'border-amber-500/40 text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 dark:text-amber-500 hover:border-amber-500/60',
+  confirmed: 'border-emerald-500/40 text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 dark:text-emerald-500 hover:border-emerald-500/60',
+  serving: 'border-blue-500/40 text-blue-700 bg-blue-500/5 hover:bg-blue-500/10 dark:text-blue-500 hover:border-blue-500/60',
+  completed: 'border-gray-500/40 text-gray-700 bg-gray-500/5 hover:bg-gray-500/10 dark:text-gray-500 hover:border-gray-500/60',
+  cancelled: 'border-rose-500/40 text-rose-700 bg-rose-500/5 hover:bg-rose-500/10 dark:text-rose-500 hover:border-rose-500/60',
+}
+
 type AdminReservationFiltersProps = {
   searchTerm: string
   onSearchTermChange: (value: string) => void
@@ -52,10 +70,10 @@ export function AdminReservationFilters({
               type="button"
               onClick={() => onFilterChange(item.value)}
               className={cn(
-                'inline-flex h-10 shrink-0 items-center gap-4 whitespace-nowrap rounded-lg border bg-card px-5 text-sm font-bold shadow-xs transition-colors',
+                'inline-flex h-10 shrink-0 items-center gap-4 whitespace-nowrap rounded-lg border px-5 text-sm font-bold shadow-xs transition-colors',
                 filter === item.value
-                  ? 'border-red-500 text-red-700'
-                  : 'border-border/80 text-foreground hover:border-primary/40 hover:bg-secondary/20',
+                  ? ACTIVE_TAB_STYLES[item.value]
+                  : TAB_STYLES[item.value] || 'border-border/80 bg-card text-foreground hover:border-primary/40 hover:bg-secondary/20',
               )}
             >
               <span>{item.label}</span>
