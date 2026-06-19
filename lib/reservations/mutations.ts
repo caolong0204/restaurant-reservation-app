@@ -453,7 +453,15 @@ export async function updateReservationStatus(
     .eq('id', id)
 
   if (error) {
-    return fail(`Không thể cập nhật trạng thái. ${error.message}`)
+    if (
+      error.code === '23P01' ||
+      error.message.includes('reservation_table_assignments_no_overlap') ||
+      error.message.includes('exclusion constraint')
+    ) {
+      return fail('Không thể cập nhật trạng thái vì bàn đang bị trùng với một booking khác trong cùng khung giờ.')
+    }
+
+    return fail('Không thể cập nhật trạng thái. Vui lòng thử lại.')
   }
 
   revalidatePath('/admin')

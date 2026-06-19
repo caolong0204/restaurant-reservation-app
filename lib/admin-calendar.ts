@@ -115,6 +115,7 @@ export function getSelectableStatuses(
   isPastDate: boolean
 ): Array<[ReservationStatus, string]> {
   const allEntries = Object.entries(STATUS_LABELS) as Array<[ReservationStatus, string]>
+
   if (!isPastDate) return allEntries
   
   // Không cho phép đổi trạng thái nếu booking ở quá khứ mà vẫn đang chờ duyệt (chưa xếp bàn)
