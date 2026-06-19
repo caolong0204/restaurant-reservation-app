@@ -9,6 +9,8 @@ import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import type { ActionResult, ReservationInput, RestaurantTable } from '@/lib/reservation-types'
 import { TIME_SLOTS, OCCASIONS, formatDate, isPastTimeSlot, getAvailableTimeSlots } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
+import { AdminCustomerInfoFields } from '@/components/admin/admin-customer-info-fields'
+import { AdminSchedulingFields } from '@/components/admin/admin-scheduling-fields'
 import { TableSelectionGrid } from '@/components/admin/table-selection-grid'
 import { CapacityWarningAlert } from '@/components/admin/capacity-warning-alert'
 import { TimePickerDropdown } from '@/components/admin/time-picker-dropdown'
@@ -254,149 +256,89 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
     }
   }
 
+  const fittingTableCount = availableTables.filter((table) => table.capacity >= partySize).length
+  const selectedTableSummary = selectedTables.map((table) => table.code).join(' + ')
+  const bookingSummary = [
+    cDate ? formatDate(cDate) : null,
+    cTime || null,
+    isCPartyValid ? `${partySize} khách` : null,
+    selectedTableSummary || null,
+  ].filter(Boolean).join(' · ')
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl relative overflow-hidden animate-in scale-in duration-200 max-h-[95dvh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="relative flex max-h-[90dvh] w-full max-w-[720px] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in scale-in duration-200">
         {isSubmitting && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/30 backdrop-blur-[1px]">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-[1px]">
             <Loader2 className="size-8 animate-spin text-primary" />
           </div>
         )}
-        {/* Top brand line */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-primary shrink-0" />
         
-        <div className="flex items-center justify-between border-b border-border pb-3 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="size-4 text-primary" />
-            <h3 className="font-serif text-lg font-bold text-foreground">Thêm Đặt Bàn Thủ Công</h3>
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-primary/15 text-primary">
+              <Sparkles className="size-4" />
+            </span>
+            <h3 className="font-serif text-lg font-bold text-foreground">Tạo đặt bàn</h3>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground cursor-pointer">
+          <button
+            type="button"
+            aria-label="Đóng"
+            onClick={onClose}
+            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
             <X className="size-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className={cn("mt-4 flex flex-col gap-4 flex-1 pr-1 no-scrollbar", (isTimeOpen || isCalendarOpen) ? "overflow-hidden" : "overflow-y-auto")}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="cName" className="text-xs font-semibold">Tên khách hàng</Label>
-              <Input id="cName" value={cName} onChange={(e) => setCName(e.target.value)} placeholder="Tên khách" required className="rounded-lg h-9 text-sm" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="cPhone" className="text-xs font-semibold">Số điện thoại</Label>
-              <Input id="cPhone" type="tel" value={cPhone} onChange={(e) => setCPhone(e.target.value)} placeholder="ví dụ: 090 123 4567" required className="rounded-lg h-9 text-sm" aria-invalid={!isCPhoneValid || undefined} />
-              {!isCPhoneValid && (
-                <span className="text-[10px] text-destructive font-medium">SĐT không hợp lệ (VN format)</span>
-              )}
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className={cn("no-scrollbar flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-3", (isTimeOpen || isCalendarOpen) && "overflow-hidden")}>
+          <AdminCustomerInfoFields
+            name={cName}
+            onNameChange={setCName}
+            phone={cPhone}
+            onPhoneChange={setCPhone}
+            isPhoneValid={isCPhoneValid}
+          />
 
+          <AdminSchedulingFields
+            date={cDate}
+            onDateChange={setCDate}
+            isCalendarOpen={isCalendarOpen}
+            setIsCalendarOpen={setIsCalendarOpen}
+            minDate={new Date()}
+            time={cTime}
+            onTimeChange={setCTime}
+            isTimeOpen={isTimeOpen}
+            setIsTimeOpen={setIsTimeOpen}
+            availableTimeSlots={getAvailableTimeSlots(Number(cPartySize) || 1, cDate).filter(
+              (t) => !isPastTimeSlot(t, cDate)
+            )}
+            partySize={cPartySize}
+            onPartySizeChange={setCPartySize}
+            occasion={cOccasion}
+            onOccasionChange={setCOccasion}
+          />
 
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="cDate" className="text-xs font-semibold">Ngày dùng bữa</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger
-                  render={
-                    <Button
-                      id="cDate"
-                      variant="outline"
-                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
-                    />
-                  }
-                >
-                  <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
-                  <span className={cDate ? 'text-foreground' : 'text-muted-foreground/60'}>
-                    {cDate ? formatDate(cDate) : 'Chọn ngày'}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="start">
-                  <RestaurantCalendar
-                    selected={cDate ? new Date(`${cDate}T00:00:00`) : undefined}
-                    minDate={new Date()} // Prevent booking past dates
-                    onSelect={(date) => {
-                      if (date) {
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        setCDate(`${year}-${month}-${day}`)
-                      } else {
-                        setCDate('')
-                      }
-                      setIsCalendarOpen(false)
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="cTime" className="text-xs font-semibold">Giờ đón khách</Label>
-              <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
-                <PopoverTrigger
-                  render={
-                    <Button
-                      id="cTime"
-                      variant="outline"
-                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
-                    />
-                  }
-                >
-                  <Clock className="size-4 mr-2 text-muted-foreground shrink-0" />
-                  <span className={cTime ? 'text-foreground' : 'text-muted-foreground/60'}>
-                    {cTime || 'Chọn giờ'}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-3 max-h-[350px] overflow-y-auto" align="start">
-                    {(() => {
-                      const slots = getAvailableTimeSlots(partySize, cDate).filter(
-                        (t) => !isPastTimeSlot(t, cDate)
-                      )
-
-                      return (
-                        <TimePickerDropdown
-                          slots={slots}
-                          selectedTime={cTime}
-                          onTimeSelect={setCTime}
-                          onClose={() => setIsTimeOpen(false)}
-                        />
-                      )
-                    })()}
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="cPartySize" className="text-xs font-semibold">Số lượng khách</Label>
-              <Input id="cPartySize" type="number" min="1" max="24" value={cPartySize} onChange={(e) => setCPartySize(e.target.value)} required className="rounded-lg h-9 text-sm" />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="cOccasion" className="text-xs font-semibold">Dịp đặc biệt</Label>
-            <select id="cOccasion" value={cOccasion} onChange={(e) => setCOccasion(e.target.value)} className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-full">
-              {OCCASIONS.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex flex-col gap-3 rounded-lg border border-border bg-secondary/5 p-3">
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-secondary/10 p-2.5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="cTableId" className="text-xs font-semibold">Gán bàn ngay</Label>
+                  <Label htmlFor="cTableId" className="text-xs font-bold">Gán bàn ngay</Label>
                   {cTableId && (
                     <button
                       type="button"
                       onClick={() => handleTableToggle('')}
-                      className="text-[10px] text-destructive hover:underline font-semibold cursor-pointer"
+                      className="cursor-pointer text-[10px] font-semibold text-destructive hover:underline"
                     >
-                      Bỏ chọn bàn (tạo pending)
+                      Bỏ chọn để tạo chờ duyệt
                     </button>
                   )}
                 </div>
-                <p className="mt-1 text-[10px] text-muted-foreground">
+                <p className="mt-0.5 text-[10px] text-pretty text-muted-foreground">
                   Có thể để trống để tạo booking chờ duyệt, hoặc chọn bàn để xác nhận ngay.
                 </p>
               </div>
@@ -409,6 +351,16 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
             </div>
 
             {hasSchedulingFields && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-card px-2.5 py-2 text-[11px] font-semibold text-muted-foreground">
+                <span>{availableTables.length} bàn trống</span>
+                <span className="text-border" aria-hidden="true">/</span>
+                <span>Phù hợp: {fittingTableCount}</span>
+                <span className="text-border" aria-hidden="true">/</span>
+                <span>Cần {partySize} ghế</span>
+              </div>
+            )}
+
+            {hasSchedulingFields && (
               <TableSelectionGrid
                 groupedTables={groupedTables}
                 availableTableIds={availableTableIds}
@@ -416,6 +368,7 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
                 cSecondaryTableIds={cSecondaryTableIds}
                 isLoadingTables={isLoadingTables}
                 onToggleTable={handleTableToggle}
+                variant="chips"
               />
             )}
 
@@ -437,41 +390,62 @@ export function CreateModal({ isOpen, onClose, onSubmit, tables, getAvailableTab
               </div>
             )}
 
+            {cTableId && !hasUnresolvedCapacityWarning && (
+              <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700">
+                <Check className="size-3.5" />
+                Đủ chỗ cho {partySize} khách
+              </div>
+            )}
+
+            {(isCapacityInsufficient || isCapacityExcessive || showLargePartyTip) && (
               <CapacityWarningAlert
-                cTableId={cTableId}
-                totalCapacity={totalCapacity}
-                partySize={partySize}
-                isCapacityInsufficient={isCapacityInsufficient}
-                isCapacityExcessive={isCapacityExcessive}
-                cIsManualArrangement={cIsManualArrangement}
-                setCIsManualArrangement={setCIsManualArrangement}
-                setCSecondaryTableIds={setCSecondaryTableIds}
-                showLargePartyTip={showLargePartyTip}
-              />
+                  cTableId={cTableId}
+                  totalCapacity={totalCapacity}
+                  partySize={partySize}
+                  isCapacityInsufficient={isCapacityInsufficient}
+                  isCapacityExcessive={isCapacityExcessive}
+                  cIsManualArrangement={cIsManualArrangement}
+                  setCIsManualArrangement={setCIsManualArrangement}
+                  setCSecondaryTableIds={setCSecondaryTableIds}
+                  showLargePartyTip={showLargePartyTip}
+                />
+            )}
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label htmlFor="cNotes" className="text-xs font-semibold">Ghi chú yêu cầu</Label>
-            <textarea id="cNotes" value={cNotes} onChange={(e) => setCNotes(e.target.value)} rows={2} placeholder="Yêu cầu đặc biệt nếu có..." className="rounded-lg border border-input bg-transparent px-3 py-2 text-sm resize-none outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 placeholder:text-muted-foreground/50" />
+            <Label htmlFor="cNotes" className="text-[11px] font-bold">Ghi chú yêu cầu</Label>
+            <textarea
+              id="cNotes"
+              name="notes"
+              value={cNotes}
+              onChange={(e) => setCNotes(e.target.value)}
+              rows={2}
+              placeholder="Yêu cầu đặc biệt nếu có…"
+              className="resize-none rounded-lg border border-input bg-background/70 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground/50 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+          </div>
           </div>
 
-
-
-          <div className="flex justify-end gap-2 border-t border-border pt-3 mt-1">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Hủy bỏ</Button>
-            <Button type="submit" size="sm" disabled={!isCreateValid || isSubmitting} className="h-9 rounded-lg text-xs gap-1 w-36">
+          <div className="flex shrink-0 flex-col gap-2.5 border-t border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="min-h-4 truncate text-xs font-semibold text-muted-foreground">
+              {bookingSummary || 'Điền thông tin để tạo đặt bàn'}
+            </p>
+            <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-8 rounded-lg text-xs">Hủy bỏ</Button>
+            <Button type="submit" size="sm" disabled={!isCreateValid || isSubmitting} className="h-8 min-w-32 gap-1 rounded-lg text-xs">
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-3.5 animate-spin" />
-                  Đang xử lý...
+                  Đang xử lý…
                 </>
               ) : (
                 <>
                   <Check className="size-3.5" />
-                  Xác nhận đặt bàn
+                  Xác nhận
                 </>
               )}
             </Button>
+            </div>
           </div>
         </form>
       </div>

@@ -96,19 +96,27 @@ export function getSelectableStatuses(
 
 export const STATUS_STYLES: Record<ReservationStatus, string> = {
   pending: 'border-amber-500/30 bg-amber-500/10 text-amber-700',
-  confirmed: 'border-blue-500/30 bg-blue-500/10 text-blue-700',
-  arrived: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700',
-  seated: 'border-purple-500/30 bg-purple-500/10 text-purple-700',
+  confirmed: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700',
+  arrived: 'border-blue-500/30 bg-blue-500/10 text-blue-700',
+  seated: 'border-blue-500/30 bg-blue-500/10 text-blue-700',
   completed: 'border-gray-500/30 bg-gray-500/10 text-gray-700',
   cancelled: 'border-rose-500/30 bg-rose-500/10 text-rose-700',
   no_show: 'border-red-500/30 bg-red-600/10 text-red-700',
 }
 
+export const STATUS_TEXT_COLORS: Record<string, string> = {
+  pending: 'text-amber-700',
+  confirmed: 'text-green-700',
+  serving: 'text-blue-700',
+  completed: 'text-slate-700',
+  cancelled: 'text-red-700',
+}
+
 export const ROW_BG_STYLES: Record<ReservationStatus, string> = {
   pending: 'bg-amber-50/40 hover:bg-amber-50/80 dark:bg-amber-950/10 dark:hover:bg-amber-950/20 text-foreground',
-  confirmed: 'bg-blue-50/40 hover:bg-blue-50/80 dark:bg-blue-950/10 dark:hover:bg-blue-950/20 text-foreground',
-  arrived: 'bg-emerald-50/40 hover:bg-emerald-50/80 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20 text-foreground',
-  seated: 'bg-purple-50/40 hover:bg-purple-50/80 dark:bg-purple-950/10 dark:hover:bg-purple-950/20 text-foreground',
+  confirmed: 'bg-emerald-50/40 hover:bg-emerald-50/80 dark:bg-emerald-950/10 dark:hover:bg-emerald-950/20 text-foreground',
+  arrived: 'bg-blue-50/40 hover:bg-blue-50/80 dark:bg-blue-950/10 dark:hover:bg-blue-950/20 text-foreground',
+  seated: 'bg-blue-50/40 hover:bg-blue-50/80 dark:bg-blue-950/10 dark:hover:bg-blue-950/20 text-foreground',
   completed: 'bg-gray-50/40 hover:bg-gray-50/80 dark:bg-gray-900/20 dark:hover:bg-gray-900/40 text-muted-foreground/90',
   cancelled: 'bg-zinc-50/50 hover:bg-zinc-100/80 dark:bg-zinc-900/30 dark:hover:bg-zinc-900/50 text-muted-foreground/80',
   no_show: 'bg-red-50/30 hover:bg-red-50/60 dark:bg-red-950/10 dark:hover:bg-red-950/20 text-muted-foreground/80',
@@ -127,11 +135,10 @@ export function getBarClass(reservation: Reservation): string {
     case 'pending':
       return 'border-amber-700/30 bg-amber-500 text-amber-950'
     case 'confirmed':
-      return 'border-blue-700/30 bg-blue-500 text-white'
+      return 'border-emerald-700/30 bg-emerald-600 text-white'
     case 'arrived':
-      return 'border-green-700/30 bg-green-500 text-white'
     case 'seated':
-      return 'border-purple-700/30 bg-purple-500 text-white'
+      return 'border-blue-700/30 bg-blue-600 text-white'
     case 'completed':
       return 'border-gray-700/30 bg-gray-500 text-white'
     case 'cancelled':

@@ -25,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { STATUS_LABELS, STATUS_STYLES, ROW_BG_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
+import { STATUS_STYLES, ROW_BG_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
 import type { Reservation, ReservationStatus, RestaurantTable } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
 
@@ -45,6 +45,16 @@ interface ReservationTableProps {
 
 
 const TABLE_COLUMN_COUNT = 11
+
+const STICKY_ROW_BG_STYLES: Record<ReservationStatus, string> = {
+  pending: 'bg-amber-50 dark:bg-amber-950',
+  confirmed: 'bg-emerald-50 dark:bg-emerald-950',
+  arrived: 'bg-blue-50 dark:bg-blue-950',
+  seated: 'bg-blue-50 dark:bg-blue-950',
+  completed: 'bg-gray-50 dark:bg-gray-900',
+  cancelled: 'bg-zinc-50 dark:bg-zinc-900',
+  no_show: 'bg-red-50 dark:bg-red-950',
+}
 
 function formatSheetDate(iso: string): string {
   const [year, month, day] = iso.split('-')
@@ -110,23 +120,24 @@ const ReservationTableRow = memo(function ReservationTableRow({
     ? 'bg-orange-50/50 hover:bg-orange-100/60 dark:bg-orange-950/20 dark:hover:bg-orange-950/30'
     : ROW_BG_STYLES[reservation.status] || 'hover:bg-muted/50 text-foreground'
 
-  // If there are specific text overrides in ROW_BG_STYLES, we use them. Otherwise, default text colors apply.
-  const stickyBgClass = bgClass // re-use the same background class for sticky columns
+  const stickyBgClass = isNew && isPending
+    ? 'bg-orange-50 dark:bg-orange-950'
+    : STICKY_ROW_BG_STYLES[reservation.status] || 'bg-card'
 
   return (
     <TableRow
       className={cn(
-        'h-[68px] border-b border-border/60 transition-colors group relative',
+        'group relative h-[64px] border-b border-border/60 transition-colors',
         bgClass
       )}
     >
-      <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>
+      <TableCell className={cn("text-center font-mono tabular-nums", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>
         {displayIndex}
       </TableCell>
-      <TableCell className={cn("text-center font-mono font-semibold", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
+      <TableCell className={cn("text-center font-mono font-semibold tabular-nums", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
         {formatSheetDate(reservation.date)}
       </TableCell>
-      <TableCell className={cn("text-center font-mono font-semibold", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
+      <TableCell className={cn("text-center font-mono font-semibold tabular-nums", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
         {isOverdue ? (
           <div className="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2 py-1 text-red-600 border border-red-100">
             <AlertTriangle className="size-3.5" />
@@ -136,7 +147,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
           reservation.time
         )}
       </TableCell>
-      <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/40" : "text-muted-foreground/70")}>
+      <TableCell className={cn("text-center font-mono tabular-nums", isCancelled ? "text-muted-foreground/40" : "text-muted-foreground/70")}>
         <div className="text-[10px] leading-tight whitespace-nowrap">
           {new Date(reservation.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}-{new Date(reservation.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
         </div>
@@ -146,7 +157,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
           type="button"
           onClick={() => onEdit(reservation)}
           className={cn(
-            "mx-auto max-w-44 truncate text-center font-semibold block",
+            "mx-auto block max-w-44 truncate text-center font-bold",
             isCancelled ? "text-muted-foreground hover:text-primary" : "text-foreground hover:text-primary"
           )}
           title={reservation.name}
@@ -166,7 +177,6 @@ const ReservationTableRow = memo(function ReservationTableRow({
             {reservation.notes}
           </p>
         )}
-        {/* Glow border for new bookings */}
         {isNew && <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-400 shadow-[2px_0_8px_rgba(251,146,60,0.5)]" />}
       </TableCell>
       <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
@@ -187,7 +197,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
 
       <TableCell className="text-center">
         {reservation.table ? (
-          <Badge variant="outline" className="mx-auto rounded-md border-emerald-500/30 bg-emerald-500/10 text-emerald-700">
+          <Badge variant="outline" className="mx-auto rounded-md border-emerald-500/30 bg-emerald-500/10 font-mono text-emerald-700">
             <Armchair className="mr-1 size-3" />
             {formatTableDisplay(reservation)}
           </Badge>
@@ -202,7 +212,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
           </button>
         )}
       </TableCell>
-      <TableCell className="text-center">
+      <TableCell className="w-32 text-center">
         <div className="relative inline-flex group/status">
           <select
             aria-label="Cập nhật trạng thái"
@@ -210,7 +220,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
             disabled={isUpdatingStatus || (isPastDate && reservation.status === 'pending')}
             onChange={(e) => onUpdateStatus(reservation, e.target.value as ReservationStatus)}
             className={cn(
-              'appearance-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden cursor-pointer rounded-full border pl-3 pr-7 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+              'w-[7.5rem] appearance-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden cursor-pointer rounded-full border pl-2.5 pr-6 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
               STATUS_STYLES[reservation.status]
             )}
           >
@@ -227,7 +237,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className={cn("sticky right-0 z-10 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)] text-center", stickyBgClass)}>
+      <TableCell className={cn("sticky right-0 z-10 w-24 min-w-24 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)] text-center", stickyBgClass)}>
         {isPastDate ? (
           <span className="text-xs text-muted-foreground/50 italic">-</span>
         ) : (
@@ -344,14 +354,14 @@ export function ReservationTable({
   const placeholderRows = Math.max(0, rowSlots - visibleReservations.length)
 
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xs", className)}>
+    <div className={cn("flex h-full flex-col overflow-hidden rounded-lg border border-border/80 bg-card shadow-xs", className)}>
       <div className="min-h-0 flex-1 overflow-auto">
-        <Table className="min-w-[1300px] text-[13px]">
+        <Table className="min-w-[1100px] text-[13px]">
           <TableHeader className="sticky top-0 z-10 bg-card">
-            <TableRow className="border-border bg-emerald-500/15 hover:bg-emerald-500/15">
-              <TableHead className="w-14 text-center font-bold text-foreground">#</TableHead>
+            <TableRow className="border-border bg-secondary/45 hover:bg-secondary/45">
+              <TableHead className="w-10 text-center font-bold text-foreground">#</TableHead>
               <TableHead 
-                className="w-28 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+                className="w-24 cursor-pointer select-none text-center font-bold text-foreground transition-colors hover:bg-secondary"
                 onClick={() => handleSort('date')}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -364,7 +374,7 @@ export function ReservationTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="w-20 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+                className="w-16 cursor-pointer select-none text-center font-bold text-foreground transition-colors hover:bg-secondary"
                 onClick={() => handleSort('time')}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -377,7 +387,7 @@ export function ReservationTable({
                 </div>
               </TableHead>
               <TableHead 
-                className="w-24 text-center font-bold text-foreground cursor-pointer select-none hover:bg-emerald-500/25 transition-colors"
+                className="w-24 cursor-pointer select-none text-center font-bold text-foreground transition-colors hover:bg-secondary"
                 onClick={() => handleSort('createdAt')}
               >
                 <div className="flex items-center justify-center gap-1">
@@ -389,14 +399,14 @@ export function ReservationTable({
                   )}
                 </div>
               </TableHead>
-              <TableHead className="min-w-44 text-center font-bold text-foreground">Tên khách</TableHead>
+              <TableHead className="w-40 text-center font-bold text-foreground">Tên khách</TableHead>
               <TableHead className="w-32 text-center font-bold text-foreground">SĐT</TableHead>
-              <TableHead className="w-24 text-center font-bold text-foreground">Số lượng</TableHead>
-              <TableHead className="w-36 text-center font-bold text-foreground">Dịp đặc biệt</TableHead>
+              <TableHead className="w-20 text-center font-bold text-foreground">Số lượng</TableHead>
+              <TableHead className="w-28 text-center font-bold text-foreground">Dịp đặc biệt</TableHead>
 
-              <TableHead className="w-32 text-center font-bold text-foreground">Bàn</TableHead>
-              <TableHead className="w-36 text-center font-bold text-foreground">Trạng thái</TableHead>
-              <TableHead className="w-36 text-center font-bold text-foreground sticky right-0 z-20 bg-[#dbf4ec] border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]">
+              <TableHead className="w-24 text-center font-bold text-foreground">Bàn</TableHead>
+              <TableHead className="w-32 text-center font-bold text-foreground">Trạng thái</TableHead>
+              <TableHead className="sticky right-0 z-20 w-24 border-l border-border bg-secondary text-center font-bold text-foreground shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]">
                 Thao tác
               </TableHead>
             </TableRow>
@@ -420,7 +430,7 @@ export function ReservationTable({
               <TableRow
                 key={`placeholder-row-${index}`}
                 aria-hidden="true"
-                className="h-[68px] border-border/50 bg-muted/20 hover:bg-muted/20"
+                className="h-[64px] border-border/50 bg-muted/20 hover:bg-muted/20"
               >
                 <TableCell colSpan={TABLE_COLUMN_COUNT} className="p-0" />
               </TableRow>

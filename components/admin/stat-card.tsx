@@ -15,15 +15,15 @@ export function StatCard({
   colorClass = 'text-primary bg-primary/10',
 }: StatCardProps) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md">
-      <span className={cn("flex size-11 items-center justify-center rounded-lg text-sm font-semibold", colorClass)}>
-        <Icon className="size-5" />
+    <div className="flex min-h-20 items-center gap-3 rounded-lg border border-border/80 bg-card px-4 py-3 shadow-xs">
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold", colorClass)}>
+        <Icon className="size-4.5" />
       </span>
-      <div>
-        <p className="font-serif text-2xl font-bold text-foreground leading-tight">
+      <div className="min-w-0">
+        <p className="font-mono text-2xl font-bold leading-none tabular-nums text-foreground">
           {value}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+        <p className="mt-1 truncate text-xs font-medium text-muted-foreground">{label}</p>
       </div>
     </div>
   )

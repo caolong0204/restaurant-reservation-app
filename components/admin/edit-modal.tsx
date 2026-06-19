@@ -8,8 +8,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { type Reservation } from '@/components/reservation-provider'
 import type { ReservationInput, RestaurantTable } from '@/lib/reservation-types'
-import { OCCASIONS, formatDate, isPastTimeSlot, getAvailableTimeSlots } from '@/lib/restaurant'
-import { validateVNPhone, cn } from '@/lib/utils'
+import { TIME_SLOTS, OCCASIONS, formatDate, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
+import { cn, validateVNPhone } from '@/lib/utils'
+import { AdminCustomerInfoFields } from '@/components/admin/admin-customer-info-fields'
+import { AdminSchedulingFields } from '@/components/admin/admin-scheduling-fields'
 import { TableSelectionGrid } from '@/components/admin/table-selection-grid'
 import { CapacityWarningAlert } from '@/components/admin/capacity-warning-alert'
 import { TimePickerDropdown } from '@/components/admin/time-picker-dropdown'
@@ -58,10 +60,11 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    if (eTime && isPastTimeSlot(eTime, eDate)) {
+    const isOriginalDateTime = reservation && eTime === reservation.time && eDate === reservation.date;
+    if (eTime && isPastTimeSlot(eTime, eDate) && !isOriginalDateTime) {
       setETime('')
     }
-  }, [eDate, eTime])
+  }, [eDate, eTime, reservation])
 
 
   useEffect(() => {
@@ -218,112 +221,44 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
         </div>
 
         <form onSubmit={handleSubmit} className={cn("mt-4 flex flex-col gap-4 flex-1 pr-1 no-scrollbar", (isTimeOpen || isCalendarOpen) ? "overflow-hidden" : "overflow-y-auto")}>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="eName" className="text-xs font-semibold">Tên khách hàng</Label>
-              <Input id="eName" value={eName} onChange={(e) => setEName(e.target.value)} required className="rounded-lg h-9 text-sm" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="ePhone" className="text-xs font-semibold">Số điện thoại</Label>
-              <Input id="ePhone" type="tel" value={ePhone} onChange={(e) => setEPhone(e.target.value)} required className="rounded-lg h-9 text-sm" aria-invalid={!isEPhoneValid || undefined} />
-              {!isEPhoneValid && (
-                <span className="text-[10px] text-destructive font-medium">SĐT không hợp lệ (VN format)</span>
-              )}
-            </div>
-          </div>
+          <AdminCustomerInfoFields
+            name={eName}
+            onNameChange={setEName}
+            phone={ePhone}
+            onPhoneChange={setEPhone}
+            isPhoneValid={isEPhoneValid}
+          />
 
 
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="eDate" className="text-xs font-semibold">Ngày dùng bữa</Label>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger
-                  render={
-                    <Button
-                      id="eDate"
-                      variant="outline"
-                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
-                    />
-                  }
-                >
-                  <CalendarDays className="size-4 mr-2 text-muted-foreground shrink-0" />
-                  <span className={eDate ? 'text-foreground' : 'text-muted-foreground/60'}>
-                    {eDate ? formatDate(eDate) : 'Chọn ngày'}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 border-none animate-in fade-in-50 slide-in-from-top-1 duration-150" align="start">
-                  <RestaurantCalendar
-                    selected={eDate ? new Date(`${eDate}T00:00:00`) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        setEDate(`${year}-${month}-${day}`)
-                      } else {
-                        setEDate('')
-                      }
-                      setIsCalendarOpen(false)
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="eTime" className="text-xs font-semibold">Giờ đón khách</Label>
-              <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
-                <PopoverTrigger
-                  render={
-                    <Button
-                      id="eTime"
-                      variant="outline"
-                      className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm font-normal justify-start pl-3 text-left shadow-xs focus-visible:ring-3 focus-visible:ring-ring/50"
-                    />
-                  }
-                >
-                  <Clock className="size-4 mr-2 text-muted-foreground shrink-0" />
-                  <span className={eTime ? 'text-foreground' : 'text-muted-foreground/60'}>
-                    {eTime || 'Chọn giờ'}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="w-80 p-3 max-h-[350px] overflow-y-auto" align="start">
-                    {(() => {
-                      const slots = getAvailableTimeSlots(partySize, eDate).filter(
-                        (t) => !(isPastTimeSlot(t, eDate) && reservation && t !== reservation.time)
-                      )
-                      // Always include reservation.time if pre-selected to avoid state loss
-                      if (reservation && !slots.includes(reservation.time)) {
-                        slots.push(reservation.time)
-                        slots.sort()
-                      }
-
-                      return (
-                        <TimePickerDropdown
-                          slots={slots}
-                          selectedTime={eTime}
-                          onTimeSelect={setETime}
-                          onClose={() => setIsTimeOpen(false)}
-                        />
-                      )
-                    })()}
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="ePartySize" className="text-xs font-semibold">Số lượng khách</Label>
-              <Input id="ePartySize" type="number" min="1" max="24" value={ePartySize} onChange={(e) => setEPartySize(e.target.value)} required className="rounded-lg h-9 text-sm" />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="eOccasion" className="text-xs font-semibold">Dịp đặc biệt</Label>
-            <select id="eOccasion" value={eOccasion} onChange={(e) => setEOccasion(e.target.value)} className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 w-full">
-              {OCCASIONS.map((o) => (
-                <option key={o} value={o}>{o}</option>
-              ))}
-            </select>
-          </div>
+          <AdminSchedulingFields
+            date={eDate}
+            onDateChange={setEDate}
+            isCalendarOpen={isCalendarOpen}
+            setIsCalendarOpen={setIsCalendarOpen}
+            time={eTime}
+            onTimeChange={setETime}
+            isTimeOpen={isTimeOpen}
+            setIsTimeOpen={setIsTimeOpen}
+            availableTimeSlots={(() => {
+              const slots = getAvailableTimeSlots(Number(ePartySize) || 1, eDate).filter(
+                (t) => {
+                  const isOriginalDateTime = reservation && t === reservation.time && eDate === reservation.date;
+                  return !isPastTimeSlot(t, eDate) || isOriginalDateTime;
+                }
+              )
+              // Always include reservation.time if pre-selected to avoid state loss
+              if (reservation && eDate === reservation.date && !slots.includes(reservation.time)) {
+                slots.push(reservation.time)
+                slots.sort()
+              }
+              return slots
+            })()}
+            partySize={ePartySize}
+            onPartySizeChange={setEPartySize}
+            occasion={eOccasion}
+            onOccasionChange={setEOccasion}
+          />
 
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between">

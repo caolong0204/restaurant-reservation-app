@@ -7,7 +7,7 @@ import type { Reservation } from '@/lib/reservation-types'
 
 export type AdminFilter = 'all' | 'pending' | 'confirmed' | 'serving' | 'completed' | 'cancelled'
 export type AdminView = 'reservations' | 'calendar'
-const RESERVATIONS_PAGE_SIZE = 10
+const DEFAULT_RESERVATIONS_PAGE_SIZE = 10
 
 function todayISO(): string {
   const now = new Date()
@@ -18,13 +18,12 @@ function todayISO(): string {
 }
 
 export function useAdminReservationFilters(reservations: Reservation[]) {
-  const [view, setView] = useState<AdminView>('reservations')
   const [filter, setFilter] = useState<AdminFilter>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [isDateFilterOpen, setIsDateFilterOpen] = useState(false)
-  const [calendarDate, setCalendarDate] = useState(todayISO())
   const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = DEFAULT_RESERVATIONS_PAGE_SIZE
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
@@ -77,7 +76,7 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
       })
   }, [reservations, filter, debouncedSearchTerm, dateFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / RESERVATIONS_PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const safeCurrentPage = Math.min(currentPage, totalPages)
 
   useEffect(() => {
@@ -91,8 +90,6 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
   }, [currentPage, safeCurrentPage])
 
   return {
-    view,
-    setView,
     filter,
     setFilter,
     searchTerm,
@@ -101,11 +98,9 @@ export function useAdminReservationFilters(reservations: Reservation[]) {
     setDateFilter,
     isDateFilterOpen,
     setIsDateFilterOpen,
-    calendarDate,
-    setCalendarDate,
     currentPage: safeCurrentPage,
     setCurrentPage,
-    pageSize: RESERVATIONS_PAGE_SIZE,
+    pageSize,
     totalPages,
     counts,
     filtered,

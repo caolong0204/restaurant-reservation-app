@@ -5,12 +5,11 @@ import { Check, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { Reservation, ReservationStatus } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
-import { STATUS_LABELS, STATUS_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
+import { STATUS_STYLES, getSelectableStatuses, getTodayIso, isPastReservation } from '@/lib/admin-calendar'
 
 type CalendarReservationDetailsProps = {
   reservation: Reservation
   onClose: () => void
-  onConfirm: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
   onEdit: (reservation: Reservation) => void
   onUpdateStatus: (reservation: Reservation, status: ReservationStatus) => void | Promise<boolean | void>
@@ -20,7 +19,6 @@ type CalendarReservationDetailsProps = {
 export function CalendarReservationDetails({
   reservation,
   onClose,
-  onConfirm,
   onCancel,
   onEdit,
   onUpdateStatus,

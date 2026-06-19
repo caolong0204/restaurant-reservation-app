@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react'
 import { usePathname } from 'next/navigation'
+import { toast } from 'sonner'
 
 import {
   cancelReservation as cancelReservationAction,
@@ -43,7 +44,6 @@ type ReservationContextValue = {
   reservations: Reservation[]
   tables: RestaurantTable[]
   isLoading: boolean
-  actionError: string | null
   refreshAdminData: () => Promise<void>
   addReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
   createManualReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
@@ -79,20 +79,15 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [tables, setTables] = useState<RestaurantTable[]>([])
   const [isLoading, setIsLoading] = useState(() => pathname === '/admin')
-  const [actionError, setActionError] = useState<string | null>(null)
 
   const refreshAdminData = useCallback(async () => {
     setIsLoading(true)
-    setActionError(null)
 
     const result = await getAdminSnapshot()
     if (result.ok) {
       setReservations(result.data.reservations)
       setTables(result.data.tables)
-    } else {
-      setActionError(result.error)
     }
-
     setIsLoading(false)
   }, [])
 
@@ -107,7 +102,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     if (result.ok && pathname === '/admin') {
       setReservations((prev) => upsertReservation(prev, result.data))
     }
-    if (!result.ok) setActionError(result.error)
     return result
   }, [pathname])
 
@@ -115,8 +109,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     const result = await createManualReservationAction(data)
     if (result.ok) {
       setReservations((prev) => upsertReservation(prev, result.data))
-    } else {
-      setActionError(result.error)
     }
     return result
   }, [])
@@ -130,8 +122,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     const result = await confirmReservationAction(id, tableId, secondaryTableIds, manualArrangement)
     if (result.ok) {
       setReservations((prev) => upsertReservation(prev, result.data))
-    } else {
-      setActionError(result.error)
     }
     return result
   }, [])
@@ -140,8 +130,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     const result = await cancelReservationAction(id)
     if (result.ok) {
       setReservations((prev) => upsertReservation(prev, result.data))
-    } else {
-      setActionError(result.error)
     }
     return result
   }, [])
@@ -150,8 +138,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     const result = await editReservationAction(id, data)
     if (result.ok) {
       setReservations((prev) => upsertReservation(prev, result.data))
-    } else {
-      setActionError(result.error)
     }
     return result
   }, [])
@@ -160,8 +146,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     const result = await updateReservationStatusAction(id, status)
     if (result.ok) {
       setReservations((prev) => upsertReservation(prev, result.data))
-    } else {
-      setActionError(result.error)
     }
     return result
   }, [])
@@ -170,8 +154,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     const result = await deleteReservationAction(id)
     if (result.ok) {
       setReservations((prev) => prev.filter((reservation) => reservation.id !== id))
-    } else {
-      setActionError(result.error)
     }
     return result
   }, [])
@@ -191,7 +173,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       reservations,
       tables,
       isLoading,
-      actionError,
       refreshAdminData,
       addReservation,
       createManualReservation,
@@ -206,7 +187,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       reservations,
       tables,
       isLoading,
-      actionError,
       refreshAdminData,
       addReservation,
       createManualReservation,

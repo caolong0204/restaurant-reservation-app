@@ -16,8 +16,8 @@ interface StepTimeProps {
 }
 
 const TIME_GROUPS = [
-  { label: '☀️ Trưa', from: '10:00', to: '13:30' },
-  { label: '🌤️ Chiều', from: '14:00', to: '17:30' },
+  { label: '☀️ Trưa', from: '10:00', to: '13:45' },
+  { label: '🌤️ Chiều', from: '14:00', to: '17:45' },
   { label: '🌙 Tối', from: '18:00', to: '22:30' },
 ]
 

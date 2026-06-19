@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { CalendarDays, Check, Clock, Users } from 'lucide-react'
+import { CalendarDays, Clock } from 'lucide-react'
 import { getTodayIso } from '@/lib/admin-calendar'
 
 import { StatCard } from '@/components/admin/stat-card'
@@ -10,15 +10,6 @@ interface AdminStatsBarProps {
 }
 
 export function AdminStatsBar({ reservations }: AdminStatsBarProps) {
-  const counts = useMemo(() => {
-    return {
-      all: reservations.length,
-      pending: reservations.filter((reservation) => reservation.status === 'pending').length,
-      confirmed: reservations.filter((reservation) => reservation.status === 'confirmed').length,
-      cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
-    }
-  }, [reservations])
-
   const stats = useMemo(() => {
     // Luôn tính toán ngày hiện tại theo Múi giờ VN
     const today = getTodayIso()
@@ -32,16 +23,14 @@ export function AdminStatsBar({ reservations }: AdminStatsBarProps) {
     
     return {
       todayCount: todays.length,
-      todayCovers: todays.reduce((sum, reservation) => sum + reservation.partySize, 0),
       pending: activePending,
-      todayConfirmed: todays.filter(r => r.status === 'confirmed').length,
     }
   }, [reservations])
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4">
-      <StatCard label="Đặt bàn hôm nay" value={stats.todayCount} icon={CalendarDays} colorClass="text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-950/30" />
-      <StatCard label="Chờ duyệt" value={stats.pending} icon={Clock} colorClass="text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30" />
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <StatCard label="Tổng booking hôm nay" value={stats.todayCount} icon={CalendarDays} colorClass="bg-primary/15 text-primary" />
+      <StatCard label="Chờ duyệt" value={stats.pending} icon={Clock} colorClass="bg-amber-500/10 text-amber-700" />
     </div>
   )
 }

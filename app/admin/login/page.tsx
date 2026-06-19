@@ -38,10 +38,10 @@ export default async function AdminLoginPage({
             <Image
               src="/flambe-logo.png"
               alt={`${RESTAURANT.name} Logo`}
-              width={120}
-              height={40}
+              width={764}
+              height={326}
               priority
-              className="h-8 sm:h-10 w-auto"
+              className="h-auto w-24 sm:w-[120px]"
             />
           </Link>
 

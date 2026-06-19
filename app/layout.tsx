@@ -53,9 +53,9 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} bg-background`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} bg-background overscroll-none`}
     >
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased overscroll-none">
         <Suspense fallback={null}>
           <ReservationProvider>{children}</ReservationProvider>
         </Suspense>
