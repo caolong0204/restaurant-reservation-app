@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { useReservations } from '@/components/reservation-provider'
@@ -86,6 +86,14 @@ export function BookingForm({
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [slotError, setSlotError] = useState<string | null>(null)
 
+  type SlotCache = {
+    date: string
+    partySize: number
+    data: SlotAvailability[]
+    fetchedAt: number
+  }
+  const slotCache = useRef<SlotCache | null>(null)
+
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -98,40 +106,99 @@ export function BookingForm({
   const isStep4Valid = Boolean(name.trim() && phone.trim() && validateVNPhone(phone))
 
   useEffect(() => {
-    if (step !== 3 || !date || !isStep1Valid) return
+    if (!date || !isStep1Valid) return
 
     let isActive = true
+    const dateStr = toISO(date)
+    const size = Number(partySize)
+
+    // Check if we have valid cache < 3 mins old
+    const now = Date.now()
+    const cache = slotCache.current
+    if (cache && cache.date === dateStr && cache.partySize === size) {
+      if (now - cache.fetchedAt < 3 * 60 * 1000) {
+        setSlotAvailability(cache.data)
+        
+        // Also ensure selected time is cleared if it's no longer selectable
+        setTime((prev) => {
+          if (!prev) return prev
+          if (isPastTimeSlot(prev, dateStr)) return ''
+          return prev
+        })
+        return
+      }
+    }
+
     setIsLoadingSlots(true)
     setSlotError(null)
 
-    getPublicSlotAvailability(toISO(date), Number(partySize))
-      .then((result) => {
-        if (!isActive) return
+    // Debounce API call by 300ms
+    const timeoutId = setTimeout(() => {
+      getPublicSlotAvailability(dateStr, size)
+        .then((result) => {
+          if (!isActive) return
 
-        if (result.ok) {
-          setSlotAvailability(result.data)
-          // Clear selected time if it is no longer selectable.
-          setTime((prev) => {
-            if (!prev) return prev
-            if (isPastTimeSlot(prev, toISO(date))) return ''
-            return prev
-          })
-        } else {
-          setSlotError(result.error)
-        }
-      })
-      .catch(() => {
-        if (isActive) setSlotError('Không kiểm tra được tình trạng bàn trống.')
-      })
-      .finally(() => {
-        if (isActive) setIsLoadingSlots(false)
-      })
+          if (result.ok) {
+            slotCache.current = {
+              date: dateStr,
+              partySize: size,
+              data: result.data,
+              fetchedAt: Date.now(),
+            }
+            setSlotAvailability(result.data)
+            
+            setTime((prev) => {
+              if (!prev) return prev
+              if (isPastTimeSlot(prev, dateStr)) return ''
+              return prev
+            })
+          } else {
+            setSlotError(result.error)
+          }
+        })
+        .catch(() => {
+          if (isActive) setSlotError('Không kiểm tra được tình trạng bàn trống.')
+        })
+        .finally(() => {
+          if (isActive) setIsLoadingSlots(false)
+        })
+    }, 300)
 
     return () => {
       isActive = false
+      clearTimeout(timeoutId)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, isStep1Valid, partySize, step])
+  }, [date, isStep1Valid, partySize])
+
+  // Step 3 Transition Revalidation
+  useEffect(() => {
+    if (step === 3 && date && isStep1Valid) {
+      const cache = slotCache.current
+      if (cache && (Date.now() - cache.fetchedAt >= 3 * 60 * 1000)) {
+        // Cache is stale. We need to re-fetch slots.
+        setIsLoadingSlots(true)
+        const dateStr = toISO(date)
+        const size = Number(partySize)
+        
+        getPublicSlotAvailability(dateStr, size)
+          .then((result) => {
+            if (result.ok) {
+              slotCache.current = {
+                date: dateStr,
+                partySize: size,
+                data: result.data,
+                fetchedAt: Date.now(),
+              }
+              setSlotAvailability(result.data)
+            }
+          })
+          .finally(() => {
+            setIsLoadingSlots(false)
+          })
+      }
+    }
+  }, [step, date, isStep1Valid, partySize])
 
   // Maximum step the user is allowed to navigate to
   const getMaxAllowedStep = () => {
