@@ -1,4 +1,3 @@
-import { Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import type { RestaurantTable } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
@@ -11,19 +10,14 @@ interface AssignTableGridProps {
 
 export function AssignTableGrid({ groupedTables, selectedTableIds, toggleTableSelect }: AssignTableGridProps) {
   return (
-    <div>
-      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
-        Chọn bàn (Có thể chọn nhiều bàn để ghép)
-      </h4>
-      <div className="space-y-4">
+    <div className="rounded-xl border border-border/60 p-5">
+      <div className="space-y-6">
         {Object.entries(groupedTables).map(([floor, floorTables]) => (
           <div key={floor}>
-            <div className="mb-2 flex items-center justify-between">
-              <h5 className="text-[11px] font-bold text-muted-foreground/80 uppercase">
-                {floor}
-              </h5>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <h5 className="mb-3 text-[11px] font-bold text-muted-foreground/80 uppercase tracking-widest">
+              {floor}
+            </h5>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {floorTables.map((table) => {
                 const isSelected = selectedTableIds.includes(table.id)
                 const isMain = selectedTableIds[0] === table.id
@@ -33,37 +27,35 @@ export function AssignTableGrid({ groupedTables, selectedTableIds, toggleTableSe
                     type="button"
                     onClick={() => toggleTableSelect(table.id)}
                     className={cn(
-                      'rounded-lg border p-3 text-left transition-all relative',
+                      'relative flex flex-col items-center justify-center overflow-hidden rounded-xl border p-3.5 transition-all group',
                       isSelected
                         ? isMain
-                          ? 'border-primary bg-primary/10 shadow-sm'
-                          : 'border-amber-500 bg-amber-500/10 shadow-sm'
-                        : 'border-border bg-background hover:border-primary/40 hover:bg-secondary/30',
+                          ? 'border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20'
+                          : 'border-amber-500/50 bg-amber-500/10 shadow-sm ring-1 ring-amber-500/20'
+                        : 'border-border/60 bg-background hover:border-primary/40 hover:shadow-sm',
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-serif text-base font-bold text-foreground">
-                        {table.code}
-                      </span>
-                      {isSelected ? (
-                        isMain ? (
-                          <Badge className="bg-primary text-primary-foreground text-[9px] font-semibold rounded-md">Bàn chính</Badge>
+                    <span className="font-serif text-[15px] font-bold text-foreground group-hover:text-primary transition-colors relative z-10">
+                      {table.code}
+                    </span>
+                    <span className="mt-1 text-[11px] text-muted-foreground relative z-10">
+                      {table.capacity} ghế
+                    </span>
+                    
+                    {/* Tiny badge for main/secondary if selected */}
+                    {isSelected && (
+                      <div className="absolute right-1.5 top-1.5 z-10">
+                        {isMain ? (
+                          <Badge variant="default" className="px-1 py-0 text-[8px] font-bold leading-tight rounded-sm opacity-80">Chính</Badge>
                         ) : (
-                          <Badge className="bg-amber-500 text-white text-[9px] font-semibold rounded-md">Bàn ghép</Badge>
-                        )
-                      ) : null}
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Users className="size-3.5" />
-                        {table.capacity} ghế
-                      </span>
-                      <span>{table.area}</span>
-                    </div>
-                    {table.notes && (
-                      <p className="mt-2 text-xs italic text-muted-foreground/80">
-                        {table.notes}
-                      </p>
+                          <Badge variant="secondary" className="border-0 bg-amber-500/20 px-1 py-0 text-[8px] font-bold leading-tight text-amber-700 rounded-sm opacity-80">Ghép</Badge>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Background glow effect when selected */}
+                    {isSelected && isMain && (
+                      <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent" />
                     )}
                   </button>
                 )

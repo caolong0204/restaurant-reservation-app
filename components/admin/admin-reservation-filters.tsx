@@ -168,7 +168,7 @@ export function AdminReservationFilters({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center justify-end gap-3">
           <Button
             type="button"
             size="icon"
@@ -182,12 +182,12 @@ export function AdminReservationFilters({
           </Button>
           <Button
             type="button"
-            size="sm"
             onClick={onCreateReservation}
-            className="h-11 shrink-0 gap-2 rounded-lg bg-flambe-rust px-6 text-sm font-bold text-white shadow-xs hover:bg-flambe-rust-hover"
+            aria-label="Tạo đặt bàn"
+            className="flex size-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-flambe-rust p-0 text-sm font-bold text-white shadow-xs hover:bg-flambe-rust-hover sm:h-11 sm:w-auto sm:px-6"
           >
             <Plus className="size-5" />
-            Tạo đặt bàn
+            <span className="hidden sm:inline">Tạo đặt bàn</span>
           </Button>
         </div>
       </div>

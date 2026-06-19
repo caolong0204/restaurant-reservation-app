@@ -1,11 +1,10 @@
 'use client'
 
-import { ChevronLeft, ChevronRight, CalendarDays, Loader2 } from 'lucide-react'
+import { CalendarDays, Loader2 } from 'lucide-react'
 
 import { AdminReservationFilters } from '@/components/admin/admin-reservation-filters'
 import { ReservationTable } from '@/components/admin/reservation-table'
 import { ReservationTablePagination } from '@/components/admin/reservation-table-pagination'
-import { Button } from '@/components/ui/button'
 import { useAdminReservationFilters, type AdminFilter } from '@/lib/hooks/use-admin-reservation-filters'
 import type { Reservation, ReservationStatus } from '@/lib/reservation-types'
 

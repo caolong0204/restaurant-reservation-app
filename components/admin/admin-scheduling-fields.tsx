@@ -44,9 +44,9 @@ export function AdminSchedulingFields({
   onOccasionChange,
 }: AdminSchedulingFieldsProps) {
   return (
-    <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-[1fr_0.85fr_0.75fr_1.25fr]">
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="dateField" className="text-[11px] font-bold">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1.1fr_1.1fr_0.9fr_1.2fr]">
+      <div className="flex flex-col justify-end gap-1.5">
+        <Label htmlFor="dateField" className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">
           Ngày dùng bữa
         </Label>
         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -87,8 +87,8 @@ export function AdminSchedulingFields({
         </Popover>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="timeField" className="text-[11px] font-bold">
+      <div className="flex flex-col justify-end gap-1.5">
+        <Label htmlFor="timeField" className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">
           Giờ đón khách
         </Label>
         <Popover open={isTimeOpen} onOpenChange={setIsTimeOpen}>
@@ -117,8 +117,8 @@ export function AdminSchedulingFields({
         </Popover>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="partySizeField" className="text-[11px] font-bold">
+      <div className="flex flex-col justify-end gap-1.5">
+        <Label htmlFor="partySizeField" className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">
           Số lượng khách
         </Label>
         <Input
@@ -135,8 +135,8 @@ export function AdminSchedulingFields({
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <Label htmlFor="occasionField" className="text-[11px] font-bold">
+      <div className="flex flex-col justify-end gap-1.5">
+        <Label htmlFor="occasionField" className="text-[11px] font-bold text-muted-foreground whitespace-nowrap">
           Dịp đặc biệt
         </Label>
         <select

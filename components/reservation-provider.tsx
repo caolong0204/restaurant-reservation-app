@@ -7,10 +7,12 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
   type ReactNode,
 } from 'react'
 import { usePathname } from 'next/navigation'
 import { toast } from 'sonner'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 import {
   cancelReservation as cancelReservationAction,
@@ -31,6 +33,8 @@ import type {
   ReservationStatus,
   RestaurantTable,
 } from '@/lib/reservation-types'
+import { mapReservation } from '@/lib/reservations/mappers'
+import type { ReservationRow } from '@/lib/reservations/types'
 
 export type {
   ActionResult,
@@ -41,10 +45,15 @@ export type {
   SlotAvailability,
 } from '@/lib/reservation-types'
 
-type ReservationContextValue = {
+// 1. State Context
+type ReservationStateValue = {
   reservations: Reservation[]
   tables: RestaurantTable[]
   isLoading: boolean
+}
+
+// 2. Dispatch/Actions Context
+type ReservationDispatchValue = {
   refreshAdminData: (silent?: boolean) => Promise<void>
   addReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
   createManualReservation: (data: ReservationInput) => Promise<ActionResult<Reservation>>
@@ -66,7 +75,8 @@ type ReservationContextValue = {
   ) => Promise<ActionResult<RestaurantTable[]>>
 }
 
-const ReservationContext = createContext<ReservationContextValue | null>(null)
+const ReservationStateContext = createContext<ReservationStateValue | null>(null)
+const ReservationDispatchContext = createContext<ReservationDispatchValue | null>(null)
 
 function upsertReservation(list: Reservation[], next: Reservation): Reservation[] {
   const exists = list.some((reservation) => reservation.id === next.id)
@@ -77,9 +87,17 @@ function upsertReservation(list: Reservation[], next: Reservation): Reservation[
 
 export function ReservationProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  const isAdmin = pathname?.startsWith('/admin')
+  
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [tables, setTables] = useState<RestaurantTable[]>([])
-  const [isLoading, setIsLoading] = useState(() => pathname === '/admin')
+  const [isLoading, setIsLoading] = useState(() => isAdmin)
+
+  // Giữ tham chiếu mới nhất của tables để Realtime callback không bị stale closure và không gây re-subscribe
+  const tablesRef = useRef<RestaurantTable[]>(tables)
+  useEffect(() => {
+    tablesRef.current = tables
+  }, [tables])
 
   const refreshAdminData = useCallback(async (silent: boolean = false) => {
     if (!silent) setIsLoading(true)
@@ -93,11 +111,11 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (pathname === '/admin') {
+    if (isAdmin) {
       void refreshAdminData()
       
       const supabase = createClient()
-      let channel: any
+      let channel: RealtimeChannel | null = null
 
       supabase.auth.getSession().then(() => {
         channel = supabase
@@ -106,23 +124,23 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
             'postgres_changes',
             { event: '*', schema: 'public', table: 'reservations' },
             (payload) => {
-              console.log('Realtime payload received:', payload)
               if (payload.eventType === 'INSERT') {
-                const newRes = payload.new as any
-                if (newRes.status === 'pending') {
-                  toast.info(`🔔 Khách hàng ${newRes.guest_name || 'mới'} vừa đặt bàn!`, {
-                    description: `${newRes.party_size} người lúc ${newRes.reservation_time} ngày ${newRes.reservation_date}`,
+                const row = payload.new as ReservationRow
+                if (row.status === 'pending') {
+                  toast.info(`🔔 Khách hàng ${row.guest_name || 'mới'} vừa đặt bàn!`, {
+                    description: `${row.party_size} người lúc ${row.reservation_time} ngày ${row.reservation_date}`,
                     duration: 5000,
                   })
                 }
+                
+                // Tránh over-fetching: Map trực tiếp dữ liệu mới và đẩy vào mảng state hiện tại
+                const newReservation = mapReservation(row, tablesRef.current)
+                setReservations((prev) => upsertReservation(prev, newReservation))
               }
-              // Lặng lẽ tải lại dữ liệu mà không bật loading state (tránh giật UI)
-              void refreshAdminData(true)
             }
           )
           .subscribe((status, err) => {
             if (err) console.error('Realtime subscription error:', err)
-            else console.log('Realtime subscription status:', status)
           })
       })
         
@@ -130,15 +148,15 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
         if (channel) void supabase.removeChannel(channel)
       }
     }
-  }, [pathname, refreshAdminData])
+  }, [isAdmin, refreshAdminData])
 
   const addReservation = useCallback(async (data: ReservationInput) => {
     const result = await createReservationAction(data)
-    if (result.ok && pathname === '/admin') {
+    if (result.ok && isAdmin) {
       setReservations((prev) => upsertReservation(prev, result.data))
     }
     return result
-  }, [pathname])
+  }, [isAdmin])
 
   const createManualReservation = useCallback(async (data: ReservationInput) => {
     const result = await createManualReservationAction(data)
@@ -203,11 +221,13 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const value = useMemo(
+  const stateValue = useMemo(
+    () => ({ reservations, tables, isLoading }),
+    [reservations, tables, isLoading]
+  )
+
+  const dispatchValue = useMemo(
     () => ({
-      reservations,
-      tables,
-      isLoading,
       refreshAdminData,
       addReservation,
       createManualReservation,
@@ -219,9 +239,6 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       getAvailableTables,
     }),
     [
-      reservations,
-      tables,
-      isLoading,
       refreshAdminData,
       addReservation,
       createManualReservation,
@@ -231,20 +248,26 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       updateReservationStatus,
       deleteReservation,
       getAvailableTables,
-    ],
+    ]
   )
 
   return (
-    <ReservationContext.Provider value={value}>
-      {children}
-    </ReservationContext.Provider>
+    <ReservationStateContext.Provider value={stateValue}>
+      <ReservationDispatchContext.Provider value={dispatchValue}>
+        {children}
+      </ReservationDispatchContext.Provider>
+    </ReservationStateContext.Provider>
   )
 }
 
-export function useReservations() {
-  const ctx = useContext(ReservationContext)
-  if (!ctx) {
-    throw new Error('useReservations must be used within a ReservationProvider')
-  }
+export function useReservationState() {
+  const ctx = useContext(ReservationStateContext)
+  if (!ctx) throw new Error('useReservationState must be used within a ReservationProvider')
+  return ctx
+}
+
+export function useReservationDispatch() {
+  const ctx = useContext(ReservationDispatchContext)
+  if (!ctx) throw new Error('useReservationDispatch must be used within a ReservationProvider')
   return ctx
 }

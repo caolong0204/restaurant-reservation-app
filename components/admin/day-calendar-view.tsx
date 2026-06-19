@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Armchair, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Loader2 } from 'lucide-react'
+import { Armchair, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock, Loader2, Plus, RefreshCcw } from 'lucide-react'
 
 import { CalendarReservationDetails } from '@/components/admin/calendar-reservation-details'
 import { TimelineRow } from '@/components/admin/timeline-row'
@@ -40,6 +40,9 @@ interface DayCalendarViewProps {
   onEdit: (reservation: Reservation) => void
   onUpdateStatus: (reservation: Reservation, status: ReservationStatus) => void
   updatingStatusId?: string | null
+  isLoading?: boolean
+  onRefresh?: () => void
+  onCreateReservation?: () => void
 }
 
 export function DayCalendarView({
@@ -52,6 +55,9 @@ export function DayCalendarView({
   onEdit,
   onUpdateStatus,
   updatingStatusId,
+  isLoading,
+  onRefresh,
+  onCreateReservation,
 }: DayCalendarViewProps) {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
@@ -145,55 +151,57 @@ export function DayCalendarView({
     <div className={cn("grid gap-4", !isPastDate ? "xl:grid-cols-[minmax(0,1fr)_300px]" : "xl:grid-cols-1")}>
       <div className="min-w-0 space-y-4">
         <div className="rounded-lg border border-border/80 bg-card p-3 shadow-xs">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-lg"
-                aria-label="Ngày trước"
-                className="bg-background"
-                onClick={() => onDateChange(addDaysToIso(selectedDate, -1))}
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger
-                  render={
-                    <Button
-                      variant="outline"
-                      className="h-9 w-44 justify-start rounded-lg border bg-background pl-3 text-left text-sm font-semibold shadow-xs"
-                    />
-                  }
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-lg"
+                  aria-label="Ngày trước"
+                  className="bg-background"
+                  onClick={() => onDateChange(addDaysToIso(selectedDate, -1))}
                 >
-                  <CalendarDays className="mr-2 size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{formatDate(selectedDate)}</span>
-                </PopoverTrigger>
-                <PopoverContent className="animate-in fade-in-50 slide-in-from-top-1 w-auto border-none p-0 duration-150" align="start">
-                  <RestaurantCalendar
-                    selected={new Date(`${selectedDate}T00:00:00`)}
-                    onSelect={(date) => {
-                      if (date) {
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        onDateChange(`${year}-${month}-${day}`)
-                      }
-                      setIsCalendarOpen(false)
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-lg"
-                aria-label="Ngày sau"
-                className="bg-background"
-                onClick={() => onDateChange(addDaysToIso(selectedDate, 1))}
-              >
-                <ChevronRight className="size-4" />
-              </Button>
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        variant="outline"
+                        className="h-9 w-40 sm:w-44 justify-start rounded-lg border bg-background pl-3 text-left text-sm font-semibold shadow-xs"
+                      />
+                    }
+                  >
+                    <CalendarDays className="mr-2 size-4 shrink-0 text-muted-foreground" />
+                    <span className="truncate">{formatDate(selectedDate)}</span>
+                  </PopoverTrigger>
+                  <PopoverContent className="animate-in fade-in-50 slide-in-from-top-1 w-auto border-none p-0 duration-150" align="start">
+                    <RestaurantCalendar
+                      selected={new Date(`${selectedDate}T00:00:00`)}
+                      onSelect={(date) => {
+                        if (date) {
+                          const year = date.getFullYear()
+                          const month = String(date.getMonth() + 1).padStart(2, '0')
+                          const day = String(date.getDate()).padStart(2, '0')
+                          onDateChange(`${year}-${month}-${day}`)
+                        }
+                        setIsCalendarOpen(false)
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-lg"
+                  aria-label="Ngày sau"
+                  className="bg-background"
+                  onClick={() => onDateChange(addDaysToIso(selectedDate, 1))}
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -205,20 +213,29 @@ export function DayCalendarView({
                 Hôm nay
               </Button>
             </div>
-
-            <div className="flex flex-wrap items-center gap-8 text-sm font-semibold text-foreground">
-              <span className="inline-flex items-center gap-2">
-                <span className="size-3.5 rounded-full bg-green-700 shadow-xs" aria-hidden="true" />
-                Đã xác nhận
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="size-3.5 rounded-full bg-blue-700 shadow-xs" aria-hidden="true" />
-                Đang phục vụ
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="size-3.5 rounded-full bg-red-700 shadow-xs" aria-hidden="true" />
-                Đã hủy
-              </span>
+            <div className="flex items-center justify-end gap-2">
+              {onRefresh && (
+                <Button
+                  size="icon"
+                  variant="outline"
+                  aria-label="Làm mới dữ liệu"
+                  className="size-9 shrink-0 rounded-lg bg-background"
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                >
+                  <RefreshCcw className={cn('size-4', isLoading && 'animate-spin')} />
+                </Button>
+              )}
+              {onCreateReservation && (
+                <Button
+                  aria-label="Tạo đặt bàn"
+                  className="flex size-9 shrink-0 items-center justify-center gap-1.5 rounded-lg text-xs font-bold shadow-xs p-0 sm:h-9 sm:w-auto sm:px-3"
+                  onClick={onCreateReservation}
+                >
+                  <Plus className="size-3.5" />
+                  <span className="hidden sm:inline">Tạo đặt bàn</span>
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -301,11 +318,15 @@ export function DayCalendarView({
             </div>
           ) : (
             visiblePendingReservations.map((reservation) => (
-              <div key={reservation.id} className="grid grid-cols-[1fr_auto] gap-3 border-b border-border/70 px-3 py-2.5 last:border-b-0">
+              <div 
+                key={reservation.id} 
+                onClick={() => setSelectedReservation(reservation)}
+                className="group grid cursor-pointer grid-cols-[1fr_auto] gap-3 border-b border-border/70 px-3 py-2.5 transition-colors hover:bg-muted/30 last:border-b-0"
+              >
                 <div className="min-w-0">
                   <div className="flex min-w-0 items-center gap-2">
                     <Clock className="size-4 shrink-0 text-primary" />
-                    <span className="font-mono text-sm font-bold tabular-nums text-foreground">
+                    <span className="font-mono text-sm font-bold tabular-nums text-foreground group-hover:text-primary transition-colors">
                       {reservation.time}
                     </span>
                     <span className="text-muted-foreground">·</span>
@@ -324,8 +345,11 @@ export function DayCalendarView({
                   size="sm"
                   disabled={Boolean(assigningPendingId)}
                   aria-busy={assigningPendingId === reservation.id}
-                  onClick={() => void handlePendingConfirm(reservation)}
-                  className="mt-6 h-8 rounded-lg border-primary/25 px-3 text-xs font-bold text-primary hover:bg-primary/10"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void handlePendingConfirm(reservation)
+                  }}
+                  className="mt-6 h-8 rounded-lg border-primary/25 px-3 text-xs font-bold text-primary hover:bg-primary/10 relative z-10"
                 >
                   {assigningPendingId === reservation.id ? (
                     <Loader2 className="size-3.5 animate-spin" />

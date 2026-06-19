@@ -1,20 +1,16 @@
 import * as React from 'react'
 import { useState, useEffect } from 'react'
-import { CalendarDays, Check, Clock, Edit3, X, Loader2 } from 'lucide-react'
+import { Check, Edit3, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import { type Reservation } from '@/components/reservation-provider'
-import type { ReservationInput, RestaurantTable } from '@/lib/reservation-types'
-import { TIME_SLOTS, OCCASIONS, formatDate, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
+import type { ActionResult, ReservationInput, RestaurantTable } from '@/lib/reservation-types'
+import { OCCASIONS, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
 import { AdminCustomerInfoFields } from '@/components/admin/admin-customer-info-fields'
 import { AdminSchedulingFields } from '@/components/admin/admin-scheduling-fields'
 import { TableSelectionGrid } from '@/components/admin/table-selection-grid'
 import { CapacityWarningAlert } from '@/components/admin/capacity-warning-alert'
-import { TimePickerDropdown } from '@/components/admin/time-picker-dropdown'
 
 interface EditModalProps {
   isOpen: boolean
@@ -23,9 +19,15 @@ interface EditModalProps {
   onSubmit: (id: string, data: ReservationInput) => Promise<void> | void
   onCancelBooking?: (id: string) => void
   tables: RestaurantTable[]
+  getAvailableTables: (
+    date: string,
+    time: string,
+    partySize: number,
+    excludingReservationId?: string
+  ) => Promise<ActionResult<RestaurantTable[]>>
 }
 
-export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBooking, tables }: EditModalProps) {
+export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBooking, tables, getAvailableTables }: EditModalProps) {
   const [eName, setEName] = useState('')
   const [ePhone, setEPhone] = useState('')
 
@@ -57,6 +59,9 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const [eSecondaryTableIds, setESecondaryTableIds] = useState<string[]>([])
   const [eIsManualArrangement, setEIsManualArrangement] = useState(false)
   const [eNotes, setENotes] = useState('')
+  const [availableTables, setAvailableTables] = useState<RestaurantTable[]>([])
+  const [isLoadingTables, setIsLoadingTables] = useState(false)
+  const [tableError, setTableError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -89,6 +94,48 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
     }
   }, [reservation, tables])
 
+  // Fetch available tables
+  const isEPartyValid = Number(ePartySize) > 0 && Number(ePartySize) <= 24 && !isNaN(Number(ePartySize))
+  const hasSchedulingFields = Boolean(eDate && eTime && isEPartyValid)
+
+  useEffect(() => {
+    if (!isOpen || !hasSchedulingFields || !reservation) {
+      setAvailableTables([])
+      setIsLoadingTables(false)
+      setTableError(null)
+      return
+    }
+
+    let isActive = true
+    setIsLoadingTables(true)
+    setTableError(null)
+
+    getAvailableTables(eDate, eTime, Number(ePartySize), reservation.id)
+      .then((result) => {
+        if (!isActive) return
+
+        if (result.ok) {
+          setAvailableTables(result.data)
+          return
+        }
+
+        setAvailableTables([])
+        setTableError(result.error)
+      })
+      .catch(() => {
+        if (!isActive) return
+        setAvailableTables([])
+        setTableError('Không tải được danh sách bàn trống cho khung giờ này.')
+      })
+      .finally(() => {
+        if (isActive) setIsLoadingTables(false)
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [eDate, ePartySize, eTime, getAvailableTables, hasSchedulingFields, isOpen, reservation])
+
   // Manual arrangement is only an explicit override when selected tables are short on capacity.
   useEffect(() => {
     if (eTableId) {
@@ -106,7 +153,6 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   if (!isOpen || !reservation) return null
 
   // Form validations
-  const isEPartyValid = Number(ePartySize) > 0 && Number(ePartySize) <= 24 && !isNaN(Number(ePartySize))
   const isEPhoneValid = ePhone.trim() === '' || validateVNPhone(ePhone)
 
   const isEditValid = Boolean(
@@ -121,7 +167,8 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
   const mainTable = tables.find((t) => t.id === eTableId)
   const secondaryTables = tables.filter((t) => eSecondaryTableIds.includes(t.id))
   const activeTables = tables.filter((t) => t.active)
-  const availableTableIds = new Set(activeTables.map(t => t.id)) // All active tables are selectable in edit mode
+  // Only tables returned by getAvailableTables are selectable
+  const availableTableIds = new Set(availableTables.map(t => t.id))
   const groupedTables = activeTables.reduce<Record<string, RestaurantTable[]>>((acc, table) => {
     acc[table.floor] = [...(acc[table.floor] ?? []), table]
     return acc
@@ -279,7 +326,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
                 availableTableIds={availableTableIds}
                 cTableId={eTableId}
                 cSecondaryTableIds={eSecondaryTableIds}
-                isLoadingTables={false}
+                isLoadingTables={isLoadingTables}
                 onToggleTable={handleTableToggle}
               />
 
@@ -304,10 +351,10 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
 
 
 
-          <div className="flex flex-col gap-2 border-t border-border pt-3 mt-1 shrink-0 bg-card sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center">
+          <div className="flex flex-col-reverse gap-3 border-t border-border pt-4 mt-2 shrink-0 bg-card sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full sm:w-auto items-center justify-center sm:justify-start">
               {hasUnresolvedCapacityWarning ? (
-                <p className="text-xs font-medium text-destructive max-w-[200px] leading-tight">
+                <p className="text-xs font-medium text-destructive max-w-[200px] leading-tight text-center sm:text-left">
                   Chưa thể lưu: cần ghép thêm bàn.
                 </p>
               ) : reservation && reservation.status !== 'cancelled' && onCancelBooking ? (
@@ -316,18 +363,16 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
                   variant="outline" 
                   size="sm" 
                   onClick={() => onCancelBooking(reservation.id)} 
-                  className="h-9 rounded-lg text-xs border-rose-200 text-rose-600 hover:bg-rose-50/50 hover:text-rose-700 dark:border-rose-900/30 dark:hover:bg-rose-950/20 gap-1"
+                  className="w-full sm:w-auto h-9 rounded-lg text-xs border-rose-200 text-rose-600 hover:bg-rose-50/50 hover:text-rose-700 dark:border-rose-900/30 dark:hover:bg-rose-950/20 gap-1"
                 >
                   <X className="size-3.5" />
                   Hủy đặt bàn
                 </Button>
-              ) : (
-                <span />
-              )}
+              ) : null}
             </div>
-            <div className="flex justify-end gap-2 shrink-0">
-              <Button type="button" variant="outline" size="sm" onClick={onClose} className="h-9 rounded-lg text-xs">Đóng</Button>
-              <Button type="submit" size="sm" disabled={!isEditValid || hasUnresolvedCapacityWarning || isSubmitting} className="h-9 rounded-lg text-xs gap-1 shadow-xs min-w-[120px]">
+            <div className="flex w-full sm:w-auto justify-end gap-2 shrink-0">
+              <Button type="button" variant="outline" size="sm" onClick={onClose} className="flex-1 sm:flex-none h-9 rounded-lg text-xs">Đóng</Button>
+              <Button type="submit" size="sm" disabled={!isEditValid || hasUnresolvedCapacityWarning || isSubmitting} className="flex-[2] sm:flex-none h-9 rounded-lg text-xs gap-1 shadow-xs sm:min-w-[120px]">
                 {isSubmitting ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" />

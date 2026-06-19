@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { useReservations } from '@/components/reservation-provider'
+import { useReservationDispatch } from '@/components/reservation-provider'
 import { OCCASIONS, TABLE_LOCATIONS, isPastTimeSlot } from '@/lib/restaurant'
 import { getPublicSlotAvailability } from '@/lib/reservation-actions'
 import type { SlotAvailability } from '@/lib/reservation-types'
@@ -80,7 +80,7 @@ export function BookingForm({
   currentMonth,
   setCurrentMonth,
 }: BookingFormProps) {
-  const { addReservation } = useReservations()
+  const { addReservation } = useReservationDispatch()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [slotAvailability, setSlotAvailability] = useState<SlotAvailability[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)

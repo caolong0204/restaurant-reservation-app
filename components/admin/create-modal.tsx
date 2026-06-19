@@ -1,11 +1,8 @@
 import * as React from 'react'
 import { useEffect, useState } from 'react'
-import { CalendarDays, Check, Clock, Loader2, Sparkles, X } from 'lucide-react'
+import { Check, Loader2, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { RestaurantCalendar } from '@/components/ui/restaurant-calendar'
 import type { ActionResult, ReservationInput, RestaurantTable } from '@/lib/reservation-types'
 import { TIME_SLOTS, OCCASIONS, formatDate, isPastTimeSlot, getAvailableTimeSlots } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
@@ -13,7 +10,6 @@ import { AdminCustomerInfoFields } from '@/components/admin/admin-customer-info-
 import { AdminSchedulingFields } from '@/components/admin/admin-scheduling-fields'
 import { TableSelectionGrid } from '@/components/admin/table-selection-grid'
 import { CapacityWarningAlert } from '@/components/admin/capacity-warning-alert'
-import { TimePickerDropdown } from '@/components/admin/time-picker-dropdown'
 
 interface CreateModalProps {
   isOpen: boolean

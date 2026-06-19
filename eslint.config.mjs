@@ -11,6 +11,7 @@ const eslintConfig = [
   },
   {
     ignores: [
+      '.agents/**',
       '.next/**',
       'next-env.d.ts',
       'tsconfig.tsbuildinfo',

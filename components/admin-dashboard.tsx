@@ -2,20 +2,16 @@
 
 import { useState } from 'react'
 
-import Image from 'next/image'
-import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
-  AlertCircle,
   CalendarClock,
   Home,
   ListChecks,
-  LogOut,
-  Plus,
-  RefreshCcw,
-  X,
+  LogOut
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import Image from 'next/image'
+import Link from 'next/link'
 
 import { AdminNotifications } from '@/components/admin/admin-notifications'
 
@@ -25,9 +21,9 @@ import { ConfirmModal } from '@/components/admin/confirm-modal'
 import { CreateModal } from '@/components/admin/create-modal'
 import { DayCalendarView } from '@/components/admin/day-calendar-view'
 import { EditModal } from '@/components/admin/edit-modal'
-import { useReservations } from '@/components/reservation-provider'
-import { signOutAdmin } from '@/lib/auth-actions'
+import { useReservationDispatch, useReservationState } from '@/components/reservation-provider'
 import { getTodayIso } from '@/lib/admin-calendar'
+import { signOutAdmin } from '@/lib/auth-actions'
 import { useAdminReservationActions } from '@/lib/hooks/use-admin-reservation-actions'
 import type { AdminView } from '@/lib/hooks/use-admin-reservation-filters'
 import { RESTAURANT } from '@/lib/restaurant'
@@ -66,10 +62,8 @@ function AdminNavButton({
 }
 
 export function AdminDashboard() {
+  const { reservations, tables, isLoading } = useReservationState()
   const {
-    reservations,
-    tables,
-    isLoading,
     refreshAdminData,
     createManualReservation,
     confirmReservation,
@@ -77,7 +71,7 @@ export function AdminDashboard() {
     editReservation,
     updateReservationStatus,
     getAvailableTables,
-  } = useReservations()
+  } = useReservationDispatch()
 
   const [view, setView] = useState<AdminView>('reservations')
   const [calendarDate, setCalendarDate] = useState(getTodayIso())
@@ -207,45 +201,16 @@ export function AdminDashboard() {
       </div>
 
       <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 lg:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase text-primary">
-              {view === 'reservations' ? 'Booking Operations' : 'Table Timeline'}
-            </p>
-            <h1 className="mt-1 text-balance font-serif text-2xl font-bold text-foreground">
+        <div className="mb-5">
+          <div className="flex items-center gap-3">
+            <h1 className="text-balance font-serif text-2xl font-bold text-foreground">
               {pageTitle}
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {pageDescription}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
             <AdminNotifications reservations={reservations} />
-
-            {view === 'calendar' ? (
-              <Button
-                size="icon"
-                variant="outline"
-                aria-label="Làm mới dữ liệu"
-                className="size-9 shrink-0 rounded-lg bg-card"
-                onClick={() => void refreshAdminData()}
-                disabled={isLoading}
-              >
-                <RefreshCcw className={cn('size-4', isLoading && 'animate-spin')} />
-              </Button>
-            ) : null}
-            {view === 'calendar' ? (
-              <Button
-                size="sm"
-                className="h-9 shrink-0 gap-1.5 rounded-lg text-xs font-bold shadow-xs"
-                onClick={() => setIsCreateOpen(true)}
-              >
-                <Plus className="size-3.5" />
-                Tạo đặt bàn
-              </Button>
-            ) : null}
           </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {pageDescription}
+          </p>
         </div>
 
         {view === 'reservations' ? (
@@ -272,6 +237,9 @@ export function AdminDashboard() {
               onEdit={openEdit}
               onUpdateStatus={handleUpdateStatus}
               updatingStatusId={updatingStatusId}
+              isLoading={isLoading}
+              onRefresh={() => void refreshAdminData()}
+              onCreateReservation={() => setIsCreateOpen(true)}
             />
           </div>
         )}
@@ -292,6 +260,7 @@ export function AdminDashboard() {
         onSubmit={handleEditSubmit}
         onCancelBooking={handleEditCancelBooking}
         tables={tables}
+        getAvailableTables={getAvailableTables}
       />
 
       <AssignTableModal

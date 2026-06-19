@@ -1,13 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Armchair, Check, Info, Loader2, Users, X } from 'lucide-react'
+import { Armchair, Check, Loader2, X } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { Reservation, RestaurantTable } from '@/lib/reservation-types'
 import { formatDate, formatTime } from '@/lib/restaurant'
-import { cn } from '@/lib/utils'
 import { AssignTableGrid } from './assign-table-grid'
 import { AssignTableCapacityAlerts } from './assign-table-capacity-alerts'
 
@@ -135,16 +133,19 @@ export function AssignTableModal({
         <div className="absolute inset-x-0 top-0 h-1 bg-primary" />
         
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-border p-5 shrink-0">
+        <div className="flex items-start justify-between border-b border-border p-5 shrink-0 bg-secondary/10">
           <div>
-            <div className="flex items-center gap-2">
-              <Armchair className="size-4 text-primary" />
-              <h3 className="font-serif text-lg font-bold text-foreground">
-                Gán bàn xác nhận
-              </h3>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {reservation.name} · {formatDate(reservation.date)} · {formatTime(reservation.time)} · {reservation.partySize} khách
+            <h3 className="font-serif text-xl font-bold text-foreground">
+              Xác nhận gán bàn
+            </h3>
+            <p className="mt-1.5 text-sm text-muted-foreground flex items-center gap-1.5 flex-wrap">
+              <span className="font-medium text-foreground">{reservation.name}</span>
+              <span>•</span>
+              <span>{formatDate(reservation.date)}</span>
+              <span>•</span>
+              <span className="font-medium text-foreground">{formatTime(reservation.time)}</span>
+              <span>•</span>
+              <span className="bg-secondary px-1.5 py-0.5 rounded text-xs font-semibold text-foreground">{reservation.partySize} khách</span>
             </p>
           </div>
           <button
@@ -179,6 +180,7 @@ export function AssignTableModal({
           ) : (
             <div className="space-y-6">
               {/* Table Selector Grid */}
+              <h4 className="mb-3 font-bold text-foreground text-[15px]">Bàn chỉ định</h4>
               <AssignTableGrid 
                 groupedTables={groupedTables}
                 selectedTableIds={selectedTableIds}
@@ -203,15 +205,7 @@ export function AssignTableModal({
         />
 
         {/* Buttons Action */}
-        <div className="flex flex-col gap-2 border-t border-border p-4 shrink-0 bg-card sm:flex-row sm:items-center sm:justify-between">
-          {hasCapacityWarning && !isManualArrangement ? (
-            <p className="text-xs font-medium text-destructive">
-              Chưa thể xác nhận: cần chọn thêm bàn ghép hoặc tick tự sắp xếp thêm ghế/bàn ngoài hệ thống.
-            </p>
-          ) : (
-            <span />
-          )}
-          <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t border-border p-4 shrink-0 bg-card">
             <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
               Hủy
             </Button>
@@ -243,8 +237,8 @@ export function AssignTableModal({
               )}
             </Button>
           </div>
-        </div>
       </div>
     </div>
   )
 }
+

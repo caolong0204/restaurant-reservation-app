@@ -2,6 +2,7 @@ import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { Reservation } from '@/lib/reservation-types'
+import { cn } from '@/lib/utils'
 
 import { useEffect, useState } from 'react'
 
@@ -11,6 +12,7 @@ interface AdminNotificationsProps {
 
 export function AdminNotifications({ reservations }: AdminNotificationsProps) {
   const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number>(0)
+  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('adminLastSeenNotification')
@@ -25,7 +27,8 @@ export function AdminNotifications({ reservations }: AdminNotificationsProps) {
   const hasNewNotifications = pendingReservations.some(r => r.createdAt > lastSeenTimestamp)
 
   const handleOpenChange = (open: boolean) => {
-    if (open && pendingReservations.length > 0) {
+    setIsOpen(open)
+    if (!open && pendingReservations.length > 0) {
       const maxTimestamp = Math.max(...pendingReservations.map(r => r.createdAt))
       setLastSeenTimestamp(maxTimestamp)
       localStorage.setItem('adminLastSeenNotification', maxTimestamp.toString())
@@ -33,7 +36,7 @@ export function AdminNotifications({ reservations }: AdminNotificationsProps) {
   }
 
   return (
-    <Popover onOpenChange={handleOpenChange}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger
         render={
           <Button
@@ -45,7 +48,7 @@ export function AdminNotifications({ reservations }: AdminNotificationsProps) {
         }
       >
         <Bell className="size-4 text-muted-foreground" />
-        {hasNewNotifications && (
+        {hasNewNotifications && !isOpen && (
           <span className="absolute right-2 top-2 size-2 rounded-full bg-red-500 ring-2 ring-card" />
         )}
       </PopoverTrigger>
@@ -59,21 +62,30 @@ export function AdminNotifications({ reservations }: AdminNotificationsProps) {
         <div className="flex max-h-[300px] flex-col overflow-y-auto">
           {pendingReservations
             .sort((a, b) => b.createdAt - a.createdAt)
-            .map((r) => (
-              <div key={r.id} className="flex flex-col gap-1 border-b border-border/40 p-4 transition-colors hover:bg-muted/30">
-                <p className="text-sm text-foreground">
-                  Khách hàng <span className="font-semibold">{r.name}</span> vừa đặt bàn mới.
-                </p>
-                <div className="flex flex-col gap-0.5 mt-1">
-                  <p className="text-xs text-muted-foreground">
-                    Khách đến: <span className="font-medium text-foreground">{r.time} ngày {r.date}</span> • {r.partySize} người
+            .map((r) => {
+              const isNew = r.createdAt > lastSeenTimestamp
+              return (
+                <div 
+                  key={r.id} 
+                  className={cn(
+                    "flex flex-col gap-1 border-b border-border/40 p-4 transition-colors hover:bg-muted/30",
+                    isNew ? "bg-primary/10" : ""
+                  )}
+                >
+                  <p className="text-sm text-foreground">
+                    Khách hàng <span className="font-semibold">{r.name}</span> vừa đặt bàn mới.
                   </p>
-                  <p className="text-[11px] text-muted-foreground/70">
-                    Tạo lúc: {new Date(r.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
-                  </p>
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    <p className="text-xs text-muted-foreground">
+                      Khách đến: <span className="font-medium text-foreground">{r.time} ngày {r.date}</span> • {r.partySize} người
+                    </p>
+                    <p className="text-[11px] text-muted-foreground/70">
+                      Tạo lúc: {new Date(r.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           {pendingCount === 0 && (
             <div className="p-6 text-center text-sm text-muted-foreground">
               Không có thông báo mới.
