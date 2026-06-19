@@ -148,7 +148,7 @@ export function StepInfo({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
-          placeholder="Dị ứng thực phẩm, sở thích chỗ ngồi, chuẩn bị bánh kem chúc mừng..."
+          placeholder="Dị ứng thực phẩm, chuẩn bị bánh kem chúc mừng..."
           className="resize-none rounded-lg border border-input bg-background px-3 py-2 text-[17px] md:text-[15px] shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 transition-all placeholder:text-muted-foreground/50"
         />
       </div>

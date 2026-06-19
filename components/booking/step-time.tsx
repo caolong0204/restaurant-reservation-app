@@ -83,20 +83,20 @@ export function StepTime({
                       key={slot}
                       type="button"
                       onClick={() => setTime(slot)}
-                      disabled={isLoading}
+                      disabled={isLoading || isUnavailable}
                       className={cn(
                         'flex min-h-9 flex-col items-center justify-center rounded-lg border px-1.5 py-1 text-xs sm:text-sm font-semibold transition-all duration-200',
                         time === slot
                           ? 'border-flambe-rust bg-flambe-rust text-white shadow-md shadow-flambe-rust/20'
                           : 'border-border bg-background text-foreground hover:border-flambe-rust/50 hover:bg-flambe-rust/5',
-                        isUnavailable && time !== slot && 'border-amber-200 bg-amber-50/50 text-amber-700/80 hover:bg-amber-100 hover:border-amber-300',
+                        isUnavailable && 'cursor-not-allowed opacity-50 bg-muted/50 text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-muted-foreground',
                         isLoading && 'cursor-wait opacity-70',
                       )}
                     >
-                      <span>{formatTime(slot)}</span>
+                      <span className={cn(isUnavailable && 'line-through')}>{formatTime(slot)}</span>
                       {isUnavailable && (
-                        <span className="mt-0.5 text-[9px] font-bold opacity-85">
-                          Đợi duyệt
+                        <span className="mt-0.5 text-[9px] font-bold">
+                          Hết bàn
                         </span>
                       )}
                     </button>

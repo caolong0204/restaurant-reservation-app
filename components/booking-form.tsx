@@ -1,21 +1,21 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { ChevronLeft, ArrowRight } from 'lucide-react'
-import { toast } from 'sonner'
 import { useReservationDispatch } from '@/components/reservation-provider'
-import { OCCASIONS, TABLE_LOCATIONS, isPastTimeSlot } from '@/lib/restaurant'
 import { getPublicSlotAvailability } from '@/lib/reservation-actions'
 import type { SlotAvailability } from '@/lib/reservation-types'
+import { OCCASIONS, TABLE_LOCATIONS, isPastTimeSlot } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
+import { ArrowRight, ChevronLeft } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 // Import split sub-components
 import { ProgressSteps } from './booking/progress-steps'
-import { StepPartySize } from './booking/step-party-size'
 import { StepDate } from './booking/step-date'
-import { StepTime } from './booking/step-time'
 import { StepInfo } from './booking/step-info'
+import { StepPartySize } from './booking/step-party-size'
 import { StepSuccess } from './booking/step-success'
+import { StepTime } from './booking/step-time'
 import { SummaryBar } from './booking/summary-bar'
 
 function toISO(date: Date) {
@@ -379,7 +379,7 @@ export function BookingForm({
           <div className="mt-3 border-t border-border pt-3">
             {step === 4 && (
               <p className="text-[11px] sm:text-xs text-rose-600 font-semibold text-left mb-3 select-none leading-relaxed">
-                * Vui lòng nhận bàn theo sự sắp xếp và tình trạng có sẵn tại thực tế.
+                * nhà hàng không nhận đặt vị trí bàn cụ thể, bàn sẽ được xếp theo tình hình thực tế tại thời điểm khách hàng tới dùng bữa.
               </p>
             )}
             <div className="flex items-center justify-between">
