@@ -6,7 +6,7 @@ import { useDebounce } from '@/lib/hooks/use-debounce'
 import type { Reservation } from '@/lib/reservation-types'
 
 export type AdminFilter = 'all' | 'pending' | 'confirmed' | 'serving' | 'completed' | 'cancelled'
-export type AdminView = 'reservations' | 'calendar'
+export type AdminView = 'reservations' | 'calendar' | 'settings' | 'accounts'
 const DEFAULT_RESERVATIONS_PAGE_SIZE = 10
 
 function todayISO(): string {

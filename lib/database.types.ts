@@ -127,10 +127,32 @@ export type Database = {
           },
         ]
       }
+      restaurant_display_settings: {
+        Row: {
+          created_at: string
+          id: number
+          show_closed_days_in_footer: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          show_closed_days_in_footer?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          show_closed_days_in_footer?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       restaurant_tables: {
         Row: {
           active: boolean
           area: string
+          availability_status: 'active' | 'held_for_walk_in' | 'inactive'
           capacity: number
           code: string
           created_at: string
@@ -143,6 +165,7 @@ export type Database = {
         Insert: {
           active?: boolean
           area: string
+          availability_status?: 'active' | 'held_for_walk_in' | 'inactive'
           capacity: number
           code: string
           created_at?: string
@@ -155,6 +178,7 @@ export type Database = {
         Update: {
           active?: boolean
           area?: string
+          availability_status?: 'active' | 'held_for_walk_in' | 'inactive'
           capacity?: number
           code?: string
           created_at?: string
@@ -166,11 +190,42 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_weekly_hours: {
+        Row: {
+          close_time: string
+          created_at: string
+          is_open: boolean
+          last_booking_time: string
+          open_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          close_time?: string
+          created_at?: string
+          is_open?: boolean
+          last_booking_time?: string
+          open_time?: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          close_time?: string
+          created_at?: string
+          is_open?: boolean
+          last_booking_time?: string
+          open_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: []
+      }
       staff_profiles: {
         Row: {
           active: boolean
           created_at: string
           display_name: string
+          email: string
           role: string
           updated_at: string
           user_id: string
@@ -179,6 +234,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           display_name: string
+          email: string
           role?: string
           updated_at?: string
           user_id: string
@@ -187,6 +243,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           display_name?: string
+          email?: string
           role?: string
           updated_at?: string
           user_id?: string
@@ -228,6 +285,7 @@ export type Database = {
           time: string
         }[]
       }
+      is_active_admin: { Args: never; Returns: boolean }
       is_active_staff: { Args: never; Returns: boolean }
       is_valid_reservation_slot: {
         Args: { p_date: string; p_party_size: number; p_time: string }

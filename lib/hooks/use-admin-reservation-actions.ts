@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import type {
@@ -222,27 +222,51 @@ export function useAdminReservationActions({
     [updateReservationStatus],
   )
 
-  return {
-    isCreateOpen,
-    setIsCreateOpen,
-    isEditOpen,
-    editingReservation,
-    assigningReservation,
-    availableTables,
-    isLoadingTables,
-    cancelingReservation,
-    openAssignModal,
-    closeAssignModal,
-    handleAssignConfirm,
-    handleCancel,
-    closeCancelModal,
-    executeCancel,
-    openEdit,
-    closeEdit,
-    handleCreateSubmit,
-    handleEditSubmit,
-    handleEditCancelBooking,
-    handleUpdateStatus,
-    updatingStatusId,
-  }
+  return useMemo(
+    () => ({
+      isCreateOpen,
+      setIsCreateOpen,
+      isEditOpen,
+      editingReservation,
+      assigningReservation,
+      availableTables,
+      isLoadingTables,
+      cancelingReservation,
+      openAssignModal,
+      closeAssignModal,
+      handleAssignConfirm,
+      handleCancel,
+      closeCancelModal,
+      executeCancel,
+      openEdit,
+      closeEdit,
+      handleCreateSubmit,
+      handleEditSubmit,
+      handleEditCancelBooking,
+      handleUpdateStatus,
+      updatingStatusId,
+    }),
+    [
+      availableTables,
+      assigningReservation,
+      cancelingReservation,
+      closeAssignModal,
+      closeCancelModal,
+      closeEdit,
+      editingReservation,
+      executeCancel,
+      handleAssignConfirm,
+      handleCancel,
+      handleCreateSubmit,
+      handleEditCancelBooking,
+      handleEditSubmit,
+      handleUpdateStatus,
+      isCreateOpen,
+      isEditOpen,
+      isLoadingTables,
+      openAssignModal,
+      openEdit,
+      updatingStatusId,
+    ],
+  )
 }

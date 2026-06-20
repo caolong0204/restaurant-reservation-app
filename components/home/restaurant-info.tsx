@@ -7,9 +7,14 @@ import { cn } from '@/lib/utils'
 interface RestaurantInfoProps {
   className?: string
   glassTheme?: boolean
+  hourLabels?: string[]
 }
 
-export function RestaurantInfo({ className, glassTheme = false }: RestaurantInfoProps) {
+export function RestaurantInfo({
+  className,
+  glassTheme = false,
+  hourLabels = RESTAURANT.hours,
+}: RestaurantInfoProps) {
   return (
     <div
       className={cn(
@@ -45,7 +50,7 @@ export function RestaurantInfo({ className, glassTheme = false }: RestaurantInfo
           <div>
             <p className="font-semibold text-sm">Giờ hoạt động</p>
             <p className={cn('text-xs mt-0.5', glassTheme ? 'text-white/80' : 'text-muted-foreground')}>
-              {RESTAURANT.hours.join(' · ')}
+              {hourLabels.join(' · ')}
             </p>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { Clock, Mail, MapPin, Phone } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
-export function Footer() {
+export function Footer({ hourLabels = RESTAURANT.hours }: { hourLabels?: string[] }) {
   return (
     <footer className="border-t border-border bg-secondary/15">
       <div className="mx-auto max-w-6xl px-4 pt-8 pb-4 sm:pt-10 sm:pb-6">
@@ -41,7 +41,7 @@ export function Footer() {
               Giờ hoạt động
             </p>
             <div className="mt-2 space-y-1 text-sm font-medium leading-relaxed text-foreground">
-              {RESTAURANT.hours.map((hours) => (
+              {hourLabels.map((hours) => (
                 <p key={hours} className="lg:whitespace-nowrap">{hours}</p>
               ))}
             </div>

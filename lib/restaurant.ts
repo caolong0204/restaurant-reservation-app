@@ -1,4 +1,5 @@
 import { formatInTimeZone } from 'date-fns-tz'
+import type { RestaurantWeeklyHour } from '@/lib/reservation-types'
 
 export const RESTAURANT = {
   name: 'Flambé',
@@ -16,18 +17,27 @@ export const RESTAURANT = {
 
 export const TIME_SLOTS: string[] = (() => {
   const slots: string[] = []
-  // 10:30 to 22:30 in 15-minute increments.
-  for (let h = 10; h <= 22; h++) {
+  for (let h = 0; h <= 23; h++) {
     for (const m of [0, 15, 30, 45]) {
-      if (h === 10 && m < 30) continue // starts at 10:30
-      if (h === 22 && m > 30) continue
       slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
     }
   }
   return slots
 })()
 
-function minutesFromTimeString(time: string): number {
+export const DEFAULT_WEEKLY_HOURS: RestaurantWeeklyHour[] = [
+  { weekday: 1, isOpen: false, openTime: '10:30', closeTime: '22:00', lastBookingTime: '21:00' },
+  { weekday: 2, isOpen: true, openTime: '10:30', closeTime: '22:00', lastBookingTime: '21:00' },
+  { weekday: 3, isOpen: true, openTime: '10:30', closeTime: '22:00', lastBookingTime: '21:00' },
+  { weekday: 4, isOpen: true, openTime: '10:30', closeTime: '22:00', lastBookingTime: '21:00' },
+  { weekday: 5, isOpen: true, openTime: '10:30', closeTime: '22:00', lastBookingTime: '21:30' },
+  { weekday: 6, isOpen: true, openTime: '10:30', closeTime: '23:00', lastBookingTime: '21:30' },
+  { weekday: 7, isOpen: true, openTime: '10:30', closeTime: '23:00', lastBookingTime: '21:30' },
+]
+
+const WEEKDAY_LABELS = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật']
+
+export function minutesFromTimeString(time: string): number {
   const [hours = '0', minutes = '0'] = time.split(':')
   return Number(hours) * 60 + Number(minutes)
 }
@@ -69,6 +79,16 @@ export function getLastBookingTime(dateIso?: string): string {
   return day === 0 || day === 5 || day === 6 ? '21:30' : '21:00'
 }
 
+export function getWeeklyHourForDate(
+  dateIso: string | undefined,
+  weeklyHours: RestaurantWeeklyHour[] = DEFAULT_WEEKLY_HOURS,
+) {
+  if (!dateIso) return undefined
+  const jsDay = new Date(`${dateIso}T00:00:00`).getDay()
+  const isoDay = jsDay === 0 ? 7 : jsDay
+  return weeklyHours.find((item) => item.weekday === isoDay)
+}
+
 /**
  * Booking duration in minutes based on party size:
  * 1–4 khách → 120 phút, 5–6 khách → 150 phút, 7+ → 180 phút (tuỳ chỉnh)
@@ -82,20 +102,53 @@ export function getBookingDuration(partySize: number): number {
 /**
  * Returns the subset of TIME_SLOTS that fit within operating hours for the given date and party size.
  */
-export function getAvailableTimeSlots(partySize: number, dateIso?: string): string[] {
-  if (dateIso) {
-    const day = new Date(`${dateIso}T00:00:00`).getDay()
-    if (day === 1) return [] // 1 is Monday
-  }
+export function getAvailableTimeSlots(
+  partySize: number,
+  dateIso?: string,
+  weeklyHours: RestaurantWeeklyHour[] = DEFAULT_WEEKLY_HOURS,
+): string[] {
+  const schedule = getWeeklyHourForDate(dateIso, weeklyHours)
+  if (schedule && !schedule.isOpen) return []
 
-  const lastBooking = getLastBookingTime(dateIso)
-  const [lastH, lastM] = lastBooking.split(':').map(Number)
-  const lastBookingMinutes = (lastH ?? 21) * 60 + (lastM ?? 0)
+  const openMinutes = minutesFromTimeString(schedule?.openTime ?? '10:30')
+  const lastBookingMinutes = minutesFromTimeString(schedule?.lastBookingTime ?? getLastBookingTime(dateIso))
 
   return TIME_SLOTS.filter((slot) => {
     const slotMinutes = minutesFromTimeString(slot)
-    return slotMinutes <= lastBookingMinutes
+    return slotMinutes >= openMinutes && slotMinutes <= lastBookingMinutes
   })
+}
+
+export function formatOperatingHoursLabels(
+  weeklyHours: RestaurantWeeklyHour[] = DEFAULT_WEEKLY_HOURS,
+  showClosedDays = false,
+): string[] {
+  const labels: string[] = []
+  let groupStart = 0
+
+  const labelForRange = (start: number, end: number) => {
+    const first = WEEKDAY_LABELS[start]
+    const last = WEEKDAY_LABELS[end]
+    return first === last ? first : `${first} - ${last}`
+  }
+
+  const signature = (item: RestaurantWeeklyHour) =>
+    item.isOpen ? `open:${item.openTime}:${item.closeTime}` : 'closed'
+
+  const sorted = [...weeklyHours].sort((a, b) => a.weekday - b.weekday)
+  for (let index = 1; index <= sorted.length; index += 1) {
+    const prev = sorted[index - 1]
+    const current = sorted[index]
+    if (current && signature(current) === signature(prev)) continue
+
+    if (prev.isOpen || showClosedDays) {
+      const range = labelForRange(groupStart, index - 1)
+      labels.push(prev.isOpen ? `${range}: ${prev.openTime} - ${prev.closeTime}` : `${range}: Nghỉ`)
+    }
+    groupStart = index
+  }
+
+  return labels
 }
 
 export const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]

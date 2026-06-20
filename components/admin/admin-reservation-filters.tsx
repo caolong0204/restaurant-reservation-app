@@ -12,12 +12,12 @@ import type { AdminFilter } from '@/lib/hooks/use-admin-reservation-filters'
 type FilterOption = { value: AdminFilter; label: string }
 
 const ACTIVE_TAB_STYLES: Record<string, string> = {
-  all: 'border-primary text-primary bg-primary/20 dark:bg-primary/30',
-  pending: 'border-amber-500 text-amber-700 bg-amber-500/20 dark:text-amber-400',
-  confirmed: 'border-emerald-500 text-emerald-700 bg-emerald-500/20 dark:text-emerald-400',
-  serving: 'border-blue-500 text-blue-700 bg-blue-500/20 dark:text-blue-400',
-  completed: 'border-gray-500 text-gray-700 bg-gray-500/20 dark:text-gray-400',
-  cancelled: 'border-rose-500 text-rose-700 bg-rose-500/20 dark:text-rose-400',
+  all: 'border-primary bg-primary text-primary-foreground shadow-md',
+  pending: 'border-amber-500 bg-amber-500 text-white shadow-md',
+  confirmed: 'border-emerald-500 bg-emerald-500 text-white shadow-md',
+  serving: 'border-blue-500 bg-blue-500 text-white shadow-md',
+  completed: 'border-gray-500 bg-gray-600 text-white shadow-md',
+  cancelled: 'border-rose-500 bg-rose-500 text-white shadow-md',
 }
 
 const TAB_STYLES: Record<string, string> = {
@@ -81,7 +81,7 @@ export function AdminReservationFilters({
                 <span
                   className={cn(
                     'font-mono text-sm tabular-nums',
-                    STATUS_TEXT_COLORS[item.value]
+                    filter === item.value ? 'text-current opacity-90' : STATUS_TEXT_COLORS[item.value]
                   )}
                 >
                   {counts[item.value]}
@@ -100,7 +100,7 @@ export function AdminReservationFilters({
               aria-label="Tìm kiếm đặt bàn"
               name="reservation-search"
               type="text"
-              placeholder="Tìm tên khách, số điện thoại, mã bàn…"
+              placeholder="Tìm tên khách, số điện thoại, tên bàn…"
               value={searchTerm}
               onChange={(event) => onSearchTermChange(event.target.value)}
               className="h-11 rounded-lg border-border/80 bg-card pl-12 pr-12 text-sm shadow-xs placeholder:text-muted-foreground/70"

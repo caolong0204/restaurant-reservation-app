@@ -4,7 +4,7 @@ import { Check, Edit3, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { type Reservation } from '@/components/reservation-provider'
-import type { ActionResult, ReservationInput, RestaurantTable } from '@/lib/reservation-types'
+import type { ActionResult, ReservationInput, RestaurantTable, RestaurantWeeklyHour } from '@/lib/reservation-types'
 import { OCCASIONS, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
 import { isReservationInServiceWindow } from '@/lib/admin-calendar'
 import { cn, validateVNPhone } from '@/lib/utils'
@@ -20,6 +20,7 @@ interface EditModalProps {
   onSubmit: (id: string, data: ReservationInput) => Promise<void> | void
   onCancelBooking?: (id: string) => void
   tables: RestaurantTable[]
+  weeklyHours: RestaurantWeeklyHour[]
   getAvailableTables: (
     date: string,
     time: string,
@@ -28,7 +29,7 @@ interface EditModalProps {
   ) => Promise<ActionResult<RestaurantTable[]>>
 }
 
-export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBooking, tables, getAvailableTables }: EditModalProps) {
+export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBooking, tables, weeklyHours, getAvailableTables }: EditModalProps) {
   const [eName, setEName] = useState('')
   const [ePhone, setEPhone] = useState('')
   const [eEmail, setEEmail] = useState('')
@@ -296,7 +297,7 @@ export function EditModal({ isOpen, onClose, reservation, onSubmit, onCancelBook
             isTimeOpen={isTimeOpen}
             setIsTimeOpen={setIsTimeOpen}
             availableTimeSlots={(() => {
-              const slots = getAvailableTimeSlots(Number(ePartySize) || 1, eDate).filter(
+              const slots = getAvailableTimeSlots(Number(ePartySize) || 1, eDate, weeklyHours).filter(
                 (t) => {
                   const isOriginalDateTime = reservation && t === reservation.time && eDate === reservation.date;
                   return isWithinServiceWindow || !isPastTimeSlot(t, eDate) || isOriginalDateTime;

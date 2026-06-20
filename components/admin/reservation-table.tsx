@@ -1,43 +1,19 @@
 'use client'
 
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import {
-  Armchair,
-  Check,
-  Edit3,
-  Mail,
-  Phone,
-  Users,
-  X,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  AlertTriangle,
-  Loader2,
-} from 'lucide-react'
 
 import { CalendarReservationDetails } from '@/components/admin/calendar-reservation-details'
-
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { ReservationTableHeader } from '@/components/admin/reservation-table-header'
+import { ReservationTableRow } from '@/components/admin/reservation-table-row'
+import { TABLE_COLUMN_COUNT } from '@/components/admin/reservation-table-utils'
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  STATUS_STYLES,
-  ROW_BG_STYLES,
-  getSelectableStatuses,
-  getTodayIso,
-  hasReservationServiceEnded,
-  isPastReservation,
-} from '@/lib/admin-calendar'
-import type { Reservation, ReservationStatus, RestaurantTable } from '@/lib/reservation-types'
+import { useReservationTable } from '@/lib/hooks/use-reservation-table'
+import type { Reservation, ReservationStatus } from '@/lib/reservation-types'
 import { cn } from '@/lib/utils'
 
 interface ReservationTableProps {
@@ -53,258 +29,6 @@ interface ReservationTableProps {
   updatingStatusId?: string | null
 }
 
-
-
-const TABLE_COLUMN_COUNT = 11
-
-const STICKY_ROW_BG_STYLES: Record<ReservationStatus, string> = {
-  pending: 'bg-amber-50 dark:bg-amber-950',
-  confirmed: 'bg-emerald-50 dark:bg-emerald-950',
-  arrived: 'bg-blue-50 dark:bg-blue-950',
-  seated: 'bg-blue-50 dark:bg-blue-950',
-  completed: 'bg-gray-50 dark:bg-gray-900',
-  cancelled: 'bg-zinc-50 dark:bg-zinc-900',
-  no_show: 'bg-red-50 dark:bg-red-950',
-}
-
-function formatSheetDate(iso: string): string {
-  const [year, month, day] = iso.split('-')
-  if (!year || !month || !day) return iso
-  return `${day}/${month}/${year}`
-}
-
-function formatTableShorthand(table: RestaurantTable): string {
-  const numMatch = table.code.match(/\d+/)
-  const num = numMatch ? numMatch[0].padStart(2, '0') : '00'
-  const floorStr = table.floor === 'Tầng 1' ? 'T1' : 'T2'
-  return `${num}(${floorStr})`
-}
-
-function formatTableDisplay(reservation: Reservation): string {
-  if (!reservation.table) return ''
-  const main = formatTableShorthand(reservation.table)
-  if (!reservation.secondaryTables || reservation.secondaryTables.length === 0) return main
-  const secondary = reservation.secondaryTables.map(formatTableShorthand).join(' + ')
-  return `${main} + ${secondary}`
-}
-
-const ReservationTableRow = memo(function ReservationTableRow({
-  reservation,
-  displayIndex,
-  nowMs,
-  todayStr,
-  onConfirm,
-  onEdit,
-  onCancel,
-  onUpdateStatus,
-  onRowClick,
-  isUpdatingStatus,
-}: {
-  reservation: Reservation
-  displayIndex: number
-  nowMs: number
-  todayStr: string
-  onConfirm: (reservation: Reservation) => void
-  onEdit: (reservation: Reservation) => void
-  onCancel: (reservation: Reservation) => void
-  onUpdateStatus: (reservation: Reservation, newStatus: ReservationStatus) => void
-  onRowClick: (reservation: Reservation) => void
-  isUpdatingStatus?: boolean
-}) {
-  const isCancelled = reservation.status === 'cancelled'
-  const isPending = reservation.status === 'pending'
-  const isServiceEnded = hasReservationServiceEnded(reservation)
-  
-  // Logic: Mới tạo trong vòng 15 phút
-  const isNew = nowMs > 0 && (nowMs - reservation.createdAt) < 15 * 60 * 1000
-  
-  // Logic: Đã quá giờ đặt bàn 15 phút (chỉ tính những đơn đang chờ duyệt)
-  const [year, month, day] = reservation.date.split('-').map(Number)
-  const [hour, minute] = reservation.time.split(':').map(Number)
-  // Ensure valid date parsed before comparing
-  const resTimeMs = (year && month && day && !isNaN(hour) && !isNaN(minute)) 
-    ? new Date(year, month - 1, day, hour, minute).getTime() 
-    : Infinity
-  const isOverdue = isPending && (nowMs > resTimeMs + 15 * 60 * 1000)
-
-  // Check if date is in the past
-  const isPastDate = isPastReservation(reservation.date, todayStr)
-
-  const bgClass = isNew && isPending
-    ? 'bg-orange-50/50 hover:bg-orange-100/60 dark:bg-orange-950/20 dark:hover:bg-orange-950/30'
-    : ROW_BG_STYLES[reservation.status] || 'hover:bg-muted/50 text-foreground'
-
-  const stickyBgClass = isNew && isPending
-    ? 'bg-orange-50 dark:bg-orange-950'
-    : STICKY_ROW_BG_STYLES[reservation.status] || 'bg-card'
-
-  return (
-    <TableRow
-      className={cn(
-        'group relative h-[64px] border-b border-border/60 transition-colors cursor-pointer',
-        bgClass
-      )}
-      onClick={() => onRowClick(reservation)}
-    >
-      <TableCell className={cn("text-center font-mono tabular-nums", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>
-        {displayIndex}
-      </TableCell>
-      <TableCell className={cn("text-center font-mono font-semibold tabular-nums", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
-        {formatSheetDate(reservation.date)}
-      </TableCell>
-      <TableCell className={cn("text-center font-mono font-semibold tabular-nums", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
-        {isOverdue ? (
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-red-50 px-2 py-1 text-red-600 border border-red-100">
-            <AlertTriangle className="size-3.5" />
-            <span className="animate-pulse">{reservation.time}</span>
-          </div>
-        ) : (
-          reservation.time
-        )}
-      </TableCell>
-      <TableCell className={cn("text-center font-mono tabular-nums", isCancelled ? "text-muted-foreground/40" : "text-muted-foreground/70")}>
-        <div className="text-[10px] leading-tight whitespace-nowrap">
-          {new Date(reservation.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}-{new Date(reservation.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' })}
-        </div>
-      </TableCell>
-      <TableCell className="text-center">
-        <div
-          className={cn(
-            "relative mx-auto block max-w-44 truncate text-center font-bold",
-            isCancelled ? "text-muted-foreground/60 line-through" : "text-foreground"
-          )}
-          title={reservation.name}
-        >
-          {isNew && (
-            <span className="mr-1.5 inline-flex animate-pulse items-center rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white">
-              Mới
-            </span>
-          )}
-          {reservation.name}
-        </div>
-        {reservation.notes && (
-          <p className={cn(
-            "mx-auto mt-0.5 max-w-48 truncate text-[11px] text-center",
-            isCancelled ? "text-muted-foreground/60" : "text-muted-foreground"
-          )} title={reservation.notes}>
-            {reservation.notes}
-          </p>
-        )}
-        {isNew && <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-400 shadow-[2px_0_8px_rgba(251,146,60,0.5)]" />}
-      </TableCell>
-      <TableCell className={cn("text-center font-mono", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
-        <span className="inline-flex items-center justify-center gap-1">
-          <Phone className={cn("size-3", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")} />
-          {reservation.phone}
-        </span>
-        {reservation.email && (
-          <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/70">
-            <Mail className="size-2.5" />
-            <span className="truncate max-w-[120px]">{reservation.email}</span>
-          </div>
-        )}
-      </TableCell>
-      <TableCell className={cn("text-center font-mono font-bold", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
-        <span className="inline-flex items-center justify-center gap-1">
-          {reservation.partySize}
-          <Users className={cn("size-3", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")} />
-        </span>
-      </TableCell>
-      <TableCell className={cn("text-center", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
-        {reservation.occasion || '-'}
-      </TableCell>
-
-      <TableCell className="text-center">
-        {reservation.table ? (
-          <Badge variant="outline" className="mx-auto rounded-md border-emerald-500/30 bg-emerald-500/10 font-mono text-emerald-700">
-            <Armchair className="mr-1 size-3" />
-            {formatTableDisplay(reservation)}
-          </Badge>
-        ) : (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onConfirm(reservation) }}
-            disabled={isServiceEnded}
-            title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Gán bàn'}
-            className="mx-auto inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <Armchair className="size-3" />
-            Gán bàn
-          </button>
-        )}
-      </TableCell>
-      <TableCell className="w-32 text-center" onClick={(e) => e.stopPropagation()}>
-        <div className="relative inline-flex group/status">
-          <select
-            aria-label="Cập nhật trạng thái"
-            value={reservation.status}
-            disabled={isUpdatingStatus || (isPastDate && reservation.status === 'pending')}
-            onChange={(e) => onUpdateStatus(reservation, e.target.value as ReservationStatus)}
-            className={cn(
-              'w-[7.5rem] appearance-none outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-hidden cursor-pointer rounded-full border pl-2.5 pr-6 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-              STATUS_STYLES[reservation.status]
-            )}
-          >
-            {getSelectableStatuses(reservation.status, isPastDate).map(([value, label]) => (
-              <option key={value} value={value} className="text-foreground bg-background">{label}</option>
-            ))}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            {isUpdatingStatus ? (
-              <Loader2 className="size-3.5 animate-spin opacity-70" />
-            ) : (
-              <svg className="size-3.5 opacity-70 transition-opacity group-hover/status:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            )}
-          </div>
-        </div>
-      </TableCell>
-      <TableCell className={cn("sticky right-0 z-10 w-24 min-w-24 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)] text-center", stickyBgClass)} onClick={(e) => e.stopPropagation()}>
-        {isPastDate ? (
-          <span className="text-xs text-muted-foreground/50 italic">-</span>
-        ) : (
-          <div className="flex justify-center gap-1">
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              aria-label="Sửa thông tin"
-              title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Sửa thông tin'}
-              disabled={isServiceEnded}
-              onClick={() => onEdit(reservation)}
-            >
-              <Edit3 className="size-3.5" />
-            </Button>
-
-            {reservation.status === 'pending' && (
-              <Button
-                size="icon-sm"
-                className="bg-red-600 text-white hover:bg-red-700"
-                aria-label="Hủy booking"
-                title="Hủy booking"
-                disabled={isServiceEnded}
-                onClick={() => onCancel(reservation)}
-              >
-                <X className="size-3.5" />
-              </Button>
-            )}
-
-            {reservation.status !== 'confirmed' && (
-              <Button
-                size="icon-sm"
-                className="bg-emerald-600 text-white hover:bg-emerald-700"
-                title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Gán bàn và xác nhận'}
-                disabled={isServiceEnded}
-                onClick={() => onConfirm(reservation)}
-              >
-                <Check className="size-3.5" />
-              </Button>
-            )}
-          </div>
-        )}
-      </TableCell>
-    </TableRow>
-  )
-})
-
 export function ReservationTable({
   reservations,
   onConfirm,
@@ -317,148 +41,44 @@ export function ReservationTable({
   pageSize = rowSlots,
   updatingStatusId,
 }: ReservationTableProps) {
-  const [sortField, setSortField] = useState<'date' | 'time' | 'createdAt' | null>('createdAt')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc')
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
-  const [isMounted, setIsMounted] = useState(false)
-
-  const handleRowClick = useCallback((reservation: Reservation) => {
-    setSelectedReservation(reservation)
-  }, [])
-
-  // Maintain stable time references to satisfy React's purity rules
-  const [nowMs, setNowMs] = useState<number | null>(null)
-  const todayStr = useMemo(() => getTodayIso(), [])
-
-  useEffect(() => {
-    setIsMounted(true)
-    const updateTime = () => {
-      const now = new Date()
-      setNowMs(now.getTime())
-    }
-    updateTime()
-    const interval = setInterval(updateTime, 60000) // Update every minute
-    return () => clearInterval(interval)
-  }, [])
-
-  const handleSort = (field: 'date' | 'time' | 'createdAt') => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortOrder('asc')
-    }
-  }
-
-  const displayReservations = sortField && sortOrder
-    ? [...reservations].sort((a, b) => {
-        if (sortField === 'date') {
-          const dateCompare = a.date.localeCompare(b.date)
-          if (dateCompare !== 0) {
-            return sortOrder === 'asc' ? dateCompare : -dateCompare
-          }
-          const timeCompare = a.time.localeCompare(b.time)
-          if (timeCompare !== 0) return timeCompare
-          return a.createdAt - b.createdAt
-        } else if (sortField === 'time') {
-          const timeCompare = a.time.localeCompare(b.time)
-          if (timeCompare !== 0) {
-            return sortOrder === 'asc' ? timeCompare : -timeCompare
-          }
-          const dateCompare = a.date.localeCompare(b.date)
-          if (dateCompare !== 0) return dateCompare
-          return a.createdAt - b.createdAt
-        } else {
-          const createdCompare = a.createdAt - b.createdAt
-          if (createdCompare !== 0) {
-            return sortOrder === 'asc' ? createdCompare : -createdCompare
-          }
-          const dateCompare = a.date.localeCompare(b.date)
-          if (dateCompare !== 0) return dateCompare
-          return a.time.localeCompare(b.time)
-        }
-      })
-    : reservations
-
-  const startIndex = (currentPage - 1) * pageSize
-  const visibleReservations = displayReservations.slice(startIndex, startIndex + pageSize)
-  const placeholderRows = Math.max(0, rowSlots - visibleReservations.length)
+  const tableState = useReservationTable({
+    reservations,
+    currentPage,
+    pageSize,
+    rowSlots,
+  })
 
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden rounded-lg border border-border/80 bg-card shadow-xs", className)}>
+    <div
+      className={cn(
+        'flex h-full flex-col overflow-hidden rounded-lg border border-border/80 bg-card shadow-xs',
+        className,
+      )}
+    >
       <div className="min-h-0 flex-1 overflow-auto">
         <Table className="min-w-[1100px] text-[13px]">
-          <TableHeader className="sticky top-0 z-10 bg-card">
-            <TableRow className="border-border bg-secondary/45 hover:bg-secondary/45">
-              <TableHead className="w-10 text-center font-bold text-foreground">#</TableHead>
-              <TableHead 
-                className="w-24 cursor-pointer select-none text-center font-bold text-foreground transition-colors hover:bg-secondary"
-                onClick={() => handleSort('date')}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <span>Ngày</span>
-                  {sortField === 'date' ? (
-                    sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
-                  ) : (
-                    <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead 
-                className="w-16 cursor-pointer select-none text-center font-bold text-foreground transition-colors hover:bg-secondary"
-                onClick={() => handleSort('time')}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <span>Giờ</span>
-                  {sortField === 'time' ? (
-                    sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
-                  ) : (
-                    <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead 
-                className="w-24 cursor-pointer select-none text-center font-bold text-foreground transition-colors hover:bg-secondary"
-                onClick={() => handleSort('createdAt')}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <span>Tạo lúc</span>
-                  {sortField === 'createdAt' ? (
-                    sortOrder === 'asc' ? <ArrowUp className="size-3 text-primary" strokeWidth={3} /> : <ArrowDown className="size-3 text-primary" strokeWidth={3} />
-                  ) : (
-                    <ArrowUpDown className="size-3 text-muted-foreground/60" strokeWidth={2.5} />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead className="w-40 text-center font-bold text-foreground">Tên khách</TableHead>
-              <TableHead className="w-32 text-center font-bold text-foreground">Liên hệ</TableHead>
-              <TableHead className="w-20 text-center font-bold text-foreground">Số lượng</TableHead>
-              <TableHead className="w-28 text-center font-bold text-foreground">Dịp đặc biệt</TableHead>
-
-              <TableHead className="w-24 text-center font-bold text-foreground">Bàn</TableHead>
-              <TableHead className="w-32 text-center font-bold text-foreground">Trạng thái</TableHead>
-              <TableHead className="sticky right-0 z-20 w-24 border-l border-border bg-secondary text-center font-bold text-foreground shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)]">
-                Thao tác
-              </TableHead>
-            </TableRow>
-          </TableHeader>
+          <ReservationTableHeader
+            sortField={tableState.sortField}
+            sortOrder={tableState.sortOrder}
+            onSort={tableState.handleSort}
+          />
           <TableBody>
-            {visibleReservations.map((reservation, idx) => (
+            {tableState.visibleReservations.map((reservation, index) => (
               <ReservationTableRow
                 key={reservation.id}
                 reservation={reservation}
-                displayIndex={startIndex + idx + 1}
-                nowMs={nowMs ?? 0}
-                todayStr={todayStr || '2000-01-01'}
+                displayIndex={tableState.startIndex + index + 1}
+                nowMs={tableState.nowMs}
+                todayStr={tableState.todayStr}
                 onConfirm={onConfirm}
                 onCancel={onCancel}
                 onEdit={onEdit}
                 onUpdateStatus={onUpdateStatus}
-                onRowClick={handleRowClick}
+                onRowClick={tableState.setSelectedReservation}
                 isUpdatingStatus={updatingStatusId === reservation.id}
               />
             ))}
-            {Array.from({ length: placeholderRows }).map((_, index) => (
+            {Array.from({ length: tableState.placeholderRows }).map((_, index) => (
               <TableRow
                 key={`placeholder-row-${index}`}
                 aria-hidden="true"
@@ -471,16 +91,27 @@ export function ReservationTable({
         </Table>
       </div>
 
-      {isMounted && selectedReservation && createPortal(
-        <CalendarReservationDetails
-          reservation={selectedReservation}
-          onClose={() => setSelectedReservation(null)}
-          onCancel={(r) => { setSelectedReservation(null); onCancel(r) }}
-          onEdit={(r) => { setSelectedReservation(null); onEdit(r) }}
-          onUpdateStatus={async (r, status) => { await onUpdateStatus(r, status); setSelectedReservation(null) }}
-        />,
-        document.body
-      )}
+      {tableState.isMounted &&
+        tableState.selectedReservation &&
+        createPortal(
+          <CalendarReservationDetails
+            reservation={tableState.selectedReservation}
+            onClose={() => tableState.setSelectedReservation(null)}
+            onCancel={(reservation) => {
+              tableState.setSelectedReservation(null)
+              onCancel(reservation)
+            }}
+            onEdit={(reservation) => {
+              tableState.setSelectedReservation(null)
+              onEdit(reservation)
+            }}
+            onUpdateStatus={async (reservation, status) => {
+              await onUpdateStatus(reservation, status)
+              tableState.setSelectedReservation(null)
+            }}
+          />,
+          document.body,
+        )}
     </div>
   )
 }

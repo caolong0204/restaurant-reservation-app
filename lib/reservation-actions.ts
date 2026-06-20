@@ -8,7 +8,9 @@ import type {
   ReservationStatus,
   RestaurantTable,
   SlotAvailability,
+  OperatingHoursSnapshot,
 } from '@/lib/reservation-types'
+import { getOperatingHoursSnapshot as getOperatingHoursSnapshotImpl } from '@/lib/operating-hours'
 import type { AdminSnapshot } from '@/lib/reservations/types'
 import {
   getAdminSnapshot as getAdminSnapshotImpl,
@@ -43,6 +45,10 @@ export async function getPublicSlotAvailability(
   partySize: number,
 ): Promise<ActionResult<SlotAvailability[]>> {
   return getPublicSlotAvailabilityImpl(date, partySize)
+}
+
+export async function getOperatingHoursSnapshot(): Promise<ActionResult<OperatingHoursSnapshot>> {
+  return getOperatingHoursSnapshotImpl()
 }
 
 export async function createReservation(input: ReservationInput): Promise<ActionResult<Reservation>> {

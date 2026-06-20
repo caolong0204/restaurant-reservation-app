@@ -1,6 +1,17 @@
 export type ReservationStatus = 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
 
 export type StaffRole = 'admin' | 'staff'
+export type TableAvailabilityStatus = 'active' | 'held_for_walk_in' | 'inactive'
+
+export type StaffAccount = {
+  userId: string
+  email: string
+  displayName: string
+  role: StaffRole
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
 
 export type RestaurantTable = {
   id: string
@@ -9,8 +20,37 @@ export type RestaurantTable = {
   area: string
   capacity: number
   active: boolean
+  availabilityStatus: TableAvailabilityStatus
   sortOrder: number
   notes?: string
+}
+
+export type RestaurantTableInput = {
+  code: string
+  floor: 'Tầng 1' | 'Tầng 2'
+  area: string
+  capacity: number
+  availabilityStatus: TableAvailabilityStatus
+  sortOrder: number
+  notes?: string
+}
+
+export type RestaurantWeeklyHour = {
+  weekday: number
+  isOpen: boolean
+  openTime: string
+  closeTime: string
+  lastBookingTime: string
+}
+
+export type RestaurantDisplaySettings = {
+  showClosedDaysInFooter: boolean
+}
+
+export type OperatingHoursSnapshot = {
+  weeklyHours: RestaurantWeeklyHour[]
+  displaySettings: RestaurantDisplaySettings
+  footerLabels: string[]
 }
 
 export type Reservation = {

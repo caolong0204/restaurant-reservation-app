@@ -1,6 +1,6 @@
 'use client'
 
-import type { SlotAvailability } from '@/lib/reservation-types'
+import type { RestaurantWeeklyHour, SlotAvailability } from '@/lib/reservation-types'
 import { formatTime, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
@@ -13,12 +13,13 @@ interface StepTimeProps {
   error: string | null
   partySize: number
   date: string
+  weeklyHours: RestaurantWeeklyHour[]
 }
 
 const TIME_GROUPS = [
   { label: '☀️ Trưa', from: '10:00', to: '13:45' },
   { label: '🌤️ Chiều', from: '14:00', to: '17:45' },
-  { label: '🌙 Tối', from: '18:00', to: '22:30' },
+  { label: '🌙 Tối', from: '18:00', to: '23:45' },
 ]
 
 function slotInGroup(slot: string, from: string, to: string): boolean {
@@ -33,8 +34,9 @@ export function StepTime({
   error,
   partySize,
   date,
+  weeklyHours,
 }: StepTimeProps) {
-  const slots = getAvailableTimeSlots(partySize, date)
+  const slots = getAvailableTimeSlots(partySize, date, weeklyHours)
   const availabilityByTime = new Map(
     availability.map((slot) => [slot.time, slot.availableCount]),
   )

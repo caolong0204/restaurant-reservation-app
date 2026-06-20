@@ -2,7 +2,7 @@
 
 import { useReservationDispatch } from '@/components/reservation-provider'
 import { getPublicSlotAvailability } from '@/lib/reservation-actions'
-import type { SlotAvailability } from '@/lib/reservation-types'
+import type { OperatingHoursSnapshot, SlotAvailability } from '@/lib/reservation-types'
 import { OCCASIONS, TABLE_LOCATIONS, isPastTimeSlot } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
 import { ArrowRight, ChevronLeft } from 'lucide-react'
@@ -52,6 +52,7 @@ interface BookingFormProps {
   setCustomPartyValue: (val: string) => void
   currentMonth: Date
   setCurrentMonth: React.Dispatch<React.SetStateAction<Date>>
+  operatingHours: OperatingHoursSnapshot
 }
 
 export function BookingForm({
@@ -81,6 +82,7 @@ export function BookingForm({
   setCustomPartyValue,
   currentMonth,
   setCurrentMonth,
+  operatingHours,
 }: BookingFormProps) {
   const { addReservation } = useReservationDispatch()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -343,6 +345,7 @@ export function BookingForm({
             error={slotError}
             partySize={Number(partySize)}
             date={date ? toISO(date) : ''}
+            weeklyHours={operatingHours.weeklyHours}
           />
         )}
 

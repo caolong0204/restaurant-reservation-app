@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { BookingForm } from '@/components/booking-form'
+import type { OperatingHoursSnapshot } from '@/lib/reservation-types'
 import { OCCASIONS, TABLE_LOCATIONS } from '@/lib/restaurant'
 
-export function Reserve() {
+export function Reserve({ operatingHours }: { operatingHours: OperatingHoursSnapshot }) {
   // Wizard state lifted up from BookingForm
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [date, setDate] = useState<Date | undefined>(undefined)
@@ -66,6 +67,7 @@ export function Reserve() {
               setCustomPartyValue={setCustomPartyValue}
               currentMonth={currentMonth}
               setCurrentMonth={setCurrentMonth}
+              operatingHours={operatingHours}
             />
           </div>
         ) : (
@@ -97,6 +99,7 @@ export function Reserve() {
                 setCustomPartyValue={setCustomPartyValue}
                 currentMonth={currentMonth}
                 setCurrentMonth={setCurrentMonth}
+                operatingHours={operatingHours}
               />
             </div>
         )}

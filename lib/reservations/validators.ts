@@ -1,4 +1,4 @@
-import { TIME_SLOTS, isPastTimeSlot } from '@/lib/restaurant'
+import { isPastTimeSlot } from '@/lib/restaurant'
 import type { ReservationInput, RestaurantTable } from '@/lib/reservation-types'
 import { validateVNPhone } from '@/lib/utils'
 import { normalizeTime } from '@/lib/reservations/shared'
@@ -66,7 +66,9 @@ export function validateReservationInput(
   if (!validateVNPhone(input.phone)) return 'Số điện thoại không hợp lệ.'
   if (input.email && !EMAIL_REGEX.test(input.email)) return 'Email không hợp lệ.'
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return 'Ngày đặt bàn không hợp lệ.'
-  if (!TIME_SLOTS.includes(normalizeTime(input.time))) return 'Khung giờ đặt bàn không hợp lệ.'
+  if (!/^\d{2}:\d{2}$/.test(normalizeTime(input.time))) return 'Khung giờ đặt bàn không hợp lệ.'
+  const [, minutes = ''] = normalizeTime(input.time).split(':')
+  if (!['00', '15', '30', '45'].includes(minutes)) return 'Khung giờ đặt bàn không hợp lệ.'
   if (!options.allowPastTime && isPastTimeSlot(normalizeTime(input.time), input.date)) {
     return 'Không thể đặt bàn vào khung giờ đã trôi qua.'
   }

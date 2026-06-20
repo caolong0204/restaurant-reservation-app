@@ -1,4 +1,4 @@
-import type { Reservation, ReservationStatus, RestaurantTable } from '@/lib/reservation-types'
+import type { Reservation, ReservationStatus, RestaurantTable, TableAvailabilityStatus } from '@/lib/reservation-types'
 
 import type { ReservationRow, RestaurantTableRow } from '@/lib/reservations/types'
 import { dateFromTimestamp, normalizeTime } from '@/lib/reservations/shared'
@@ -6,16 +6,21 @@ import { dateFromTimestamp, normalizeTime } from '@/lib/reservations/shared'
 type TableLikeRow = Pick<
   RestaurantTableRow,
   'id' | 'code' | 'floor' | 'area' | 'capacity' | 'active' | 'sort_order' | 'notes'
->
+> & {
+  availability_status?: TableAvailabilityStatus | null
+}
 
 export function mapTable(row: TableLikeRow): RestaurantTable {
+  const availabilityStatus = row.availability_status ?? (row.active ? 'active' : 'inactive')
+
   return {
     id: row.id,
     code: row.code,
     floor: row.floor === 'Tầng 2' ? 'Tầng 2' : 'Tầng 1',
     area: row.area,
     capacity: row.capacity,
-    active: row.active,
+    active: availabilityStatus === 'active',
+    availabilityStatus,
     sortOrder: row.sort_order,
     notes: row.notes ?? undefined,
   }
