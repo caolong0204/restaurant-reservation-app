@@ -1,10 +1,12 @@
 'use client'
 
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Armchair,
   Check,
   Edit3,
+  Mail,
   Phone,
   Users,
   X,
@@ -14,6 +16,8 @@ import {
   AlertTriangle,
   Loader2,
 } from 'lucide-react'
+
+import { CalendarReservationDetails } from '@/components/admin/calendar-reservation-details'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -93,6 +97,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
   onEdit,
   onCancel,
   onUpdateStatus,
+  onRowClick,
   isUpdatingStatus,
 }: {
   reservation: Reservation
@@ -103,6 +108,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
   onEdit: (reservation: Reservation) => void
   onCancel: (reservation: Reservation) => void
   onUpdateStatus: (reservation: Reservation, newStatus: ReservationStatus) => void
+  onRowClick: (reservation: Reservation) => void
   isUpdatingStatus?: boolean
 }) {
   const isCancelled = reservation.status === 'cancelled'
@@ -135,9 +141,10 @@ const ReservationTableRow = memo(function ReservationTableRow({
   return (
     <TableRow
       className={cn(
-        'group relative h-[64px] border-b border-border/60 transition-colors',
+        'group relative h-[64px] border-b border-border/60 transition-colors cursor-pointer',
         bgClass
       )}
+      onClick={() => onRowClick(reservation)}
     >
       <TableCell className={cn("text-center font-mono tabular-nums", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")}>
         {displayIndex}
@@ -161,12 +168,10 @@ const ReservationTableRow = memo(function ReservationTableRow({
         </div>
       </TableCell>
       <TableCell className="text-center">
-        <button
-          type="button"
-          onClick={() => onEdit(reservation)}
+        <div
           className={cn(
-            "mx-auto block max-w-44 truncate text-center font-bold",
-            isCancelled ? "text-muted-foreground hover:text-primary" : "text-foreground hover:text-primary"
+            "relative mx-auto block max-w-44 truncate text-center font-bold",
+            isCancelled ? "text-muted-foreground/60 line-through" : "text-foreground"
           )}
           title={reservation.name}
         >
@@ -176,7 +181,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
             </span>
           )}
           {reservation.name}
-        </button>
+        </div>
         {reservation.notes && (
           <p className={cn(
             "mx-auto mt-0.5 max-w-48 truncate text-[11px] text-center",
@@ -192,6 +197,12 @@ const ReservationTableRow = memo(function ReservationTableRow({
           <Phone className={cn("size-3", isCancelled ? "text-muted-foreground/60" : "text-muted-foreground")} />
           {reservation.phone}
         </span>
+        {reservation.email && (
+          <div className="mt-0.5 flex items-center justify-center gap-1 text-[10px] text-muted-foreground/70">
+            <Mail className="size-2.5" />
+            <span className="truncate max-w-[120px]">{reservation.email}</span>
+          </div>
+        )}
       </TableCell>
       <TableCell className={cn("text-center font-mono font-bold", isCancelled ? "text-muted-foreground/80" : "text-foreground")}>
         <span className="inline-flex items-center justify-center gap-1">
@@ -212,7 +223,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
         ) : (
           <button
             type="button"
-            onClick={() => onConfirm(reservation)}
+            onClick={(e) => { e.stopPropagation(); onConfirm(reservation) }}
             disabled={isServiceEnded}
             title={isServiceEnded ? 'Booking đã hết thời lượng phục vụ' : 'Gán bàn'}
             className="mx-auto inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-bold text-amber-800 hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-45"
@@ -222,7 +233,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
           </button>
         )}
       </TableCell>
-      <TableCell className="w-32 text-center">
+      <TableCell className="w-32 text-center" onClick={(e) => e.stopPropagation()}>
         <div className="relative inline-flex group/status">
           <select
             aria-label="Cập nhật trạng thái"
@@ -247,7 +258,7 @@ const ReservationTableRow = memo(function ReservationTableRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className={cn("sticky right-0 z-10 w-24 min-w-24 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)] text-center", stickyBgClass)}>
+      <TableCell className={cn("sticky right-0 z-10 w-24 min-w-24 border-l border-border shadow-[-3px_0_6px_-3px_rgba(0,0,0,0.12)] text-center", stickyBgClass)} onClick={(e) => e.stopPropagation()}>
         {isPastDate ? (
           <span className="text-xs text-muted-foreground/50 italic">-</span>
         ) : (
@@ -308,12 +319,19 @@ export function ReservationTable({
 }: ReservationTableProps) {
   const [sortField, setSortField] = useState<'date' | 'time' | 'createdAt' | null>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc')
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  const handleRowClick = useCallback((reservation: Reservation) => {
+    setSelectedReservation(reservation)
+  }, [])
 
   // Maintain stable time references to satisfy React's purity rules
   const [nowMs, setNowMs] = useState<number | null>(null)
   const todayStr = useMemo(() => getTodayIso(), [])
 
   useEffect(() => {
+    setIsMounted(true)
     const updateTime = () => {
       const now = new Date()
       setNowMs(now.getTime())
@@ -413,7 +431,7 @@ export function ReservationTable({
                 </div>
               </TableHead>
               <TableHead className="w-40 text-center font-bold text-foreground">Tên khách</TableHead>
-              <TableHead className="w-32 text-center font-bold text-foreground">SĐT</TableHead>
+              <TableHead className="w-32 text-center font-bold text-foreground">Liên hệ</TableHead>
               <TableHead className="w-20 text-center font-bold text-foreground">Số lượng</TableHead>
               <TableHead className="w-28 text-center font-bold text-foreground">Dịp đặc biệt</TableHead>
 
@@ -436,6 +454,7 @@ export function ReservationTable({
                 onCancel={onCancel}
                 onEdit={onEdit}
                 onUpdateStatus={onUpdateStatus}
+                onRowClick={handleRowClick}
                 isUpdatingStatus={updatingStatusId === reservation.id}
               />
             ))}
@@ -451,6 +470,17 @@ export function ReservationTable({
           </TableBody>
         </Table>
       </div>
+
+      {isMounted && selectedReservation && createPortal(
+        <CalendarReservationDetails
+          reservation={selectedReservation}
+          onClose={() => setSelectedReservation(null)}
+          onCancel={(r) => { setSelectedReservation(null); onCancel(r) }}
+          onEdit={(r) => { setSelectedReservation(null); onEdit(r) }}
+          onUpdateStatus={async (r, status) => { await onUpdateStatus(r, status); setSelectedReservation(null) }}
+        />,
+        document.body
+      )}
     </div>
   )
 }

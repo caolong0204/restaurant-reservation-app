@@ -366,7 +366,7 @@ export function BookingForm({
           <StepSuccess
             name={name}
             phone={phone}
-
+            email={email || undefined}
             date={date}
             time={time}
             partySize={partySize}

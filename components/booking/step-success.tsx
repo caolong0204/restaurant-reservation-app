@@ -7,7 +7,7 @@ import {
   Clock,
   FileText,
   Layers,
-
+  Mail,
   Phone,
   User,
   Users,
@@ -18,7 +18,7 @@ import { formatTime, TABLE_LOCATIONS, OCCASIONS } from '@/lib/restaurant'
 interface StepSuccessProps {
   name: string
   phone: string
-
+  email?: string
   date: Date | undefined
   time: string
   partySize: string
@@ -39,7 +39,7 @@ function formatDDMMYYYY(date: Date) {
 export function StepSuccess({
   name,
   phone,
-
+  email,
   date,
   time,
   partySize,
@@ -136,6 +136,16 @@ export function StepSuccess({
                 <span className="font-medium text-foreground">{phone}</span>
               </div>
 
+              {/* Email */}
+              {email && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Mail className="size-3.5" />
+                    Email
+                  </span>
+                  <span className="font-medium text-foreground">{email}</span>
+                </div>
+              )}
 
 
               {/* Occasion */}

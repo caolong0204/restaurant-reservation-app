@@ -1,10 +1,13 @@
 import { revalidatePath } from 'next/cache'
 
+import { sendConfirmationEmail } from '@/lib/email/mailer'
+
 import { requireStaff } from '@/lib/auth/guards'
 import { isReservationInServiceWindow } from '@/lib/admin-calendar'
 import { createClient } from '@/lib/supabase/server'
 import type {
   ActionResult,
+  ReservationEditInput,
   Reservation,
   ReservationInput,
   ReservationStatus,
@@ -17,6 +20,17 @@ import {
   validateAssignmentCapacity,
   validateReservationInput,
 } from '@/lib/reservations/validators'
+
+function sendConfirmationEmailInBackground(reservation: Reservation) {
+  void sendConfirmationEmail(reservation).then((result) => {
+    if (!result.ok) {
+      console.error('[email] Confirmation email failed after reservation update:', {
+        reservationId: reservation.id,
+        error: result.error,
+      })
+    }
+  })
+}
 
 export async function createReservation(input: ReservationInput): Promise<ActionResult<Reservation>> {
   const normalized = normalizeInput(input)
@@ -158,13 +172,21 @@ export async function createManualReservation(input: ReservationInput): Promise<
   const snapshot = await getAdminSnapshot()
   if (snapshot.ok) {
     const createdReservation = snapshot.data.reservations.find((reservation) => reservation.id === id)
-    if (createdReservation) return ok(createdReservation)
+    if (createdReservation) {
+      if (createdReservation.status === 'confirmed') sendConfirmationEmailInBackground(createdReservation)
+
+      return {
+        ok: true,
+        data: createdReservation,
+      }
+    }
   }
 
-  return ok({
+  const createdReservation: Reservation = {
     id,
     name: normalized.name,
     phone: normalized.phone,
+    email: normalized.email,
     date: normalized.date,
     time: normalized.time,
     partySize: normalized.partySize,
@@ -178,14 +200,18 @@ export async function createManualReservation(input: ReservationInput): Promise<
     secondaryTables: [],
     createdAt: dateFromTimestamp(timestamp),
     updatedAt: dateFromTimestamp(timestamp),
-  })
+  }
+  if (createdReservation.status === 'confirmed') sendConfirmationEmailInBackground(createdReservation)
+
+  return {
+    ok: true,
+    data: createdReservation,
+  }
 }
 
-export async function editReservation(id: string, input: ReservationInput): Promise<ActionResult<Reservation>> {
+export async function editReservation(id: string, input: ReservationEditInput): Promise<ActionResult<Reservation>> {
   const staff = await requireStaff()
   if (!staff.ok) return fail(staff.error)
-
-  const normalized = normalizeInput(input)
 
   const snapshot = await getAdminSnapshot()
   if (!snapshot.ok) return fail(snapshot.error)
@@ -195,11 +221,32 @@ export async function editReservation(id: string, input: ReservationInput): Prom
     return fail('Không tìm thấy lượt đặt bàn.')
   }
 
+  const mergedInput: ReservationInput = {
+    name: input.name ?? current.name,
+    phone: input.phone ?? current.phone,
+    email: 'email' in input ? input.email : current.email,
+    date: input.date ?? current.date,
+    time: input.time ?? current.time,
+    partySize: input.partySize ?? current.partySize,
+    occasion: 'occasion' in input ? input.occasion : current.occasion,
+    tableLocation: 'tableLocation' in input ? input.tableLocation : current.tableLocation,
+    notes: 'notes' in input ? input.notes : current.notes,
+    manualArrangement: 'manualArrangement' in input ? input.manualArrangement : current.manualArrangement,
+    tableId: 'tableId' in input ? input.tableId : current.tableId,
+    secondaryTableIds: 'secondaryTableIds' in input ? input.secondaryTableIds : current.secondaryTableIds,
+    status: input.status ?? current.status,
+  }
+  const normalized = normalizeInput(mergedInput)
+
   const targetTableId = input.tableId === '' ? null : (input.tableId ?? current.tableId ?? null)
   const targetSecondaryTableIds =
-    targetTableId === null ? [] : (input.secondaryTableIds ?? current.secondaryTableIds ?? [])
+    targetTableId === null
+      ? []
+      : ('secondaryTableIds' in input ? input.secondaryTableIds ?? [] : current.secondaryTableIds ?? [])
   const targetManualArrangement =
-    targetTableId === null ? false : Boolean(input.manualArrangement ?? current.manualArrangement)
+    targetTableId === null
+      ? false
+      : Boolean('manualArrangement' in input ? input.manualArrangement : current.manualArrangement)
   const isWithinServiceWindow = isReservationInServiceWindow(current)
 
   const validationError = validateReservationInput(normalized, { allowPastTime: isWithinServiceWindow })
@@ -273,7 +320,7 @@ export async function editReservation(id: string, input: ReservationInput): Prom
     .map((secondaryId) => snapshot.data.tables.find((item) => item.id === secondaryId))
     .filter((tableItem): tableItem is RestaurantTable => !!tableItem)
 
-  return ok({
+  const updatedReservation: Reservation = {
     ...current,
     ...normalized,
     manualArrangement: targetManualArrangement,
@@ -283,7 +330,18 @@ export async function editReservation(id: string, input: ReservationInput): Prom
     secondaryTables,
     status: newStatus,
     updatedAt: dateFromTimestamp(timestamp),
-  })
+  }
+  if (
+    updatedReservation.status === 'confirmed' &&
+    (current.status !== 'confirmed' || current.email !== updatedReservation.email)
+  ) {
+    sendConfirmationEmailInBackground(updatedReservation)
+  }
+
+  return {
+    ok: true,
+    data: updatedReservation,
+  }
 }
 
 export async function cancelReservation(id: string): Promise<ActionResult<Reservation>> {
@@ -408,7 +466,8 @@ export async function confirmReservation(
     .filter((tableItem): tableItem is RestaurantTable => !!tableItem)
 
   revalidatePath('/admin')
-  return ok({
+
+  const confirmedReservation: Reservation = {
     ...current,
     status: 'confirmed',
     manualArrangement,
@@ -417,7 +476,15 @@ export async function confirmReservation(
     secondaryTableIds,
     secondaryTables,
     updatedAt: dateFromTimestamp(timestamp),
-  })
+  }
+
+  // Send confirmation email — best-effort, does not block confirm flow
+  sendConfirmationEmailInBackground(confirmedReservation)
+
+  return {
+    ok: true,
+    data: confirmedReservation,
+  }
 }
 
 export async function updateReservationStatus(
@@ -469,9 +536,17 @@ export async function updateReservationStatus(
   }
 
   revalidatePath('/admin')
-  return ok({
+  const updatedReservation: Reservation = {
     ...current,
     status,
     updatedAt: dateFromTimestamp(timestamp),
-  })
+  }
+  if (current.status !== 'confirmed' && updatedReservation.status === 'confirmed') {
+    sendConfirmationEmailInBackground(updatedReservation)
+  }
+
+  return {
+    ok: true,
+    data: updatedReservation,
+  }
 }

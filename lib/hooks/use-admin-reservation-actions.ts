@@ -3,7 +3,14 @@
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
-import type { Reservation, ReservationInput, ReservationStatus, RestaurantTable, ActionResult } from '@/lib/reservation-types'
+import type {
+  Reservation,
+  ReservationEditInput,
+  ReservationInput,
+  ReservationStatus,
+  RestaurantTable,
+  ActionResult,
+} from '@/lib/reservation-types'
 
 type CreateManualReservationFn = (data: ReservationInput) => Promise<ActionResult<Reservation>>
 type ConfirmReservationFn = (
@@ -13,7 +20,7 @@ type ConfirmReservationFn = (
   manualArrangement?: boolean,
 ) => Promise<ActionResult<Reservation>>
 type CancelReservationFn = (id: string) => Promise<ActionResult<Reservation>>
-type EditReservationFn = (id: string, data: ReservationInput) => Promise<ActionResult<Reservation>>
+type EditReservationFn = (id: string, data: ReservationEditInput) => Promise<ActionResult<Reservation>>
 type UpdateReservationStatusFn = (id: string, status: ReservationStatus) => Promise<ActionResult<Reservation>>
 type GetAvailableTablesFn = (
   date: string,
@@ -101,6 +108,7 @@ export function useAdminReservationActions({
         toast.success(`Đã xác nhận đặt bàn cho ${result.data.name}`, {
           description: `Bàn ${mainCode}${secondaryCodes} đã được gán.`,
         })
+
         closeAssignModal()
         return
       }
@@ -169,7 +177,7 @@ export function useAdminReservationActions({
   )
 
   const handleEditSubmit = useCallback(
-    async (id: string, data: ReservationInput) => {
+    async (id: string, data: ReservationEditInput) => {
       const result = await editReservation(id, data)
       if (result.ok) {
         toast.success(`Đã cập nhật đặt bàn của ${data.name}`)

@@ -104,6 +104,12 @@ export function CalendarReservationDetails({
               <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Số điện thoại</span>
               <span className="font-mono text-foreground">{reservation.phone}</span>
             </div>
+            {reservation.email && (
+              <div>
+                <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</span>
+                <span className="font-mono text-foreground">{reservation.email}</span>
+              </div>
+            )}
             <div>
               <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Ngày đặt bàn</span>
               <span className="text-foreground">{reservation.date.split('-').reverse().join('/')}</span>

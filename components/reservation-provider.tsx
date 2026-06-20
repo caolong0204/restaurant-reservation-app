@@ -29,6 +29,7 @@ import { createClient } from '@/lib/supabase/client'
 import type {
   ActionResult,
   Reservation,
+  ReservationEditInput,
   ReservationInput,
   ReservationStatus,
   RestaurantTable,
@@ -39,6 +40,7 @@ import type { ReservationRow } from '@/lib/reservations/types'
 export type {
   ActionResult,
   Reservation,
+  ReservationEditInput,
   ReservationInput,
   ReservationStatus,
   RestaurantTable,
@@ -64,7 +66,7 @@ type ReservationDispatchValue = {
     manualArrangement?: boolean,
   ) => Promise<ActionResult<Reservation>>
   cancelReservation: (id: string) => Promise<ActionResult<Reservation>>
-  editReservation: (id: string, data: ReservationInput) => Promise<ActionResult<Reservation>>
+  editReservation: (id: string, data: ReservationEditInput) => Promise<ActionResult<Reservation>>
   updateReservationStatus: (id: string, status: ReservationStatus) => Promise<ActionResult<Reservation>>
   deleteReservation: (id: string) => Promise<ActionResult<string>>
   getAvailableTables: (
@@ -187,7 +189,7 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     return result
   }, [])
 
-  const editReservation = useCallback(async (id: string, data: ReservationInput) => {
+  const editReservation = useCallback(async (id: string, data: ReservationEditInput) => {
     const result = await editReservationAction(id, data)
     if (result.ok) {
       setReservations((prev) => upsertReservation(prev, result.data))

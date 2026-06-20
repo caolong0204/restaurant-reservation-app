@@ -50,6 +50,8 @@ export type ReservationInput = {
   status?: ReservationStatus
 }
 
+export type ReservationEditInput = Partial<ReservationInput>
+
 export type SlotAvailability = {
   time: string
   availableCount: number

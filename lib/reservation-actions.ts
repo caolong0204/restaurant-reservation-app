@@ -1,6 +1,14 @@
 'use server'
 
-import type { ActionResult, Reservation, ReservationInput, ReservationStatus, RestaurantTable, SlotAvailability } from '@/lib/reservation-types'
+import type {
+  ActionResult,
+  Reservation,
+  ReservationEditInput,
+  ReservationInput,
+  ReservationStatus,
+  RestaurantTable,
+  SlotAvailability,
+} from '@/lib/reservation-types'
 import type { AdminSnapshot } from '@/lib/reservations/types'
 import {
   getAdminSnapshot as getAdminSnapshotImpl,
@@ -45,7 +53,7 @@ export async function createManualReservation(input: ReservationInput): Promise<
   return createManualReservationMutation(input)
 }
 
-export async function editReservation(id: string, input: ReservationInput): Promise<ActionResult<Reservation>> {
+export async function editReservation(id: string, input: ReservationEditInput): Promise<ActionResult<Reservation>> {
   return editReservationMutation(id, input)
 }
 
