@@ -28,8 +28,9 @@
 - Booking slots are 15-minute selectable slots in the public/admin forms.
 - Day calendar shows 30-minute grid cells and only labels full hours to reduce visual noise.
 - Operating cutoff:
-  - Weekdays: last visible/booking cutoff is `22:00`.
-  - Friday, Saturday, Sunday: last visible/booking cutoff is `22:30`.
+  - Monday is CLOSED (no bookings allowed).
+  - Weekdays (Tue, Wed, Thu): last visible/booking cutoff is `21:00`.
+  - Friday, Saturday, Sunday: last visible/booking cutoff is `21:30`.
 - Booking duration:
   - 1-4 guests: 120 minutes.
   - 5-6 guests: 150 minutes.
@@ -54,6 +55,10 @@
   - Confirm booking with table assignment.
   - Day calendar/table timeline.
   - Booking bar shows party size with a people icon, not `p` text.
+- Admin settings & accounts:
+  - Staff Accounts: Inline management replaced with Edit modals (change roles, disable, delete account with safety locks).
+  - Table Settings: Manage restaurant tables ("Tên bàn", capacity, floor, delete table with safety locks).
+  - Operating Hours: Adjust daily shifts, last booking slots, and footer display settings.
 - Live availability behavior:
   - Pending bookings do not block tables.
   - Confirmed bookings block main and secondary/joined tables.

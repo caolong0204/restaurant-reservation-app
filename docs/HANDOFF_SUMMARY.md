@@ -27,8 +27,9 @@
 - Address: 23 Gia Ngư, Hà Nội
 - Hotline: 0927355656
 - Public/admin selectable slots are 15-minute slots.
-- Weekday cutoff: `22:00`.
-- Friday/Saturday/Sunday cutoff: `22:30`.
+- Monday is CLOSED (no bookings allowed).
+- Weekday (Tue, Wed, Thu) cutoff: `21:00`.
+- Friday/Saturday/Sunday cutoff: `21:30`.
 - Duration:
   - 1-4 guests: 120 minutes.
   - 5-6 guests: 150 minutes.
@@ -52,6 +53,10 @@
   - Confirm with table assignment.
   - Day timeline by table.
   - Capacity guard for large groups in both confirm and edit flows.
+- Admin settings & accounts:
+  - Staff Accounts: Inline management replaced with Edit modals (change roles, disable, delete account with safety locks).
+  - Table Settings: Manage restaurant tables ("Tên bàn", capacity, floor, delete table with safety locks).
+  - Operating Hours: Adjust daily shifts, last booking slots, and footer display settings.
 
 ## Backend Status
 

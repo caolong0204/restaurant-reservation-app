@@ -42,10 +42,16 @@ app/
     page.tsx
     login/
       page.tsx
+    settings/
+      page.tsx
+    accounts/
+      page.tsx
 
 components/
   booking/
   admin/
+    accounts/
+    settings/
   home/
   ui/
   reservation-provider.tsx

@@ -52,9 +52,6 @@ export function CalendarReservationDetails({
             <h3 className="font-serif text-lg font-bold text-foreground">
               Chi tiết đặt bàn
             </h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Mã đặt bàn: {reservation.id}
-            </p>
           </div>
           <button
             type="button"

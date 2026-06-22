@@ -46,16 +46,17 @@ Thời gian giữ bàn (duration) được tính toán động dựa vào **số
 
 *Ví dụ:* Một nhóm 4 khách đặt lúc `18:00`, bàn của họ sẽ bị khoá (blocked) từ `18:00` đến `20:00`. Lượt khách tiếp theo chỉ có thể được xếp vào bàn này sớm nhất là `20:00`.
 
-## 3. Quy tắc Giờ Mở Cửa (Operating Cutoff)
+## 3. Quy tắc Giờ Nhận Khách Cuối (Last Booking Slot)
 
-Giờ đóng cửa của nhà hàng ảnh hưởng đến việc khách được phép chọn khung giờ muộn nhất là lúc nào:
+Nhà hàng hoạt động từ Thứ 3 đến Chủ Nhật. **Thứ 2 đóng cửa** (không nhận khách).
 
-- **Thứ 2 đến Thứ 5**: Đóng cửa lúc `22:00`.
-- **Thứ 6 đến Chủ Nhật**: Đóng cửa lúc `22:30`.
+Giờ nhận khách cuối cùng (Last Booking Slot) được quy định như sau:
+- **Thứ 3 đến Thứ 5**: Giờ nhận khách cuối là `21:00`.
+- **Thứ 6 đến Chủ Nhật**: Giờ nhận khách cuối là `21:30`.
 
-**Thuật toán tìm giờ trống cuối ngày:**
-Hệ thống tính toán khung giờ đặt muộn nhất bằng công thức: `Giờ đóng cửa - Thời lượng bữa ăn`. 
-*Ví dụ:* Vào Thứ 3 (đóng lúc 22:00), một nhóm 4 khách (ăn 2 tiếng) chỉ có thể đặt khung giờ muộn nhất là `20:00`.
+**LƯU Ý QUAN TRỌNG:**
+- Thời lượng bữa ăn (Duration) **KHÔNG** được dùng để chặn giờ nhận khách cuối. Khách hàng hoàn toàn có thể đặt bàn vào khung giờ muộn nhất (ví dụ: `21:30`) và vẫn được quyền ở lại đủ thời lượng bữa ăn của họ (ví dụ: 120 phút), vượt qua cả giờ "đóng cửa" thông thường.
+- Thời lượng bữa ăn (Duration) **CHỈ** được sử dụng để tính toán việc giải phóng bàn (table overlaps) cho các ca tiếp theo.
 
 ## 4. Kiểm tra Sức chứa & Bàn ghép (Capacity & Joined Tables)
 

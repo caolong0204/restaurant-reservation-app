@@ -25,7 +25,6 @@ export function renderConfirmationEmail(data: ConfirmationEmailData): { subject:
     `Giờ: ${data.time}`,
     `Số khách: ${data.partySize} người`,
     `Bàn: ${data.tableCode}`,
-    `Mã đặt bàn: ${data.reservationId.slice(0, 8).toUpperCase()}`,
     '',
     'Nếu cần thay đổi hoặc hủy đặt bàn, vui lòng liên hệ với Flambé trước giờ hẹn.',
   ].join('\n')
