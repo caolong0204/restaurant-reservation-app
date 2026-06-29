@@ -1,10 +1,8 @@
 'use client'
 
-import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { cn, formatShortDate } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatDate } from '@/lib/restaurant'
-import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
 
 interface RestaurantCalendarProps {
   selected: Date | undefined
@@ -12,13 +10,6 @@ interface RestaurantCalendarProps {
   minDate?: Date
   className?: string
   showFooter?: boolean
-}
-
-function isoFromDate(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
 }
 
 export function RestaurantCalendar({
@@ -73,7 +64,6 @@ export function RestaurantCalendar({
     ]
     return `${monthsVi[month]} ${year}`
   }
-
   const renderCalendarCells = () => {
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth()
@@ -126,11 +116,11 @@ export function RestaurantCalendar({
             'size-8 sm:size-9 mx-auto flex items-center justify-center text-xs font-semibold rounded-lg transition-all duration-200',
             isDisabled && 'text-muted-foreground/30 cursor-not-allowed',
             !isDisabled &&
-              !isSelected &&
-              'hover:bg-primary/10 hover:text-primary text-foreground',
+            !isSelected &&
+            'hover:bg-primary/10 hover:text-primary text-foreground',
             isToday && !isSelected && 'border border-primary text-primary',
             isSelected &&
-              'bg-primary text-primary-foreground shadow-sm scale-105'
+            'bg-primary text-primary-foreground shadow-sm scale-105'
           )}
         >
           {dayNum}
@@ -195,7 +185,7 @@ export function RestaurantCalendar({
           <span>
             Đã chọn:{' '}
             <span className="text-primary">
-              {selected ? formatDate(isoFromDate(selected)) : 'Chưa chọn'}
+              {selected ? formatShortDate(selected) : 'Chưa chọn'}
             </span>
           </span>
         </div>

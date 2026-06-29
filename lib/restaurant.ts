@@ -172,8 +172,15 @@ export function formatTime(time: string) {
   return time
 }
 
+// Parse YYYY-MM-DD từ Supabase an toàn, không phụ thuộc vào timezone parsing của JS
+function parseSafeDate(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 export function formatDate(iso: string) {
-  const d = new Date(`${iso}T00:00:00`)
+  if (!iso) return ''
+  const d = parseSafeDate(iso)
   return d.toLocaleDateString('vi-VN', {
     weekday: 'short',
     month: 'short',
@@ -182,7 +189,8 @@ export function formatDate(iso: string) {
 }
 
 export function formatDateLong(iso: string) {
-  const d = new Date(`${iso}T00:00:00`)
+  if (!iso) return ''
+  const d = parseSafeDate(iso)
   return d.toLocaleDateString('vi-VN', {
     weekday: 'long',
     month: 'long',

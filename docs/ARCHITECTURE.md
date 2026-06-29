@@ -98,6 +98,30 @@ Operating cutoff:
 - Weekdays: `22:00`.
 - Friday/Saturday/Sunday: `22:30`.
 
+## V1 Scope Freeze
+
+Feature scope is frozen for v1 as of 2026-06-24. Architecture changes should now be limited to release blockers, testability improvements, security fixes, and production hardening.
+
+V1 includes:
+
+- Public booking and pending reservation creation.
+- Supabase-backed admin login and route protection.
+- Admin reservation operations.
+- Main and joined table assignment.
+- Capacity guard and manual arrangement override.
+- Admin calendar/table timeline.
+- Staff accounts, table settings, and operating hours settings.
+
+Post-v1 candidates:
+
+- Payments/deposits.
+- Customer accounts.
+- Guest-selected tables.
+- Reporting/export.
+- Native mobile apps.
+- Loyalty/CRM/campaign tooling.
+- Larger marketing redesigns or additional public sections.
+
 ## Important Components
 
 | File | Responsibility |

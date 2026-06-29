@@ -6,7 +6,35 @@
 - Stack: Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4, Base UI/shadcn-style components, `sonner`, `lucide-react`
 - Product: public booking flow plus `/admin` reservation operations dashboard
 - Current mode: direct Supabase mode for public booking, admin auth, and reservation operations
-- Next major step: QA hardening, migration refinement, and production polish
+- Current phase: v1 feature freeze.
+- Next major step: QA hardening, live Supabase verification, and production polish.
+
+## V1 Feature Freeze
+
+Feature scope is frozen for v1 as of 2026-06-24. Do not add new product features until the release-hardening checklist is complete unless the change directly fixes a release blocker.
+
+In scope for v1:
+
+- Public booking flow.
+- Pending reservation creation.
+- Admin login and server-side route protection.
+- Admin reservation list, search, filters, create, edit, cancel, and confirm flows.
+- Main and joined table assignment.
+- Capacity guard with manual arrangement override.
+- Admin day calendar/table timeline.
+- Table settings, staff account management, and operating hours settings.
+- Supabase-backed persistence, RLS, and booking availability rules.
+
+Deferred until after v1:
+
+- Payments, deposits, or checkout.
+- Customer accounts or guest login.
+- Guest-selected tables.
+- Marketing redesigns or new public content sections.
+- Reporting/export workflows.
+- Native mobile apps.
+- Loyalty, CRM, or campaign tooling.
+- New notification channels beyond the current confirmation email work.
 
 ## Current Product Decisions
 
@@ -93,6 +121,7 @@ Fully synced and verified backend features:
 Last known green commands:
 
 ```bash
+pnpm test
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm build
@@ -104,8 +133,14 @@ Production smoke check was run on a temporary `next start` server:
 - Booking bars no longer used `p` for party size.
 - `/` rendered public booking form.
 
-There is no `test` script yet.
+## Release-Hardening Checklist
+
+- Run `pnpm test`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm build`, and `pnpm test:e2e`.
+- Run live Supabase QA for public booking, admin login, confirm/assign, edit, cancel, overlap blocking, and capacity guard behavior.
+- Add or complete Playwright coverage for admin confirm/table assignment, edit, cancel, and conflict handling.
+- Run Supabase security/performance advisors and fix release-blocking RLS, policy, function, or index issues.
+- Smoke test a production build with `next start`.
 
 ## Recommended Next Step
 
-Continue with live-Supabase QA, migration refinement, and production hardening instead of maintaining a parallel demo path.
+Continue with release hardening. New feature work should wait until v1 is verified and deployed.

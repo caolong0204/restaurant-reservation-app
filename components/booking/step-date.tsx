@@ -1,8 +1,7 @@
 'use client'
 
+import { cn, formatShortDate } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatDate } from '@/lib/restaurant'
-import { cn } from '@/lib/utils'
 
 interface StepDateProps {
   date: Date | undefined
@@ -12,9 +11,6 @@ interface StepDateProps {
   setCurrentMonth: React.Dispatch<React.SetStateAction<Date>>
 }
 
-function toISO(date: Date) {
-  return date.toISOString().slice(0, 10)
-}
 
 export function StepDate({
   date,
@@ -99,11 +95,11 @@ export function StepDate({
             'size-7 sm:size-8 mx-auto flex items-center justify-center text-xs sm:text-sm font-semibold rounded-lg sm:rounded-xl transition-all duration-200',
             isDisabled && 'text-muted-foreground/30 cursor-not-allowed',
             !isDisabled &&
-              !isSelected &&
-              'hover:bg-flambe-rust/10 hover:text-flambe-rust text-foreground',
+            !isSelected &&
+            'hover:bg-flambe-rust/10 hover:text-flambe-rust text-foreground',
             isToday && !isSelected && !isDisabled && 'border-2 border-flambe-rust text-flambe-rust',
             isSelected &&
-              'bg-[#a1472a] text-white shadow-md scale-102'
+            'bg-[#a1472a] text-white shadow-md scale-102'
           )}
         >
           {dayNum}
@@ -113,7 +109,6 @@ export function StepDate({
 
     return cells
   }
-
   return (
     <div className="flex flex-col items-center py-0.5 text-center">
       <div className="w-full max-w-[300px] flex flex-col p-2.5 bg-background border rounded-xl shadow-xs">
@@ -163,7 +158,7 @@ export function StepDate({
         <div className="mt-2 pt-2 border-t border-border/60 text-xs font-semibold text-muted-foreground text-left">
           Đã chọn:{' '}
           <span className="text-[#a1472a]">
-            {date ? formatDate(toISO(date)) : 'Chưa chọn'}
+            {date ? formatShortDate(date) : 'Chưa chọn'}
           </span>
         </div>
       </div>

@@ -6,10 +6,36 @@
 - The app now runs directly against Supabase for public booking, admin auth, and reservation operations.
 - Supabase/Postgres/Auth code and migrations are already wired into the current app.
 - Validation gate is currently green:
+  - `pnpm test`
   - `pnpm exec tsc --noEmit`
   - `pnpm lint`
   - `pnpm build`
-- There is no `test` script yet.
+
+## V1 Feature Freeze
+
+Feature scope is frozen for v1 as of 2026-06-24. The implementation plan now shifts from feature delivery to release hardening.
+
+In scope for v1:
+
+- Public booking wizard.
+- Pending reservation creation.
+- Supabase-backed admin authentication and route protection.
+- Admin reservation operations: list, search, filter, create, edit, cancel, and confirm.
+- Main and joined table assignment.
+- Capacity guard with manual arrangement override.
+- Admin table timeline/calendar.
+- Staff account, table, and operating-hours settings.
+- Supabase migrations, RLS policies, RPC/table access, and booking availability behavior.
+
+Deferred until after v1:
+
+- Payments or deposits.
+- Customer accounts.
+- Guest-selected tables.
+- New marketing pages or visual redesigns.
+- Reporting/export workflows.
+- Native mobile apps.
+- Loyalty, CRM, campaign tooling, or advanced notification channels.
 
 ## Product Decisions
 
@@ -18,7 +44,7 @@
 - Only `confirmed` bookings with assigned tables block table availability.
 - Admin list view is the primary operations screen.
 - Calendar/table timeline is a secondary day view for checking table occupancy and availability.
-- Email, payment/deposit, customer accounts, native mobile apps, and guest table selection are out of scope for v1.
+- Email expansion, payment/deposit, customer accounts, native mobile apps, and guest table selection are out of scope for v1.
 
 ## Business Rules
 
@@ -76,16 +102,23 @@ All backend features are fully implemented and integrated against the live Supab
 ## Test Plan
 
 - Required commands:
+  - `pnpm test`
   - `pnpm exec tsc --noEmit`
   - `pnpm lint`
   - `pnpm build`
-- Add automated tests before or during BE phase:
-  - Duration calculation.
-  - Overlap detection.
-  - Pending bookings not occupying tables.
-  - Main + secondary table blocking.
-  - Capacity guard for large-party assignment.
-  - Public slot availability by party size.
+- Required browser checks:
+  - `pnpm test:e2e`
+- Existing automated coverage:
+  - Duration and slot cutoff rules.
+  - Admin calendar timeline math.
+  - Pending/cancelled bookings ignored by occupancy math.
+  - Main + secondary table occupancy in timeline helpers.
+- Add or complete automated coverage for:
+  - Supabase-backed server actions.
+  - Admin confirm/table assignment flow.
+  - Admin edit and cancel flows.
+  - Overlap/conflict handling.
+  - Capacity guard in rendered admin flows.
 - Manual QA:
   - Guest booking appears in admin as pending.
   - Pending booking does not occupy a table in calendar.
@@ -100,4 +133,4 @@ All backend features are fully implemented and integrated against the live Supab
 - Search by phone/name/table is usable from row view.
 - Staff can see table availability in the day timeline without reading empty-cell text.
 - Confirm flow prevents obvious short-capacity mistakes.
-- No TypeScript, lint, or production build failures before BE work starts.
+- No TypeScript, lint, test, browser smoke, or production build failures before v1 release.

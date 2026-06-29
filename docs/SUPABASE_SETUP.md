@@ -58,12 +58,27 @@ To minimize Database queries and prevent UI blocking during public booking:
 1. Link your repository to Vercel.
 2. Add the following Environment Variables in the Vercel Dashboard:
    - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase Project URL
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase Anon Key (Wait, the app uses NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: Your Supabase publishable key
+   - `CRON_SECRET`: A random secret with at least 16 characters, used to protect the keep-alive cron endpoint
    ```bash
    NEXT_PUBLIC_SUPABASE_URL=your-project-url
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+   CRON_SECRET=generated-random-secret
    ```
 3. Trigger a deployment (`git push main`).
+
+### Step 4: Keep the Free Supabase Project Active
+
+The project includes a Vercel Cron job in `vercel.json`:
+
+```json
+{
+  "path": "/api/cron/supabase-keepalive",
+  "schedule": "0 2 * * 1,4"
+}
+```
+
+Vercel invokes this route every Monday and Thursday at `02:00 UTC`. The route validates `Authorization: Bearer <CRON_SECRET>` and calls the public `get_slot_availability` Supabase RPC for a tiny booking-availability read. This keeps the free Supabase project active without exposing a public unauthenticated maintenance endpoint.
 
 ## Expected Runtime Behavior
 
@@ -71,3 +86,4 @@ To minimize Database queries and prevent UI blocking during public booking:
 - Staff access is strictly validated via Server Actions against `staff_profiles`.
 - Public booking writes to Supabase as `pending`.
 - Realtime instantly notifies active `/admin` tabs of new bookings.
+- Vercel Cron periodically calls `/api/cron/supabase-keepalive` to reduce the chance of Supabase Free Plan inactivity pauses.
