@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useReservationDispatch, useReservationState } from '@/components/reservation-provider'
 import { getTodayIso } from '@/lib/admin-calendar'
@@ -42,6 +42,14 @@ export function useAdminDashboardState({
     },
     [canManageSettings],
   )
+
+  const lastViewRef = useRef(view)
+  useEffect(() => {
+    if (view !== lastViewRef.current) {
+      void dispatch.refreshAdminData(true)
+    }
+    lastViewRef.current = view
+  }, [view, dispatch])
 
   const pageCopy = useMemo(() => {
     if (view === 'reservations') {

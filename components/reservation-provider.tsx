@@ -101,15 +101,24 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
     tablesRef.current = tables
   }, [tables])
 
+  const isRefreshingRef = useRef(false)
+
   const refreshAdminData = useCallback(async (silent: boolean = false) => {
+    if (isRefreshingRef.current) return
+    isRefreshingRef.current = true
+
     if (!silent) setIsLoading(true)
 
-    const result = await getAdminSnapshot()
-    if (result.ok) {
-      setReservations(result.data.reservations)
-      setTables(result.data.tables)
+    try {
+      const result = await getAdminSnapshot()
+      if (result.ok) {
+        setReservations(result.data.reservations)
+        setTables(result.data.tables)
+      }
+    } finally {
+      if (!silent) setIsLoading(false)
+      isRefreshingRef.current = false
     }
-    if (!silent) setIsLoading(false)
   }, [])
 
   useEffect(() => {
@@ -151,6 +160,15 @@ export function ReservationProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [isAdmin, refreshAdminData])
+
+  const lastPathnameRef = useRef(pathname)
+  useEffect(() => {
+    if (isAdmin && pathname !== lastPathnameRef.current) {
+      void refreshAdminData(true)
+    }
+    lastPathnameRef.current = pathname
+  }, [pathname, isAdmin, refreshAdminData])
+
 
   const addReservation = useCallback(async (data: ReservationInput) => {
     const result = await createReservationAction(data)
