@@ -500,17 +500,12 @@ export async function updateReservationStatus(
   const current = snapshot.data.reservations.find((reservation) => reservation.id === id)
   if (!current) return fail('Không tìm thấy lượt đặt bàn.')
 
-  // If status requires a table, but we don't have one, we can't change to it
-  const requiresTable = ['confirmed', 'arrived', 'seated', 'completed'].includes(status)
+  // confirmed, arrived, seated đều yêu cầu bàn đã được gán trước.
+  // completed/cancelled/no_show không cần — trigger DB sẽ tự giải phóng bàn.
+  const requiresTable = ['confirmed', 'arrived', 'seated'].includes(status)
   if (requiresTable && !current.tableId) {
     return fail('Vui lòng gán bàn trước khi chuyển sang trạng thái này.')
   }
-
-  // If status is completed, cancelled or no_show, we might want to free the table 
-  // but keeping it assigned in the DB is fine as the sync function handles it,
-  // or we could explicitly set table_id = null if you wanted, but usually we just keep it
-  // for historical record. The sync_reservation_table_assignments trigger only creates 
-  // assignments for active statuses.
 
   const supabase = await createClient()
   const timestamp = new Date().toISOString()
@@ -520,6 +515,8 @@ export async function updateReservationStatus(
     .update({
       status,
       updated_at: timestamp,
+      // Ghi lại thời điểm thực tế admin bấm "Hoàn thành" để vẽ bar calendar đúng độ dài
+      ...(status === 'completed' ? { completed_at: timestamp } : {}),
     })
     .eq('id', id)
 

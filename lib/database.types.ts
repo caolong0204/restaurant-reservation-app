@@ -78,6 +78,7 @@ export type Database = {
           status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
           table_id: string | null
           updated_at: string
+          completed_at: string | null
         }
         Insert: {
           created_at?: string
@@ -97,6 +98,7 @@ export type Database = {
           status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
           table_id?: string | null
           updated_at?: string
+          completed_at?: string | null
         }
         Update: {
           created_at?: string
@@ -116,6 +118,7 @@ export type Database = {
           status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
           table_id?: string | null
           updated_at?: string
+          completed_at?: string | null
         }
         Relationships: [
           {

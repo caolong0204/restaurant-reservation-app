@@ -52,5 +52,6 @@ export function mapReservation(row: ReservationRow, tables: RestaurantTable[]): 
     secondaryTables,
     createdAt: dateFromTimestamp(row.created_at),
     updatedAt: dateFromTimestamp(row.updated_at),
+    completedAt: row.completed_at ? dateFromTimestamp(row.completed_at) : undefined,
   }
 }

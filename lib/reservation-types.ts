@@ -72,6 +72,8 @@ export type Reservation = {
   secondaryTables?: RestaurantTable[]
   createdAt: number
   updatedAt: number
+  /** Epoch ms khi admin bấm "Hoàn thành". Chỉ có khi status = 'completed'. */
+  completedAt?: number
 }
 
 export type ReservationInput = {
