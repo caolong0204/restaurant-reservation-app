@@ -2,6 +2,7 @@
 
 import { Check, CalendarIcon, Clock, User, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/lib/i18n/locale-context'
 
 interface ProgressStepsProps {
   step: number
@@ -20,6 +21,7 @@ export function ProgressSteps({
   isInfoFilled,
   handleStepClick,
 }: ProgressStepsProps) {
+  const { t } = useLocale()
   if (step === 5) return null
 
   return (
@@ -41,7 +43,7 @@ export function ProgressSteps({
           </span>
         )}
         <Users className={cn('size-4.5', step === 1 ? 'text-flambe-rust' : 'text-muted-foreground')} />
-        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Số khách</span>
+        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">{t('steps.partySize')}</span>
       </button>
 
       {/* Step 2: Date */}
@@ -63,7 +65,7 @@ export function ProgressSteps({
           </span>
         )}
         <CalendarIcon className={cn('size-4.5', step === 2 ? 'text-flambe-rust' : 'text-muted-foreground')} />
-        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Chọn ngày</span>
+        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">{t('steps.date')}</span>
       </button>
 
       {/* Step 3: Time */}
@@ -85,7 +87,7 @@ export function ProgressSteps({
           </span>
         )}
         <Clock className={cn('size-4.5', step === 3 ? 'text-flambe-rust' : 'text-muted-foreground')} />
-        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Giờ đặt</span>
+        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">{t('steps.time')}</span>
       </button>
 
       {/* Step 4: Info */}
@@ -107,7 +109,7 @@ export function ProgressSteps({
           </span>
         )}
         <User className={cn('size-4.5', step === 4 ? 'text-flambe-rust' : 'text-muted-foreground')} />
-        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">Thông tin</span>
+        <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-foreground">{t('steps.info')}</span>
       </button>
     </div>
   )

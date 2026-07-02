@@ -2,7 +2,7 @@ import { Footer } from '@/components/home/footer'
 import { Reserve } from '@/components/home/reserve'
 import { SiteHeader } from '@/components/site-header'
 import { getOperatingHoursSnapshot } from '@/lib/reservation-actions'
-import { DEFAULT_WEEKLY_HOURS, formatOperatingHoursLabels } from '@/lib/restaurant'
+import { DEFAULT_WEEKLY_HOURS, formatOperatingHoursLabelsBilingual } from '@/lib/restaurant'
 
 export default async function HomePage() {
   const operatingHours = await getOperatingHoursSnapshot()
@@ -11,7 +11,7 @@ export default async function HomePage() {
     : {
         weeklyHours: DEFAULT_WEEKLY_HOURS,
         displaySettings: { showClosedDaysInFooter: false },
-        footerLabels: formatOperatingHoursLabels(DEFAULT_WEEKLY_HOURS, false),
+        footerLabels: formatOperatingHoursLabelsBilingual(DEFAULT_WEEKLY_HOURS, false),
       }
 
   return (

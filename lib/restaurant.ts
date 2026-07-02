@@ -35,7 +35,12 @@ export const DEFAULT_WEEKLY_HOURS: RestaurantWeeklyHour[] = [
   { weekday: 7, isOpen: true, openTime: '10:30', closeTime: '23:00', lastBookingTime: '21:30' },
 ]
 
-const WEEKDAY_LABELS = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật']
+/**
+ * 0-indexed, matching the `weekday - 1` convention used in DEFAULT_WEEKLY_HOURS.
+ * weekday 1 (Mon) → index 0, weekday 7 (Sun) → index 6.
+ */
+const WEEKDAY_LABELS_VI = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật']
+const WEEKDAY_LABELS_EN = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 export function minutesFromTimeString(time: string): number {
   const [hours = '0', minutes = '0'] = time.split(':')
@@ -119,23 +124,31 @@ export function getAvailableTimeSlots(
   })
 }
 
+interface FormatHoursOptions {
+  showClosedDays?: boolean
+  locale?: 'vi' | 'en'
+}
+
 export function formatOperatingHoursLabels(
   weeklyHours: RestaurantWeeklyHour[] = DEFAULT_WEEKLY_HOURS,
-  showClosedDays = false,
+  { showClosedDays = false, locale = 'vi' }: FormatHoursOptions = {},
 ): string[] {
   const labels: string[] = []
   let groupStart = 0
 
-  const labelForRange = (start: number, end: number) => {
-    const first = WEEKDAY_LABELS[start]
-    const last = WEEKDAY_LABELS[end]
-    return first === last ? first : `${first} - ${last}`
-  }
+  const weekdayLabels = locale === 'en' ? WEEKDAY_LABELS_EN : WEEKDAY_LABELS_VI
+  const closedLabel = locale === 'en' ? 'Closed' : 'Nghỉ'
 
   const signature = (item: RestaurantWeeklyHour) =>
     item.isOpen ? `open:${item.openTime}:${item.closeTime}` : 'closed'
 
   const sorted = [...weeklyHours].sort((a, b) => a.weekday - b.weekday)
+
+  const labelForRange = (start: number, end: number) => {
+    const first = weekdayLabels[sorted[start].weekday - 1]
+    const last = weekdayLabels[sorted[end].weekday - 1]
+    return first === last ? first : `${first} - ${last}`
+  }
   for (let index = 1; index <= sorted.length; index += 1) {
     const prev = sorted[index - 1]
     const current = sorted[index]
@@ -143,12 +156,26 @@ export function formatOperatingHoursLabels(
 
     if (prev.isOpen || showClosedDays) {
       const range = labelForRange(groupStart, index - 1)
-      labels.push(prev.isOpen ? `${range}: ${prev.openTime} - ${prev.closeTime}` : `${range}: Nghỉ`)
+      labels.push(prev.isOpen ? `${range}: ${prev.openTime} - ${prev.closeTime}` : `${range}: ${closedLabel}`)
     }
     groupStart = index
   }
 
   return labels
+}
+
+/**
+ * Returns both VI and EN hour labels from the same weeklyHours data.
+ * Used by the server to pre-compute both locales in one pass.
+ */
+export function formatOperatingHoursLabelsBilingual(
+  weeklyHours: RestaurantWeeklyHour[] = DEFAULT_WEEKLY_HOURS,
+  showClosedDays = false,
+): { vi: string[]; en: string[] } {
+  return {
+    vi: formatOperatingHoursLabels(weeklyHours, { showClosedDays, locale: 'vi' }),
+    en: formatOperatingHoursLabels(weeklyHours, { showClosedDays, locale: 'en' }),
+  }
 }
 
 export const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8]

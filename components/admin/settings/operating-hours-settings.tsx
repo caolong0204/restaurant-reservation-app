@@ -23,7 +23,7 @@ export function OperatingHoursSettings({
     snapshot.displaySettings.showClosedDaysInFooter,
   )
   const [isPending, startTransition] = useTransition()
-  const previewLabels = formatOperatingHoursLabels(weeklyHours, showClosedDays)
+  const previewLabels = formatOperatingHoursLabels(weeklyHours, { showClosedDays })
 
   const updateDay = (weekday: number, patch: Partial<RestaurantWeeklyHour>) => {
     setWeeklyHours((current) =>

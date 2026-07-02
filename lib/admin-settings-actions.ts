@@ -13,7 +13,10 @@ import type {
   RestaurantWeeklyHour,
   TableAvailabilityStatus,
 } from '@/lib/reservation-types'
-import { formatOperatingHoursLabels, minutesFromTimeString } from '@/lib/restaurant'
+import {
+  formatOperatingHoursLabelsBilingual,
+  minutesFromTimeString,
+} from '@/lib/restaurant'
 import { mapTable } from '@/lib/reservations/mappers'
 import { fail, ok } from '@/lib/reservations/shared'
 import { createClient } from '@/lib/supabase/server'
@@ -311,7 +314,7 @@ export async function updateOperatingHoursSettings(
   return ok({
     weeklyHours,
     displaySettings,
-    footerLabels: formatOperatingHoursLabels(
+    footerLabels: formatOperatingHoursLabelsBilingual(
       weeklyHours,
       displaySettings.showClosedDaysInFooter,
     ),

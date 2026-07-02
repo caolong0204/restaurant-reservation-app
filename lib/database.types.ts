@@ -61,11 +61,13 @@ export type Database = {
       }
       reservations: {
         Row: {
+          completed_at: string | null
           created_at: string
+          guest_email: string | null
           guest_name: string
           guest_phone: string
-          guest_email: string | null
           id: string
+          locale: string
           manual_arrangement: boolean
           notes: string | null
           occasion: string | null
@@ -75,17 +77,18 @@ export type Database = {
           reservation_time: string
           secondary_table_ids: string | null
           service_window: unknown
-          status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
+          status: string
           table_id: string | null
           updated_at: string
-          completed_at: string | null
         }
         Insert: {
+          completed_at?: string | null
           created_at?: string
+          guest_email?: string | null
           guest_name: string
           guest_phone: string
-          guest_email?: string | null
           id?: string
+          locale?: string
           manual_arrangement?: boolean
           notes?: string | null
           occasion?: string | null
@@ -95,17 +98,18 @@ export type Database = {
           reservation_time: string
           secondary_table_ids?: string | null
           service_window?: unknown
-          status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
+          status?: string
           table_id?: string | null
           updated_at?: string
-          completed_at?: string | null
         }
         Update: {
+          completed_at?: string | null
           created_at?: string
+          guest_email?: string | null
           guest_name?: string
           guest_phone?: string
-          guest_email?: string | null
           id?: string
+          locale?: string
           manual_arrangement?: boolean
           notes?: string | null
           occasion?: string | null
@@ -115,10 +119,9 @@ export type Database = {
           reservation_time?: string
           secondary_table_ids?: string | null
           service_window?: unknown
-          status?: 'pending' | 'confirmed' | 'arrived' | 'seated' | 'completed' | 'cancelled' | 'no_show'
+          status?: string
           table_id?: string | null
           updated_at?: string
-          completed_at?: string | null
         }
         Relationships: [
           {
@@ -155,7 +158,7 @@ export type Database = {
         Row: {
           active: boolean
           area: string
-          availability_status: 'active' | 'held_for_walk_in' | 'inactive'
+          availability_status: string
           capacity: number
           code: string
           created_at: string
@@ -168,7 +171,7 @@ export type Database = {
         Insert: {
           active?: boolean
           area: string
-          availability_status?: 'active' | 'held_for_walk_in' | 'inactive'
+          availability_status?: string
           capacity: number
           code: string
           created_at?: string
@@ -181,7 +184,7 @@ export type Database = {
         Update: {
           active?: boolean
           area?: string
-          availability_status?: 'active' | 'held_for_walk_in' | 'inactive'
+          availability_status?: string
           capacity?: number
           code?: string
           created_at?: string

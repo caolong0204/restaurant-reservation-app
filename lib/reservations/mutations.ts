@@ -58,6 +58,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
     occasion: normalized.occasion ?? null,
     requested_area: normalized.tableLocation ?? null,
     notes: normalized.notes ?? null,
+    locale: normalized.locale ?? 'vi',
     status: 'pending',
     manual_arrangement: false,
     table_id: null,
@@ -80,6 +81,7 @@ export async function createReservation(input: ReservationInput): Promise<Action
     manualArrangement: false,
     secondaryTableIds: [],
     secondaryTables: [],
+    locale: normalized.locale ?? 'vi',
     createdAt: dateFromTimestamp(timestamp),
     updatedAt: dateFromTimestamp(timestamp),
   })

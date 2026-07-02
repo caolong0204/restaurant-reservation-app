@@ -2,6 +2,7 @@
 
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { useLocale } from '@/lib/i18n/locale-context'
 import { PARTY_SIZES } from '@/lib/restaurant'
 import { cn } from '@/lib/utils'
 
@@ -22,11 +23,12 @@ export function StepPartySize({
   customPartyValue,
   setCustomPartyValue,
 }: StepPartySizeProps) {
+  const { t } = useLocale()
   return (
     <div className="flex flex-col items-center gap-3 py-0.5 text-center">
       <div className="flex flex-col items-center">
         <h4 className="font-serif text-xl sm:text-2xl font-medium tracking-wide text-flambe-text-dark uppercase mt-2 mb-4">
-          CHỌN SỐ LƯỢNG KHÁCH
+          {t('partySize.heading')}
         </h4>
         <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1 hidden">
           Vui lòng chọn số lượng người tham gia dùng bữa cùng bạn
@@ -65,14 +67,14 @@ export function StepPartySize({
               : 'border-flambe-border-cream bg-flambe-cream-light hover:border-flambe-rust/50 text-flambe-text-dark'
           )}
         >
-          Khác...
+          {t('partySize.other')}
         </button>
       </div>
 
       {isCustomParty && (
         <div className="flex flex-col items-center gap-2 mt-2 w-full max-w-sm animate-in fade-in slide-in-from-top-1 duration-200">
           <Label htmlFor="custom-guests" className="text-xs text-muted-foreground">
-            Nhập số lượng khách (từ 9 trở lên)
+            {t('partySize.customLabel')}
           </Label>
           <div className="flex items-center gap-2 w-full justify-center">
             <Input
@@ -88,12 +90,12 @@ export function StepPartySize({
               }}
               className="text-center font-semibold rounded-lg w-28"
             />
-            <span className="text-sm font-semibold text-muted-foreground">khách</span>
+            <span className="text-sm font-semibold text-muted-foreground">{t('partySize.guestSuffix')}</span>
           </div>
         </div>
       )}
       <p className="text-xs text-muted-foreground mt-2">
-        Với nhóm trên 24 khách, vui lòng liên hệ trực tiếp để được sắp xếp riêng.
+        {t('partySize.largeGroupNote')}
       </p>
     </div>
   )

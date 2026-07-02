@@ -50,7 +50,7 @@ export type RestaurantDisplaySettings = {
 export type OperatingHoursSnapshot = {
   weeklyHours: RestaurantWeeklyHour[]
   displaySettings: RestaurantDisplaySettings
-  footerLabels: string[]
+  footerLabels: { vi: string[]; en: string[] }
 }
 
 export type Reservation = {
@@ -74,6 +74,8 @@ export type Reservation = {
   updatedAt: number
   /** Epoch ms khi admin bấm "Hoàn thành". Chỉ có khi status = 'completed'. */
   completedAt?: number
+  /** Ngôn ngữ khách dùng lúc đặt bàn — dùng để gửi email đúng ngôn ngữ. */
+  locale?: 'vi' | 'en'
 }
 
 export type ReservationInput = {
@@ -90,6 +92,8 @@ export type ReservationInput = {
   tableId?: string
   secondaryTableIds?: string[]
   status?: ReservationStatus
+  /** Ngôn ngữ khách dùng lúc đặt bàn — để gửi email đúng ngôn ngữ. */
+  locale?: 'vi' | 'en'
 }
 
 export type ReservationEditInput = Partial<ReservationInput>

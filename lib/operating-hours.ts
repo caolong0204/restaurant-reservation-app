@@ -4,7 +4,7 @@ import type {
   RestaurantDisplaySettings,
   RestaurantWeeklyHour,
 } from '@/lib/reservation-types'
-import { DEFAULT_WEEKLY_HOURS, formatOperatingHoursLabels } from '@/lib/restaurant'
+import { DEFAULT_WEEKLY_HOURS, formatOperatingHoursLabelsBilingual } from '@/lib/restaurant'
 import { fail, ok } from '@/lib/reservations/shared'
 import { createClient } from '@/lib/supabase/server'
 
@@ -49,7 +49,7 @@ export async function getOperatingHoursSnapshot(): Promise<ActionResult<Operatin
   const snapshot: OperatingHoursSnapshot = {
     weeklyHours,
     displaySettings,
-    footerLabels: formatOperatingHoursLabels(
+    footerLabels: formatOperatingHoursLabelsBilingual(
       weeklyHours,
       displaySettings.showClosedDaysInFooter,
     ),

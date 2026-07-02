@@ -2,6 +2,7 @@
 
 import { cn, formatShortDate } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useLocale } from '@/lib/i18n/locale-context'
 
 interface StepDateProps {
   date: Date | undefined
@@ -19,6 +20,7 @@ export function StepDate({
   currentMonth,
   setCurrentMonth,
 }: StepDateProps) {
+  const { t } = useLocale()
   // Month navigation helpers
   const prevMonth = () => {
     setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
@@ -31,21 +33,8 @@ export function StepDate({
   const calendarMonthLabel = () => {
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth()
-    const monthsVi = [
-      'Tháng 1',
-      'Tháng 2',
-      'Tháng 3',
-      'Tháng 4',
-      'Tháng 5',
-      'Tháng 6',
-      'Tháng 7',
-      'Tháng 8',
-      'Tháng 9',
-      'Tháng 10',
-      'Tháng 11',
-      'Tháng 12',
-    ]
-    return `${monthsVi[month]} ${year}`
+    const months = t('date.months') as unknown as string[]
+    return `${Array.isArray(months) ? months[month] : month + 1} ${year}`
   }
 
   const renderCalendarCells = () => {
@@ -139,7 +128,7 @@ export function StepDate({
 
         {/* Weekday Headers starting on Monday */}
         <div className="grid grid-cols-7 gap-x-1.5 text-center mb-1.5">
-          {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((day) => (
+        {((t('date.weekdays') as unknown as string[]) ?? ['Mo','Tu','We','Th','Fr','Sa','Su']).map((day) => (
             <span
               key={day}
               className="text-[9px] font-bold tracking-wider text-muted-foreground/60 select-none py-0.5"
@@ -156,9 +145,9 @@ export function StepDate({
 
         {/* Selected date preview footer inside card */}
         <div className="mt-2 pt-2 border-t border-border/60 text-xs font-semibold text-muted-foreground text-left">
-          Đã chọn:{' '}
+          {t('date.selectedLabel')}{' '}
           <span className="text-[#a1472a]">
-            {date ? formatShortDate(date) : 'Chưa chọn'}
+            {date ? formatShortDate(date) : t('date.notSelected')}
           </span>
         </div>
       </div>

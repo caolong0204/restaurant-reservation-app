@@ -2,6 +2,7 @@
 
 import type { RestaurantWeeklyHour, SlotAvailability } from '@/lib/reservation-types'
 import { formatTime, getAvailableTimeSlots, isPastTimeSlot } from '@/lib/restaurant'
+import { useLocale } from '@/lib/i18n/locale-context'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 
@@ -16,10 +17,10 @@ interface StepTimeProps {
   weeklyHours: RestaurantWeeklyHour[]
 }
 
-const TIME_GROUPS = [
-  { label: '☀️ Trưa', from: '10:00', to: '13:45' },
-  { label: '🌤️ Chiều', from: '14:00', to: '17:45' },
-  { label: '🌙 Tối', from: '18:00', to: '23:45' },
+const TIME_GROUP_KEYS = [
+  { key: 'time.groupLunch', from: '10:00', to: '13:45' },
+  { key: 'time.groupAfternoon', from: '14:00', to: '17:45' },
+  { key: 'time.groupEvening', from: '18:00', to: '23:45' },
 ]
 
 function slotInGroup(slot: string, from: string, to: string): boolean {
@@ -36,13 +37,15 @@ export function StepTime({
   date,
   weeklyHours,
 }: StepTimeProps) {
+  const { t } = useLocale()
   const slots = getAvailableTimeSlots(partySize, date, weeklyHours)
   const availabilityByTime = new Map(
     availability.map((slot) => [slot.time, slot.availableCount]),
   )
 
-  const groups = TIME_GROUPS.map((group) => ({
+  const groups = TIME_GROUP_KEYS.map((group) => ({
     ...group,
+    label: t(group.key),
     slots: slots
       .filter((slot) => !isPastTimeSlot(slot, date))
       .filter((slot) => slotInGroup(slot, group.from, group.to)),
@@ -53,7 +56,7 @@ export function StepTime({
       {isLoading && (
         <div className="flex items-center justify-center gap-2 text-xs font-medium text-flambe-rust">
           <Loader2 className="size-4 animate-spin" />
-          Đang kiểm tra bàn trống
+          {t('time.checking')}
         </div>
       )}
 
@@ -67,7 +70,7 @@ export function StepTime({
         {groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center text-flambe-rust gap-2">
             <p className="text-[13px] font-medium px-4">
-              Không thể đặt bàn cho hôm nay nữa, vui lòng chọn ngày khác để dùng bữa!
+              {t('time.noSlots')}
             </p>
           </div>
         ) : (
@@ -98,7 +101,7 @@ export function StepTime({
                       <span className={cn(isUnavailable && 'line-through')}>{formatTime(slot)}</span>
                       {isUnavailable && (
                         <span className="mt-0.5 text-[9px] font-bold">
-                          Hết bàn
+                          {t('time.full')}
                         </span>
                       )}
                     </button>

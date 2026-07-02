@@ -6,11 +6,12 @@ import {
   Clock,
   FileText,
   Layers,
-
   Phone,
   User,
   Users,
 } from 'lucide-react'
+import { useLocale } from '@/lib/i18n/locale-context'
+import { translateOccasion } from '@/lib/i18n/locale-utils'
 import { OCCASIONS, TABLE_LOCATIONS, formatDateLong } from '@/lib/restaurant'
 
 interface BookingSummaryProps {
@@ -18,7 +19,6 @@ interface BookingSummaryProps {
   partySize: string
   time: string
   name: string
-
   phone: string
   occasion: string
   tableLocation: string
@@ -37,23 +37,26 @@ export function BookingSummary({
   partySize,
   time,
   name,
-
   phone,
   occasion,
   tableLocation,
   notes,
 }: BookingSummaryProps) {
+  const { t } = useLocale()
+  const occasionLabels = t('occasions') as unknown as string[]
+  const occasionDisplay = occasion ? translateOccasion(occasion, occasionLabels) : occasion
+
   return (
     <div className="scroll-mt-20 lg:col-span-5 hidden lg:flex flex-col gap-6">
       <div>
         <p className="font-mono text-xs uppercase tracking-widest text-primary">
-          Vé đặt bàn
+          {t('bookingSummary.eyebrow')}
         </p>
         <h2 className="mt-3 text-balance font-serif text-3xl font-semibold text-foreground sm:text-4xl">
-          Thông tin đặt bàn
+          {t('bookingSummary.title')}
         </h2>
         <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground">
-          Thông tin bên dưới tự động cập nhật theo các tùy chọn bạn nhập ở bảng đăng ký bên cạnh.
+          {t('bookingSummary.subtitle')}
         </p>
       </div>
 
@@ -64,7 +67,7 @@ export function BookingSummary({
 
         <div className="flex flex-col gap-5">
           <h4 className="font-serif text-lg font-bold text-foreground border-b border-border/60 pb-3">
-            Tóm tắt lượt đặt bàn
+            {t('bookingSummary.ticketTitle')}
           </h4>
 
           {/* Selections */}
@@ -73,10 +76,10 @@ export function BookingSummary({
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground font-medium">
                 <Users className="size-4 text-primary" />
-                Số lượng khách
+                {t('bookingSummary.partySize')}
               </span>
               <span className="font-semibold text-foreground">
-                {partySize ? `${partySize} khách` : 'Chưa chọn'}
+                {partySize ? `${partySize} ${t('bookingSummary.guestSuffix')}` : t('bookingSummary.noParty')}
               </span>
             </div>
 
@@ -84,10 +87,10 @@ export function BookingSummary({
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground font-medium">
                 <Calendar className="size-4 text-primary" />
-                Ngày dùng bữa
+                {t('bookingSummary.date')}
               </span>
               <span className="font-semibold text-foreground text-right max-w-[180px] truncate">
-                {date ? formatDateLong(toISO(date)) : 'Chưa chọn ngày'}
+                {date ? formatDateLong(toISO(date)) : t('bookingSummary.noDate')}
               </span>
             </div>
 
@@ -95,10 +98,10 @@ export function BookingSummary({
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground font-medium">
                 <Clock className="size-4 text-primary" />
-                Giờ đón khách
+                {t('bookingSummary.time')}
               </span>
               <span className="font-semibold text-foreground">
-                {time ? time : 'Chưa chọn giờ'}
+                {time ? time : t('bookingSummary.noTime')}
               </span>
             </div>
           </div>
@@ -107,7 +110,7 @@ export function BookingSummary({
           {(name.trim() || phone.trim() || notes.trim()) && (
             <div className="border-t border-dashed border-border/80 pt-4 flex flex-col gap-3.5">
               <h5 className="font-serif text-sm font-bold text-foreground opacity-90">
-                Thông tin liên hệ
+                {t('bookingSummary.contactTitle')}
               </h5>
 
               <div className="flex flex-col gap-2.5">
@@ -116,7 +119,7 @@ export function BookingSummary({
                   <div className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                       <User className="size-3.5" />
-                      Họ và tên
+                      {t('bookingSummary.name')}
                     </span>
                     <span className="font-medium text-foreground">{name}</span>
                   </div>
@@ -127,22 +130,20 @@ export function BookingSummary({
                   <div className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                       <Phone className="size-3.5" />
-                      Số điện thoại
+                      {t('bookingSummary.phone')}
                     </span>
                     <span className="font-medium text-foreground">{phone}</span>
                   </div>
                 )}
-
-
 
                 {/* Occasion */}
                 {occasion !== OCCASIONS[0] && (
                   <div className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                       <CheckCircle className="size-3.5" />
-                      Dịp đặc biệt
+                      {t('bookingSummary.occasion')}
                     </span>
-                    <span className="font-medium text-foreground">{occasion}</span>
+                    <span className="font-medium text-foreground">{occasionDisplay}</span>
                   </div>
                 )}
 
@@ -151,7 +152,7 @@ export function BookingSummary({
                   <div className="flex items-center justify-between text-xs">
                     <span className="flex items-center gap-1.5 text-muted-foreground">
                       <Layers className="size-3.5" />
-                      Vị trí bàn
+                      {t('bookingSummary.tableLocation')}
                     </span>
                     <span className="font-medium text-foreground">{tableLocation}</span>
                   </div>
@@ -162,10 +163,10 @@ export function BookingSummary({
                   <div className="flex flex-col gap-1.5 text-xs mt-1 bg-secondary/35 rounded-lg p-2.5 border border-border/40">
                     <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
                       <FileText className="size-3.5" />
-                      Yêu cầu đặc biệt
+                      {t('bookingSummary.notes')}
                     </span>
                     <p className="italic text-muted-foreground/90 leading-relaxed font-serif text-[13px]">
-                      “{notes}”
+                      &ldquo;{notes}&rdquo;
                     </p>
                   </div>
                 )}

@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google'
 import { Suspense } from 'react'
+import { LocaleProvider } from '@/lib/i18n/locale-context'
 import { ReservationProvider } from '@/components/reservation-provider'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
@@ -57,7 +58,9 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased overscroll-none">
         <Suspense fallback={null}>
-          <ReservationProvider>{children}</ReservationProvider>
+          <LocaleProvider>
+            <ReservationProvider>{children}</ReservationProvider>
+          </LocaleProvider>
         </Suspense>
         <Toaster position="top-center" />
         {process.env.NODE_ENV === 'production' && <Analytics />}

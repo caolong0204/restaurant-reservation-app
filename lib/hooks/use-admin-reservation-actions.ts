@@ -205,6 +205,12 @@ export function useAdminReservationActions({
 
   const handleUpdateStatus = useCallback(
     async (reservation: Reservation, status: ReservationStatus) => {
+      // Intercept statuses that require a table if none is assigned yet
+      if (['confirmed', 'arrived', 'seated'].includes(status) && !reservation.tableId) {
+        openAssignModal(reservation)
+        return false
+      }
+
       setUpdatingStatusId(reservation.id)
       const result = await updateReservationStatus(reservation.id, status)
       setUpdatingStatusId(null)
@@ -219,7 +225,7 @@ export function useAdminReservationActions({
       })
       return false
     },
-    [updateReservationStatus],
+    [openAssignModal, updateReservationStatus],
   )
 
   return useMemo(

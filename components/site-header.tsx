@@ -1,11 +1,15 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { LanguageSwitcher } from '@/components/language-switcher'
+import { useLocale } from '@/lib/i18n/locale-context'
 import { RESTAURANT } from '@/lib/restaurant'
 import Image from 'next/image'
 import Link from 'next/link'
 
 export function SiteHeader() {
+  const { t } = useLocale()
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/92 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-3 sm:px-4">
@@ -21,9 +25,10 @@ export function SiteHeader() {
         </Link>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <LanguageSwitcher />
           <Button
             render={
-              <Link href="/admin" aria-label="Nhân viên">
+              <Link href="/admin" aria-label={t('header.staffLabel')}>
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -39,7 +44,7 @@ export function SiteHeader() {
             className="inline-flex px-2.5 text-flambe-rust transition-colors hover:bg-flambe-rust/10 hover:text-flambe-rust"
           />
           <Button
-            render={<a href="#reserve">Đặt bàn</a>}
+            render={<a href="#reserve">{t('header.bookTable')}</a>}
             nativeButton={false}
             size="sm"
             className="rounded-md px-3 text-[11px] font-semibold uppercase tracking-wider shadow-md shadow-primary/20 transition-transform hover:scale-105 sm:px-6 sm:text-xs"

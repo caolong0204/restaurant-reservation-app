@@ -3,6 +3,7 @@
 import { useReservationDispatch } from '@/components/reservation-provider'
 import { getPublicSlotAvailability } from '@/lib/reservation-actions'
 import type { OperatingHoursSnapshot, SlotAvailability } from '@/lib/reservation-types'
+import { useLocale } from '@/lib/i18n/locale-context'
 import { OCCASIONS, TABLE_LOCATIONS, isPastTimeSlot } from '@/lib/restaurant'
 import { cn, validateVNPhone } from '@/lib/utils'
 import { ArrowRight, ChevronLeft } from 'lucide-react'
@@ -85,6 +86,7 @@ export function BookingForm({
   operatingHours,
 }: BookingFormProps) {
   const { addReservation } = useReservationDispatch()
+  const { t, locale } = useLocale()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [slotAvailability, setSlotAvailability] = useState<SlotAvailability[]>([])
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
@@ -169,7 +171,7 @@ export function BookingForm({
           }
         })
         .catch(() => {
-          if (isActive) setSlotError('Không kiểm tra được tình trạng bàn trống.')
+          if (isActive) setSlotError(t('form.slotError'))
         })
         .finally(() => {
           if (isActive) setIsLoadingSlots(false)
@@ -243,19 +245,20 @@ export function BookingForm({
       occasion: occasion === OCCASIONS[0] ? undefined : occasion,
       tableLocation: tableLocation === TABLE_LOCATIONS[0] ? undefined : tableLocation,
       notes: notes.trim() || undefined,
+      locale,
     })
 
     setIsSubmitting(false)
 
     if (result.ok) {
-      toast.success('Đã gửi yêu cầu đặt bàn', {
-        description: 'Nhà hàng sẽ kiểm tra và liên hệ để xác nhận bàn của bạn.',
+      toast.success(t('form.toastSuccessTitle'), {
+        description: t('form.toastSuccessDesc'),
       })
       setStep(5)
       return
     }
 
-    toast.error('Chưa gửi được yêu cầu đặt bàn', {
+    toast.error(t('form.toastErrorTitle'), {
       description: result.error,
     })
   }
@@ -286,7 +289,7 @@ export function BookingForm({
     <div className="rounded-xl bg-card shadow-lg transition-all duration-300">
       {/* Header with App Theme Color */}
       <div className="flex items-center justify-between rounded-t-xl bg-flambe-rust px-4 py-3 text-white">
-        <h3 className="font-serif text-lg font-medium tracking-wide">Đặt bàn tại Flambé</h3>
+        <h3 className="font-serif text-lg font-medium tracking-wide">{t('form.title')}</h3>
         {step !== 5 && (
           <div className="flex items-center gap-3">
             <span className="text-xs font-mono font-bold tracking-wider opacity-90">
@@ -394,7 +397,7 @@ export function BookingForm({
           <div className="mt-3 border-t border-border pt-3">
             {step === 4 && (
               <p className="text-[11px] sm:text-xs text-rose-600 font-semibold text-left mb-3 select-none leading-relaxed">
-                *Nhà hàng không nhận đặt vị trí bàn cụ thể, bàn sẽ được xếp theo tình hình thực tế tại thời điểm khách hàng tới dùng bữa.
+                {t('form.disclaimer')}
               </p>
             )}
             <div className="flex items-center justify-between">
@@ -412,7 +415,7 @@ export function BookingForm({
                 )}
               >
                 <ChevronLeft className="size-4" />
-                <span>Quay lại</span>
+                <span>{t('form.back')}</span>
               </button>
 
             {step < 4 ? (
@@ -438,7 +441,7 @@ export function BookingForm({
                     : 'bg-flambe-rust hover:bg-flambe-rust-hover text-white active:scale-[0.98]'
                 )}
               >
-                <span>Tiếp tục</span>
+                <span>{t('form.next')}</span>
                 <ArrowRight className="size-4" />
               </button>
             ) : (
@@ -453,7 +456,7 @@ export function BookingForm({
                     : 'bg-flambe-rust hover:bg-flambe-rust-hover text-white active:scale-[0.98]'
                 )}
               >
-                <span>{isSubmitting ? 'Đang gửi...' : 'Xác nhận đặt bàn'}</span>
+                <span>{isSubmitting ? t('form.submitting') : t('form.confirm')}</span>
               </button>
             )}
             </div>

@@ -7,11 +7,16 @@ type TableLikeRow = Pick<
   RestaurantTableRow,
   'id' | 'code' | 'floor' | 'area' | 'capacity' | 'active' | 'sort_order' | 'notes'
 > & {
-  availability_status?: TableAvailabilityStatus | null
+  availability_status?: string | null
 }
 
+const VALID_AVAILABILITY = new Set<TableAvailabilityStatus>(['active', 'held_for_walk_in', 'inactive'])
+
 export function mapTable(row: TableLikeRow): RestaurantTable {
-  const availabilityStatus = row.availability_status ?? (row.active ? 'active' : 'inactive')
+  const rawStatus = row.availability_status ?? (row.active ? 'active' : 'inactive')
+  const availabilityStatus: TableAvailabilityStatus = VALID_AVAILABILITY.has(rawStatus as TableAvailabilityStatus)
+    ? (rawStatus as TableAvailabilityStatus)
+    : 'inactive'
 
   return {
     id: row.id,
@@ -20,7 +25,7 @@ export function mapTable(row: TableLikeRow): RestaurantTable {
     area: row.area,
     capacity: row.capacity,
     active: availabilityStatus === 'active',
-    availabilityStatus,
+    availabilityStatus: availabilityStatus as TableAvailabilityStatus,
     sortOrder: row.sort_order,
     notes: row.notes ?? undefined,
   }
@@ -53,5 +58,6 @@ export function mapReservation(row: ReservationRow, tables: RestaurantTable[]): 
     createdAt: dateFromTimestamp(row.created_at),
     updatedAt: dateFromTimestamp(row.updated_at),
     completedAt: row.completed_at ? dateFromTimestamp(row.completed_at) : undefined,
+    locale: row.locale === 'en' ? 'en' : 'vi',
   }
 }

@@ -13,6 +13,8 @@ import {
   Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useLocale } from '@/lib/i18n/locale-context'
+import { translateOccasion } from '@/lib/i18n/locale-utils'
 import { formatTime, TABLE_LOCATIONS, OCCASIONS } from '@/lib/restaurant'
 
 interface StepSuccessProps {
@@ -27,7 +29,6 @@ interface StepSuccessProps {
   notes?: string
   reset: () => void
 }
-
 
 function formatDDMMYYYY(date: Date) {
   const d = String(date.getDate()).padStart(2, '0')
@@ -48,7 +49,14 @@ export function StepSuccess({
   notes,
   reset,
 }: StepSuccessProps) {
+  const { t } = useLocale()
+  // Guard first — before any derived values — to avoid unnecessary computation
   if (!date) return null
+
+  const occasionLabels = t('occasions') as unknown as string[]
+  const occasionDisplay = occasion ? translateOccasion(occasion, occasionLabels) : occasion
+  // Pre-split the body template once to avoid calling t() three times
+  const bodyParts = t('success.body').split('{phone}')
 
   return (
     <div className="flex flex-col items-center gap-3.5 py-3 sm:gap-5 sm:py-6 text-center animate-in fade-in zoom-in-95 duration-200">
@@ -57,11 +65,12 @@ export function StepSuccess({
       </span>
       <div className="flex flex-col gap-1 sm:gap-1.5">
         <h4 className="font-serif text-xl sm:text-2xl font-bold text-foreground">
-          Cảm ơn bạn, {name.split(' ')[0]}!
+          {t('success.heading').replace('{name}', name.split(' ')[0])}
         </h4>
         <p className="max-w-sm text-xs sm:text-sm text-muted-foreground leading-relaxed">
-          Yêu cầu đặt bàn của bạn đã được ghi nhận thành công. Nhà hàng sẽ liên hệ{' '}
-          <span className="font-semibold text-foreground">{phone}</span> để xác nhận.
+          {bodyParts[0]}
+          <span className="font-semibold text-foreground">{phone}</span>
+          {bodyParts[1] ?? ''}
         </p>
       </div>
 
@@ -72,7 +81,7 @@ export function StepSuccess({
 
         <div className="flex flex-col gap-4 sm:gap-5">
           <h4 className="font-serif text-base sm:text-lg font-bold text-foreground border-b border-border/60 pb-2 sm:pb-3 text-center">
-            Chi tiết đặt bàn
+            {t('success.ticketTitle')}
           </h4>
 
           {/* Selections */}
@@ -81,10 +90,10 @@ export function StepSuccess({
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground font-medium">
                 <Users className="size-4 text-primary" />
-                Số lượng khách
+                {t('success.partySize')}
               </span>
               <span className="font-semibold text-foreground">
-                {partySize} khách
+                {partySize} {t('success.guestSuffix')}
               </span>
             </div>
 
@@ -92,7 +101,7 @@ export function StepSuccess({
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground font-medium">
                 <Calendar className="size-4 text-primary" />
-                Ngày dùng bữa
+                {t('success.date')}
               </span>
               <span className="font-semibold text-foreground">
                 {formatDDMMYYYY(date)}
@@ -103,7 +112,7 @@ export function StepSuccess({
             <div className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2 text-muted-foreground font-medium">
                 <Clock className="size-4 text-primary" />
-                Giờ đón khách
+                {t('success.time')}
               </span>
               <span className="font-semibold text-foreground">
                 {formatTime(time)}
@@ -114,7 +123,7 @@ export function StepSuccess({
           {/* Guest Details */}
           <div className="border-t border-dashed border-border/80 pt-3 sm:pt-4 flex flex-col gap-2.5 sm:gap-3.5">
             <h5 className="font-serif text-sm font-bold text-foreground opacity-90">
-              Thông tin liên hệ
+              {t('success.contactTitle')}
             </h5>
 
             <div className="flex flex-col gap-2 sm:gap-2.5">
@@ -122,7 +131,7 @@ export function StepSuccess({
               <div className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <User className="size-3.5" />
-                  Họ và tên
+                  {t('success.name')}
                 </span>
                 <span className="font-medium text-foreground">{name}</span>
               </div>
@@ -131,7 +140,7 @@ export function StepSuccess({
               <div className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1.5 text-muted-foreground">
                   <Phone className="size-3.5" />
-                  Số điện thoại
+                  {t('success.phone')}
                 </span>
                 <span className="font-medium text-foreground">{phone}</span>
               </div>
@@ -141,21 +150,20 @@ export function StepSuccess({
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Mail className="size-3.5" />
-                    Email
+                    {t('success.email')}
                   </span>
                   <span className="font-medium text-foreground">{email}</span>
                 </div>
               )}
-
 
               {/* Occasion */}
               {occasion && occasion !== OCCASIONS[0] && (
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <CheckCircle className="size-3.5" />
-                    Dịp đặc biệt
+                    {t('success.occasion')}
                   </span>
-                  <span className="font-medium text-foreground">{occasion}</span>
+                  <span className="font-medium text-foreground">{occasionDisplay}</span>
                 </div>
               )}
 
@@ -164,7 +172,7 @@ export function StepSuccess({
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <Layers className="size-3.5" />
-                    Vị trí bàn
+                    {t('success.tableLocation')}
                   </span>
                   <span className="font-medium text-foreground">{tableLocation}</span>
                 </div>
@@ -175,10 +183,10 @@ export function StepSuccess({
                 <div className="flex flex-col gap-1.5 text-xs mt-1 bg-secondary/35 rounded-lg p-2.5 border border-border/40">
                   <span className="flex items-center gap-1.5 text-muted-foreground font-semibold">
                     <FileText className="size-3.5" />
-                    Yêu cầu đặc biệt
+                    {t('success.notes')}
                   </span>
                   <p className="italic text-muted-foreground/90 leading-relaxed font-serif text-[13px]">
-                    “{notes}”
+                    &ldquo;{notes}&rdquo;
                   </p>
                 </div>
               )}
@@ -191,7 +199,7 @@ export function StepSuccess({
         onClick={reset}
         className="mt-1.5 sm:mt-2 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg shadow-md px-6 py-2 animate-bounce"
       >
-        Đặt bàn khác
+        {t('success.newBooking')}
       </Button>
     </div>
   )

@@ -18,6 +18,7 @@ export function normalizeInput(input: ReservationInput): ReservationInput {
     tableId: input.tableId,
     secondaryTableIds: input.secondaryTableIds,
     status: input.status,
+    locale: input.locale ?? 'vi',
   }
 }
 

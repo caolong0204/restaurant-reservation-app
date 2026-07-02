@@ -3,7 +3,7 @@ import { AdminDashboard } from '@/components/admin-dashboard'
 import { getStaffAccounts } from '@/lib/admin-account-actions'
 import { getOperatingHoursSnapshot } from '@/lib/operating-hours'
 import { getAdminSnapshot } from '@/lib/reservations/queries'
-import { DEFAULT_WEEKLY_HOURS, formatOperatingHoursLabels } from '@/lib/restaurant'
+import { DEFAULT_WEEKLY_HOURS, formatOperatingHoursLabelsBilingual } from '@/lib/restaurant'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
@@ -37,7 +37,7 @@ export default async function AdminPage() {
     : {
         weeklyHours: DEFAULT_WEEKLY_HOURS,
         displaySettings: { showClosedDaysInFooter: false },
-        footerLabels: formatOperatingHoursLabels(DEFAULT_WEEKLY_HOURS, false),
+        footerLabels: formatOperatingHoursLabelsBilingual(DEFAULT_WEEKLY_HOURS, false),
       }
 
   return (

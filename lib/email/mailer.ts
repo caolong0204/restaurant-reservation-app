@@ -42,12 +42,12 @@ export async function sendConfirmationEmail(
 
   const { subject, text } = renderConfirmationEmail({
     guestName: reservation.name,
-    guestEmail: reservation.email,
     date: reservation.date,
     time: reservation.time,
     partySize: reservation.partySize,
     tableCode,
     reservationId: reservation.id,
+    locale: reservation.locale ?? 'vi',
   })
 
   const fromName = process.env.GMAIL_FROM_NAME ?? 'Flambé Restaurant'

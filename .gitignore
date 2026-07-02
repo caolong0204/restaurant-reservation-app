@@ -19,3 +19,5 @@ tsconfig.tsbuildinfo
 .agents
 playwright-report/
 test-results/
+.vercel
+.env*
